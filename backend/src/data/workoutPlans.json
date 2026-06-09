@@ -1,0 +1,115 @@
+[
+  {
+    "id": "wp1",
+    "name": "Full Body Blast",
+    "category": "strength",
+    "difficulty": "advanced",
+    "duration_min": 42,
+    "calories": 420,
+    "icon": "\ud83d\udcaa",
+    "is_featured": true,
+    "description": "Complete full body strength workout targeting all major muscle groups.",
+    "exercises": [
+      "ex1",
+      "ex2",
+      "ex3",
+      "ex4",
+      "ex5"
+    ]
+  },
+  {
+    "id": "wp2",
+    "name": "Morning Yoga Flow",
+    "category": "flexibility",
+    "difficulty": "beginner",
+    "duration_min": 28,
+    "calories": 180,
+    "icon": "\ud83e\uddd8",
+    "is_featured": false,
+    "description": "Energizing morning yoga sequence to improve flexibility and mindfulness.",
+    "exercises": [
+      "ex11",
+      "ex9"
+    ]
+  },
+  {
+    "id": "wp3",
+    "name": "HIIT Cardio Rush",
+    "category": "hiit",
+    "difficulty": "intermediate",
+    "duration_min": 35,
+    "calories": 510,
+    "icon": "\ud83d\udd25",
+    "is_featured": true,
+    "description": "High-intensity interval training for maximum calorie burn.",
+    "exercises": [
+      "ex6",
+      "ex7",
+      "ex8"
+    ]
+  },
+  {
+    "id": "wp4",
+    "name": "Core Crusher",
+    "category": "core",
+    "difficulty": "intermediate",
+    "duration_min": 20,
+    "calories": 220,
+    "icon": "\u26a1",
+    "is_featured": false,
+    "description": "Intense core strengthening routine for a rock-solid midsection.",
+    "exercises": [
+      "ex9",
+      "ex10",
+      "ex7"
+    ]
+  },
+  {
+    "id": "wp5",
+    "name": "Upper Body Power",
+    "category": "strength",
+    "difficulty": "advanced",
+    "duration_min": 50,
+    "calories": 380,
+    "icon": "\ud83c\udfcb\ufe0f",
+    "is_featured": false,
+    "description": "Build serious upper body strength with this comprehensive program.",
+    "exercises": [
+      "ex2",
+      "ex3",
+      "ex5"
+    ]
+  },
+  {
+    "id": "wp6",
+    "name": "Zen Recovery",
+    "category": "recovery",
+    "difficulty": "beginner",
+    "duration_min": 15,
+    "calories": 90,
+    "icon": "\ud83c\udf3f",
+    "is_featured": false,
+    "description": "Gentle recovery session to reduce soreness and improve mobility.",
+    "exercises": [
+      "ex11",
+      "ex12"
+    ]
+  },
+  {
+    "id": "wp7",
+    "name": "Cardio Run Blast",
+    "category": "cardio",
+    "difficulty": "intermediate",
+    "duration_min": 30,
+    "calories": 360,
+    "icon": "\ud83c\udfc3",
+    "is_featured": true,
+    "description": "High-energy cardio session with running form training.",
+    "exercises": [
+      "Running",
+      "Burpees",
+      "Jump Rope",
+      "Mountain Climbers"
+    ]
+  }
+]

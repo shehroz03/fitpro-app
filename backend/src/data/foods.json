@@ -1,0 +1,227 @@
+[
+  {
+    "id":"f1","name":"Chicken Breast","brand":"Grilled","category":"protein",
+    "goal":["weight_gain","weight_loss","muscle_gain"],
+    "serving_size_g":150,"calories":248,"protein_g":46,"carbs_g":0,"fat_g":5,
+    "image":"https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=400&q=80",
+    "servings_per_day":3,"best_time":["lunch","dinner","post_workout"],
+    "tip":"High protein, low fat. Best post-workout.",
+    "gain_plan":{"servings":3,"total_cal":744,"reason":"46g protein per serving builds muscle fast"}
+  },
+  {
+    "id":"f2","name":"Brown Rice","brand":"Cooked","category":"carbs",
+    "goal":["weight_gain","muscle_gain"],
+    "serving_size_g":200,"calories":216,"protein_g":5,"carbs_g":45,"fat_g":2,
+    "image":"https://images.unsplash.com/photo-1536304993881-ff86e0c9b23b?w=400&q=80",
+    "servings_per_day":3,"best_time":["lunch","dinner","pre_workout"],
+    "tip":"Slow-digesting carbs for sustained energy.",
+    "gain_plan":{"servings":3,"total_cal":648,"reason":"Complex carbs fuel intense workouts"}
+  },
+  {
+    "id":"f3","name":"Whole Eggs","brand":"Large","category":"protein",
+    "goal":["weight_gain","muscle_gain"],
+    "serving_size_g":100,"calories":155,"protein_g":13,"carbs_g":1,"fat_g":11,
+    "image":"https://images.unsplash.com/photo-1506976785307-8732e854ad03?w=400&q=80",
+    "servings_per_day":4,"best_time":["breakfast","pre_workout"],
+    "tip":"Complete protein with healthy fats.",
+    "gain_plan":{"servings":4,"total_cal":620,"reason":"Testosterone-boosting cholesterol + fast protein"}
+  },
+  {
+    "id":"f4","name":"Oatmeal","brand":"Rolled Oats","category":"carbs",
+    "goal":["weight_gain","weight_loss","muscle_gain"],
+    "serving_size_g":80,"calories":300,"protein_g":10,"carbs_g":54,"fat_g":6,
+    "image":"https://images.unsplash.com/photo-1517673400267-0251440c45dc?w=400&q=80",
+    "servings_per_day":2,"best_time":["breakfast","pre_workout"],
+    "tip":"Best pre-workout breakfast for energy.",
+    "gain_plan":{"servings":2,"total_cal":600,"reason":"Fiber + carbs for morning fuel"}
+  },
+  {
+    "id":"f5","name":"Banana","brand":"Fresh","category":"fruits",
+    "goal":["weight_gain","muscle_gain"],
+    "serving_size_g":120,"calories":107,"protein_g":1,"carbs_g":27,"fat_g":0,
+    "image":"https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=400&q=80",
+    "servings_per_day":3,"best_time":["pre_workout","breakfast","snack"],
+    "tip":"Quick energy before workout. Perfect with protein shake.",
+    "gain_plan":{"servings":3,"total_cal":321,"reason":"Fast carbs spike insulin — helps muscle growth"}
+  },
+  {
+    "id":"f6","name":"Peanut Butter","brand":"Natural","category":"fats",
+    "goal":["weight_gain","muscle_gain"],
+    "serving_size_g":32,"calories":188,"protein_g":8,"carbs_g":6,"fat_g":16,
+    "image":"https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80",
+    "servings_per_day":3,"best_time":["breakfast","snack","pre_workout"],
+    "tip":"Calorie-dense. 2 tbsp = 188 kcal. Add to shakes.",
+    "gain_plan":{"servings":3,"total_cal":564,"reason":"Dense calories + healthy fats for bulking"}
+  },
+  {
+    "id":"f7","name":"Whole Milk","brand":"Full Fat","category":"dairy",
+    "goal":["weight_gain","muscle_gain"],
+    "serving_size_g":250,"calories":150,"protein_g":8,"carbs_g":12,"fat_g":8,
+    "image":"https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400&q=80",
+    "servings_per_day":3,"best_time":["breakfast","post_workout","bedtime"],
+    "tip":"GOMAD (Gallon of Milk a Day) — classic bulk drink.",
+    "gain_plan":{"servings":3,"total_cal":450,"reason":"Protein + casein before bed prevents muscle breakdown"}
+  },
+  {
+    "id":"f8","name":"Avocado","brand":"Fresh","category":"fats",
+    "goal":["weight_gain","weight_loss","muscle_gain"],
+    "serving_size_g":150,"calories":240,"protein_g":3,"carbs_g":13,"fat_g":22,
+    "image":"https://images.unsplash.com/photo-1523049673857-eb18f1d7b578?w=400&q=80",
+    "servings_per_day":2,"best_time":["breakfast","lunch"],
+    "tip":"Healthy monounsaturated fats. Good for hormones.",
+    "gain_plan":{"servings":2,"total_cal":480,"reason":"Healthy fats boost testosterone for muscle gain"}
+  },
+  {
+    "id":"f9","name":"Sweet Potato","brand":"Baked","category":"carbs",
+    "goal":["weight_gain","muscle_gain"],
+    "serving_size_g":200,"calories":172,"protein_g":4,"carbs_g":40,"fat_g":0,
+    "image":"https://images.unsplash.com/photo-1596097635121-14b38c5d7a27?w=400&q=80",
+    "servings_per_day":2,"best_time":["lunch","dinner","pre_workout"],
+    "tip":"Complex carbs + vitamins. Best carb for athletes.",
+    "gain_plan":{"servings":2,"total_cal":344,"reason":"Slow carbs fuel long workouts, refill glycogen"}
+  },
+  {
+    "id":"f10","name":"Whey Protein","brand":"Gold Standard","category":"supplements",
+    "goal":["weight_gain","weight_loss","muscle_gain"],
+    "serving_size_g":30,"calories":120,"protein_g":24,"carbs_g":3,"fat_g":1,
+    "image":"https://images.unsplash.com/photo-1593095948071-474c5cc2989d?w=400&q=80",
+    "servings_per_day":2,"best_time":["post_workout","breakfast"],
+    "tip":"Fast-absorbing protein. Take within 30 min post-workout.",
+    "gain_plan":{"servings":2,"total_cal":240,"reason":"Fast protein synthesis post-workout for muscle repair"}
+  },
+  {
+    "id":"f11","name":"Salmon","brand":"Baked","category":"protein",
+    "goal":["weight_gain","weight_loss","muscle_gain"],
+    "serving_size_g":150,"calories":280,"protein_g":34,"carbs_g":0,"fat_g":14,
+    "image":"https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=400&q=80",
+    "servings_per_day":2,"best_time":["lunch","dinner"],
+    "tip":"Omega-3 reduces inflammation, speeds recovery.",
+    "gain_plan":{"servings":2,"total_cal":560,"reason":"Omega-3 boosts protein synthesis + joint health"}
+  },
+  {
+    "id":"f12","name":"Greek Yogurt","brand":"Full Fat","category":"dairy",
+    "goal":["weight_gain","weight_loss","muscle_gain"],
+    "serving_size_g":200,"calories":190,"protein_g":20,"carbs_g":8,"fat_g":10,
+    "image":"https://images.unsplash.com/photo-1488477181946-6428a0291777?w=400&q=80",
+    "servings_per_day":2,"best_time":["breakfast","snack","bedtime"],
+    "tip":"Casein protein — slow release. Great before bed.",
+    "gain_plan":{"servings":2,"total_cal":380,"reason":"Casein protein feeds muscles 7 hours while sleeping"}
+  },
+  {
+    "id":"f13","name":"Almonds","brand":"Raw","category":"nuts",
+    "goal":["weight_gain","muscle_gain"],
+    "serving_size_g":50,"calories":290,"protein_g":11,"carbs_g":11,"fat_g":25,
+    "image":"https://images.unsplash.com/photo-1508061253366-f7da158b6d46?w=400&q=80",
+    "servings_per_day":2,"best_time":["snack","breakfast"],
+    "tip":"Most calorie-dense snack. Handful = 290 kcal.",
+    "gain_plan":{"servings":2,"total_cal":580,"reason":"Calorie-dense snack between meals to hit surplus"}
+  },
+  {
+    "id":"f14","name":"Quinoa","brand":"Cooked","category":"carbs",
+    "goal":["weight_gain","muscle_gain"],
+    "serving_size_g":185,"calories":222,"protein_g":8,"carbs_g":40,"fat_g":4,
+    "image":"https://images.unsplash.com/photo-1505576399279-565b52d4ac71?w=400&q=80",
+    "servings_per_day":2,"best_time":["lunch","dinner"],
+    "tip":"Only plant complete protein. All 9 essential amino acids.",
+    "gain_plan":{"servings":2,"total_cal":444,"reason":"Complete protein + complex carbs combo for gains"}
+  },
+  {
+    "id":"f15","name":"Steak","brand":"Lean Beef","category":"protein",
+    "goal":["weight_gain","muscle_gain"],
+    "serving_size_g":150,"calories":330,"protein_g":43,"carbs_g":0,"fat_g":16,
+    "image":"https://images.unsplash.com/photo-1558030006-450675393462?w=400&q=80",
+    "servings_per_day":1,"best_time":["dinner","lunch"],
+    "tip":"Creatine, zinc, iron — the best muscle-building meat.",
+    "gain_plan":{"servings":1,"total_cal":330,"reason":"Creatine in red meat directly boosts gym performance"}
+  },
+  {
+    "id":"f16","name":"Mass Gainer Shake","brand":"Serious Mass","category":"supplements",
+    "goal":["weight_gain"],
+    "serving_size_g":334,"calories":1250,"protein_g":50,"carbs_g":250,"fat_g":9,
+    "image":"https://images.unsplash.com/photo-1593095948071-474c5cc2989d?w=400&q=80",
+    "servings_per_day":1,"best_time":["post_workout","morning"],
+    "tip":"Fastest way to hit calorie surplus. 1250 kcal in one shake!",
+    "gain_plan":{"servings":1,"total_cal":1250,"reason":"Instant calorie surplus for hard gainers (ectomorphs)"}
+  },
+  {
+    "id":"f17","name":"Olive Oil","brand":"Extra Virgin","category":"fats",
+    "goal":["weight_gain","muscle_gain"],
+    "serving_size_g":15,"calories":119,"protein_g":0,"carbs_g":0,"fat_g":14,
+    "image":"https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=400&q=80",
+    "servings_per_day":4,"best_time":["lunch","dinner"],
+    "tip":"Add to every meal. 1 tbsp = 119 kcal instantly.",
+    "gain_plan":{"servings":4,"total_cal":476,"reason":"Easiest way to add calories — just pour over food"}
+  },
+  {
+    "id":"f18","name":"Cottage Cheese","brand":"Low Fat","category":"dairy",
+    "goal":["weight_loss","muscle_gain"],
+    "serving_size_g":200,"calories":160,"protein_g":28,"carbs_g":6,"fat_g":4,
+    "image":"https://images.unsplash.com/photo-1631898039952-2aba13523888?w=400&q=80",
+    "servings_per_day":2,"best_time":["snack","bedtime"],
+    "tip":"Highest protein dairy. Perfect bedtime snack.",
+    "loss_plan":{"servings":2,"total_cal":320,"reason":"High protein keeps you full while cutting calories"}
+  },
+  {
+    "id":"f19","name":"Spinach","brand":"Fresh","category":"vegetables",
+    "goal":["weight_loss","muscle_gain"],
+    "serving_size_g":100,"calories":23,"protein_g":3,"carbs_g":4,"fat_g":0,
+    "image":"https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=400&q=80",
+    "servings_per_day":3,"best_time":["lunch","dinner"],
+    "tip":"Only 23 kcal. Eat unlimited — fills stomach.",
+    "loss_plan":{"servings":3,"total_cal":69,"reason":"Volume eating — fills stomach with almost zero calories"}
+  },
+  {
+    "id":"f20","name":"Chicken Salad","brand":"No Dressing","category":"meals",
+    "goal":["weight_loss"],
+    "serving_size_g":300,"calories":280,"protein_g":35,"carbs_g":12,"fat_g":8,
+    "image":"https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&q=80",
+    "servings_per_day":2,"best_time":["lunch","dinner"],
+    "tip":"High protein, low calorie complete meal.",
+    "loss_plan":{"servings":2,"total_cal":560,"reason":"High protein prevents muscle loss while in calorie deficit"}
+  },
+  {
+    "id":"f21","name":"Broccoli","brand":"Steamed","category":"vegetables",
+    "goal":["weight_loss","muscle_gain"],
+    "serving_size_g":150,"calories":51,"protein_g":4,"carbs_g":10,"fat_g":1,
+    "image":"https://images.unsplash.com/photo-1459411621453-7b03977f4bfc?w=400&q=80",
+    "servings_per_day":3,"best_time":["lunch","dinner"],
+    "tip":"Fiber-rich, fills you up, supports testosterone.",
+    "loss_plan":{"servings":3,"total_cal":153,"reason":"High fiber slows digestion, reduces hunger for hours"}
+  },
+  {
+    "id":"f22","name":"Green Tea","brand":"Brewed","category":"drinks",
+    "goal":["weight_loss"],
+    "serving_size_g":240,"calories":2,"protein_g":0,"carbs_g":0,"fat_g":0,
+    "image":"https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=400&q=80",
+    "servings_per_day":3,"best_time":["morning","pre_workout","afternoon"],
+    "tip":"Burns 80-100 extra kcal/day. EGCG boosts metabolism.",
+    "loss_plan":{"servings":3,"total_cal":6,"reason":"Catechins boost metabolism by 4-5% — burns fat faster"}
+  },
+  {
+    "id":"f23","name":"Tuna Can","brand":"In Water","category":"protein",
+    "goal":["weight_loss","muscle_gain"],
+    "serving_size_g":165,"calories":145,"protein_g":34,"carbs_g":0,"fat_g":1,
+    "image":"https://images.unsplash.com/photo-1615141982883-c7ad0e69fd62?w=400&q=80",
+    "servings_per_day":2,"best_time":["lunch","snack"],
+    "tip":"34g protein, 1g fat — king of cutting foods.",
+    "loss_plan":{"servings":2,"total_cal":290,"reason":"Pure protein with almost zero fat — ideal for cutting"}
+  },
+  {
+    "id":"f24","name":"Apple","brand":"Fresh","category":"fruits",
+    "goal":["weight_loss"],
+    "serving_size_g":182,"calories":95,"protein_g":0,"carbs_g":25,"fat_g":0,
+    "image":"https://images.unsplash.com/photo-1568702846914-96b305d2aaeb?w=400&q=80",
+    "servings_per_day":2,"best_time":["snack","morning"],
+    "tip":"Pectin fiber reduces hunger for 3-4 hours.",
+    "loss_plan":{"servings":2,"total_cal":190,"reason":"Pectin suppresses appetite — natural hunger killer"}
+  },
+  {
+    "id":"f25","name":"Egg Whites","brand":"Cooked","category":"protein",
+    "goal":["weight_loss","muscle_gain"],
+    "serving_size_g":100,"calories":52,"protein_g":11,"carbs_g":1,"fat_g":0,
+    "image":"https://images.unsplash.com/photo-1482049016688-2d3e1b311543?w=400&q=80",
+    "servings_per_day":3,"best_time":["breakfast","post_workout"],
+    "tip":"Zero fat protein. 11g protein for only 52 calories!",
+    "loss_plan":{"servings":3,"total_cal":156,"reason":"Maximum protein per calorie ratio — best cutting food"}
+  }
+]
