@@ -1,8 +1,11 @@
 const { getDefaultConfig } = require('expo/metro-config');
+const path = require('path');
 
 module.exports = (() => {
   const config = getDefaultConfig(__dirname);
-  const { transformer, resolver } = config;
+  const { transformer, resolver, serializer } = config;
+
+  // Removed manual getPolyfills override
 
   config.transformer = {
     ...transformer,

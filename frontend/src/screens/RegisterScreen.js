@@ -36,7 +36,7 @@ export default function RegisterScreen({ navigation }) {
     try {
       await register(form);
     } catch (e) {
-      Alert.alert('Registration Failed', e.response?.data?.message || 'Could not connect to server. Make sure backend is running.');
+      Alert.alert('Registration Failed', e.message || e.response?.data?.message || 'Could not connect to server.');
     } finally {
       setLoading(false);
     }

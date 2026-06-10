@@ -27,7 +27,7 @@ export default function WorkoutsScreen({ navigation }) {
       const res = await workoutAPI.getPlans(params);
       setPlans(res.data.data || []);
     } catch {
-      Alert.alert('Error', 'Could not load workouts. Is the backend running?');
+      Alert.alert('Error', 'Could not load workouts. Check your connection.');
     } finally {
       setLoading(false);
       setRefresh(false);

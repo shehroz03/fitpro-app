@@ -20,7 +20,7 @@ export default function LoginScreen({ navigation }) {
       await login(email.trim(), password);
       // Navigation handled by RootNavigator watching isLoggedIn
     } catch (e) {
-      Alert.alert('Login Failed', e.response?.data?.message || 'Check your credentials and server connection');
+      Alert.alert('Login Failed', e.message || e.response?.data?.message || 'Check your credentials');
     } finally {
       setLoading(false);
     }

@@ -1,63 +1,80 @@
 import { create } from 'zustand';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { authAPI } from '../api/services';
+import { supabase } from '../api/supabase';
+
+// Fetch the user's profile row (created automatically by a DB trigger on signup)
+async function fetchProfile(userId) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .single();
+  if (error) throw error;
+  return data;
+}
 
 export const useAuthStore = create((set, get) => ({
-  user:         null,
-  accessToken:  null,
-  isLoading:    true,
-  isLoggedIn:   false,
+  user:        null,
+  accessToken: null,
+  isLoading:   true,
+  isLoggedIn:  false,
 
-  // ── Hydrate from storage on app start ──────────────────────
+  // ── Restore session on app start ────────────────────────────
   hydrate: async () => {
     try {
-      const [token, userStr] = await AsyncStorage.multiGet(['access_token', 'user']);
-      if (token[1] && userStr[1]) {
-        set({ accessToken: token[1], user: JSON.parse(userStr[1]), isLoggedIn: true });
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const profile = await fetchProfile(session.user.id);
+        set({ user: profile, accessToken: session.access_token, isLoggedIn: true });
       }
-    } catch {}
-    set({ isLoading: false });
+    } catch (e) {
+      console.log('hydrate error:', e.message);
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  // ── Register ────────────────────────────────────────────────
+  register: async ({ full_name, email, password }) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { full_name } },
+    });
+    if (error) throw new Error(error.message);
+    if (!data.session) {
+      // Happens when "Confirm email" is ON in Supabase. Turn it OFF for instant login.
+      throw new Error('Account created. Please disable email confirmation in Supabase, or verify your email.');
+    }
+    const profile = await fetchProfile(data.user.id);
+    set({ user: profile, accessToken: data.session.access_token, isLoggedIn: true });
+    return profile;
   },
 
   // ── Login ───────────────────────────────────────────────────
   login: async (email, password) => {
-    const { data } = await authAPI.login({ email, password });
-    const { user, access_token, refresh_token } = data.data;
-    await AsyncStorage.multiSet([
-      ['access_token',  access_token],
-      ['refresh_token', refresh_token],
-      ['user',          JSON.stringify(user)],
-    ]);
-    set({ user, accessToken: access_token, isLoggedIn: true });
-    return user;
-  },
-
-  // ── Register ────────────────────────────────────────────────
-  register: async (payload) => {
-    const { data } = await authAPI.register(payload);
-    const { user, access_token, refresh_token } = data.data;
-    await AsyncStorage.multiSet([
-      ['access_token',  access_token],
-      ['refresh_token', refresh_token],
-      ['user',          JSON.stringify(user)],
-    ]);
-    set({ user, accessToken: access_token, isLoggedIn: true });
-    return user;
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw new Error(error.message);
+    const profile = await fetchProfile(data.user.id);
+    set({ user: profile, accessToken: data.session.access_token, isLoggedIn: true });
+    return profile;
   },
 
   // ── Logout ──────────────────────────────────────────────────
   logout: async () => {
-    try {
-      const rt = await AsyncStorage.getItem('refresh_token');
-      await authAPI.logout(rt);
-    } catch {}
-    await AsyncStorage.multiRemove(['access_token', 'refresh_token', 'user']);
+    try { await supabase.auth.signOut(); } catch {}
     set({ user: null, accessToken: null, isLoggedIn: false });
   },
 
-  // ── Update user in store ────────────────────────────────────
-  setUser: async (user) => {
-    set({ user });
-    await AsyncStorage.setItem('user', JSON.stringify(user));
+  // ── Update profile fields ───────────────────────────────────
+  setUser: async (updates) => {
+    const current = get().user;
+    if (!current) return;
+    const { data, error } = await supabase
+      .from('profiles')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', current.id)
+      .select()
+      .single();
+    if (!error && data) set({ user: data });
   },
 }));

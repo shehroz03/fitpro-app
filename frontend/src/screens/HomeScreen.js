@@ -30,7 +30,7 @@ export default function HomeScreen({ navigation }) {
       setNutri(nRes.data.data);
       setGoals(gRes.data.data || []);
     } catch {
-      Alert.alert('Connection Error', 'Make sure backend is running on port 5000.');
+      Alert.alert('Connection Error', 'Failed to connect to the database. Please check your connection.');
     } finally {
       setLoading(false);
       setRefresh(false);

@@ -27,6 +27,39 @@ const CAT_ICONS = {
   drinks:'🍵', meals:'🍽️',
 };
 
+const getFoodBenefits = (food) => {
+  const n = food.name.toLowerCase();
+  if (n.includes('banana'))                          return ['Quick energy boost', 'Rich in potassium'];
+  if (n.includes('egg'))                             return ['Complete protein source', 'Rich in vitamin D'];
+  if (n.includes('chicken') || n.includes('turkey')) return ['Lean muscle-building protein', 'Low saturated fat'];
+  if (n.includes('oat'))                             return ['Slow-release energy carbs', 'Supports heart health'];
+  if (n.includes('brown rice') || n.includes('rice'))return ['Fast energy from carbs', 'Easy to digest'];
+  if (n.includes('salmon') || n.includes('tuna') || n.includes('fish')) return ['Omega-3 for heart health', 'High-quality protein'];
+  if (n.includes('almond') || n.includes('peanut') || n.includes('cashew')) return ['Heart-healthy fats', 'Vitamin E rich'];
+  if (n.includes('milk') || n.includes('yogurt') || n.includes('paneer')) return ['Calcium for strong bones', 'Probiotic support'];
+  if (n.includes('sweet potato') || n.includes('potato')) return ['Complex carb energy', 'Vitamin A & C source'];
+  if (n.includes('broccoli') || n.includes('spinach')) return ['Rich in micronutrients', 'Anti-inflammatory'];
+  if (n.includes('protein') || n.includes('whey'))   return ['Fast muscle recovery', 'Complete amino acids'];
+  if (n.includes('avocado'))                         return ['Healthy monounsaturated fats', 'Supports hormone health'];
+  if (n.includes('apple') || n.includes('mango') || n.includes('orange')) return ['Natural vitamins & fiber', 'Antioxidant-rich'];
+  if (n.includes('bread') || n.includes('pasta') || n.includes('roti'))   return ['Energy from complex carbs', 'B-vitamins for energy'];
+  if (n.includes('dal') || n.includes('lentil') || n.includes('bean'))    return ['Plant-based protein', 'High in dietary fiber'];
+  if (n.includes('olive oil') || n.includes('coconut'))                    return ['Anti-inflammatory fats', 'Supports heart health'];
+  const { protein_g: p, carbs_g: c, fat_g: f, category } = food;
+  const b = [];
+  if (p >= 20) b.push('High protein for muscle growth');
+  else if (p >= 10) b.push('Good protein source');
+  if (c >= 30) b.push('Fast fuel for workouts');
+  else if (c >= 15) b.push('Steady energy supply');
+  if (f >= 15) b.push('Healthy fats for hormones');
+  if (category === 'fruits')      b.push('Natural vitamins & fiber');
+  if (category === 'vegetables')  b.push('Rich in micronutrients');
+  if (category === 'dairy')       b.push('Calcium for strong bones');
+  if (category === 'supplements') b.push('Fast nutrient absorption');
+  if (category === 'drinks')      b.push('Hydrates and energizes');
+  return b.slice(0, 2).length ? b.slice(0, 2) : ['Nutritious whole food', 'Supports daily goals'];
+};
+
 // ── Macro bar mini ─────────────────────────────────────────────
 const MacroMini = ({ p, c, f }) => {
   const tot = p + c + f || 1;
@@ -45,14 +78,14 @@ const mm = StyleSheet.create({
 
 // ── Food Card ─────────────────────────────────────────────────
 const FoodCard = ({ food, selected, onToggle, goal }) => {
-  const plan = goal === 'weight_gain'
-    ? food.gain_plan
-    : food.loss_plan;
-  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const plan     = goal === 'weight_gain' ? food.gain_plan : food.loss_plan;
+  const benefits = getFoodBenefits(food);
+  const timingKeys = (food.best_time || []).slice(0, 3);
+  const scaleAnim  = useRef(new Animated.Value(1)).current;
 
   const handlePress = () => {
     Animated.sequence([
-      Animated.spring(scaleAnim, { toValue:0.94, useNativeDriver:true, speed:50 }),
+      Animated.spring(scaleAnim, { toValue:0.96, useNativeDriver:true, speed:50 }),
       Animated.spring(scaleAnim, { toValue:1,    useNativeDriver:true, speed:50 }),
     ]).start();
     onToggle(food);
@@ -65,65 +98,89 @@ const FoodCard = ({ food, selected, onToggle, goal }) => {
         onPress={handlePress}
         activeOpacity={0.88}
       >
-        {/* Food Image */}
-        <View style={fc.imgWrap}>
-          <Image
-            source={{ uri: food.image }}
-            style={fc.img}
-            resizeMode="cover"
-            onError={() => {}}
-            defaultSource={{ uri: 'https://placehold.co/400x200/111118/C8F135.png?text=' + encodeURIComponent(food.name) }}
-          />
-          {/* Calorie Badge */}
-          <View style={fc.calBadge}>
-            <Text style={fc.calBadgeTxt}>{food.calories}</Text>
-            <Text style={fc.calBadgeSub}>kcal</Text>
-          </View>
-          {/* Selected tick */}
-          {selected && (
-            <View style={fc.tick}>
-              <Text style={{ fontSize:14 }}>✓</Text>
+        {/* TOP ROW: image left + detail box right */}
+        <View style={fc.topRow}>
+
+          {/* Left — Food Image */}
+          <View style={fc.imgWrap}>
+            <Image
+              source={{ uri: food.image }}
+              style={fc.img}
+              resizeMode="cover"
+              onError={() => {}}
+              defaultSource={{ uri: 'https://placehold.co/200x200/111118/C8F135.png?text=' + encodeURIComponent(food.name) }}
+            />
+            {selected && (
+              <View style={fc.tick}>
+                <Text style={{ fontSize:11, color:'#0A0A0F', fontWeight:'900' }}>✓</Text>
+              </View>
+            )}
+            <View style={fc.catIcon}>
+              <Text style={{ fontSize:11 }}>{CAT_ICONS[food.category]||'🍽️'}</Text>
             </View>
-          )}
-          {/* Category icon */}
-          <View style={fc.catIcon}>
-            <Text style={{ fontSize:12 }}>{CAT_ICONS[food.category]||'🍽️'}</Text>
+          </View>
+
+          {/* Right — Detail Box */}
+          <View style={fc.detailBox}>
+            {/* Name + calorie pill */}
+            <View style={fc.nameRow}>
+              <Text style={fc.name} numberOfLines={2}>{food.name}</Text>
+              <View style={fc.calPill}>
+                <Text style={fc.calNum}>{food.calories}</Text>
+                <Text style={fc.calUnit}>kcal</Text>
+              </View>
+            </View>
+            <Text style={fc.serving}>{food.serving_size_g}g per serving</Text>
+
+            <View style={fc.divider} />
+
+            {/* Benefits */}
+            <View style={fc.benefitsBox}>
+              {benefits.map((b, i) => (
+                <View key={i} style={fc.benefitRow}>
+                  <Text style={fc.benefitDot}>◆</Text>
+                  <Text style={fc.benefitTxt} numberOfLines={1}>{b}</Text>
+                </View>
+              ))}
+            </View>
+
+            <View style={fc.divider} />
+
+            {/* When to eat */}
+            <View style={fc.timingRow}>
+              {timingKeys.map(t => (
+                <View key={t} style={[fc.timeChip, { backgroundColor:`${MEAL_TIMES[t]?.color||C.accent}25` }]}>
+                  <Text style={{ fontSize:8 }}>{MEAL_TIMES[t]?.icon}</Text>
+                  <Text style={[fc.timeChipTxt, { color:MEAL_TIMES[t]?.color||C.accent }]}>
+                    {MEAL_TIMES[t]?.label||t}
+                  </Text>
+                </View>
+              ))}
+            </View>
+
+            {/* Why to eat */}
+            {plan && (
+              <View style={fc.whyRow}>
+                <Text style={fc.whyIcon}>{goal === 'weight_gain' ? '📈' : '📉'}</Text>
+                <Text style={fc.whyTxt} numberOfLines={2}>{plan.reason}</Text>
+              </View>
+            )}
           </View>
         </View>
 
-        {/* Info */}
-        <View style={fc.info}>
-          <Text style={fc.name} numberOfLines={1}>{food.name}</Text>
-          <Text style={fc.serving}>{food.serving_size_g}g serving</Text>
+        {/* BOTTOM: macros + plan kcal + tip */}
+        <View style={fc.bottom}>
           <MacroMini p={food.protein_g} c={food.carbs_g} f={food.fat_g} />
           <View style={fc.macroRow}>
             <Text style={[fc.macroLbl, { color:C.blue   }]}>P {food.protein_g}g</Text>
             <Text style={[fc.macroLbl, { color:C.orange }]}>C {food.carbs_g}g</Text>
             <Text style={[fc.macroLbl, { color:C.purple }]}>F {food.fat_g}g</Text>
-          </View>
-
-          {/* Timing chips */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop:6 }}>
-            {(food.best_time||[]).map(t => (
-              <View key={t} style={[fc.timeChip, { backgroundColor:`${MEAL_TIMES[t]?.color||C.accent}22` }]}>
-                <Text style={{ fontSize:9 }}>{MEAL_TIMES[t]?.icon}</Text>
-                <Text style={[fc.timeChipTxt, { color:MEAL_TIMES[t]?.color||C.accent }]}>
-                  {MEAL_TIMES[t]?.label||t}
-                </Text>
-              </View>
-            ))}
-          </ScrollView>
-
-          {/* Plan info */}
-          {plan && (
-            <View style={fc.planBox}>
-              <Text style={fc.planTxt}>
-                {goal === 'weight_gain' ? '📈' : '📉'} {plan.servings}x/day = <Text style={{ color:C.accent, fontWeight:'800' }}>{plan.total_cal} kcal</Text>
+            {plan && (
+              <Text style={fc.planPill}>
+                {plan.servings}x/day · <Text style={{ color:C.accent }}>{plan.total_cal} kcal</Text>
               </Text>
-              <Text style={fc.planReason} numberOfLines={2}>{plan.reason}</Text>
-            </View>
-          )}
-
+            )}
+          </View>
           {food.tip && (
             <Text style={fc.tip} numberOfLines={2}>💡 {food.tip}</Text>
           )}
@@ -136,30 +193,55 @@ const fc = StyleSheet.create({
   card:         { backgroundColor:C.card, borderRadius:16, borderWidth:1, borderColor:C.border,
                   marginBottom:12, overflow:'hidden' },
   cardSelected: { borderColor:C.accent, borderWidth:2, backgroundColor:'rgba(200,241,53,0.04)' },
-  imgWrap:      { height:160, position:'relative' },
+
+  // TOP row
+  topRow:       { flexDirection:'row', minHeight:160 },
+
+  // Image (left side ~42%)
+  imgWrap:      { width:'42%', position:'relative' },
   img:          { width:'100%', height:'100%' },
-  calBadge:     { position:'absolute', top:10, right:10, backgroundColor:'rgba(0,0,0,0.75)',
-                  borderRadius:10, paddingHorizontal:8, paddingVertical:4, alignItems:'center',
-                  borderWidth:1, borderColor:'rgba(200,241,53,0.5)' },
-  calBadgeTxt:  { color:C.accent, fontSize:16, fontWeight:'900', lineHeight:18 },
-  calBadgeSub:  { color:C.muted,  fontSize:8,  fontWeight:'600' },
-  tick:         { position:'absolute', top:10, left:10, backgroundColor:C.accent,
-                  borderRadius:12, width:26, height:26, alignItems:'center', justifyContent:'center' },
-  catIcon:      { position:'absolute', bottom:10, left:10, backgroundColor:'rgba(0,0,0,0.6)',
-                  borderRadius:8, width:28, height:28, alignItems:'center', justifyContent:'center' },
-  info:         { padding:12 },
-  name:         { color:C.text, fontSize:15, fontWeight:'800', marginBottom:2 },
-  serving:      { color:C.dim,  fontSize:11, marginBottom:2 },
-  macroRow:     { flexDirection:'row', gap:8, marginTop:4 },
+  tick:         { position:'absolute', top:8, left:8, backgroundColor:C.accent,
+                  borderRadius:10, width:22, height:22, alignItems:'center', justifyContent:'center' },
+  catIcon:      { position:'absolute', bottom:8, left:8, backgroundColor:'rgba(0,0,0,0.65)',
+                  borderRadius:7, width:24, height:24, alignItems:'center', justifyContent:'center' },
+
+  // Detail box (right side ~58%)
+  detailBox:    { flex:1, padding:10, justifyContent:'space-between',
+                  borderLeftWidth:1, borderLeftColor:C.border },
+  nameRow:      { flexDirection:'row', alignItems:'flex-start', gap:6 },
+  name:         { color:C.text, fontSize:13, fontWeight:'800', flex:1, lineHeight:17 },
+  calPill:      { backgroundColor:'rgba(200,241,53,0.15)', borderRadius:8,
+                  paddingHorizontal:6, paddingVertical:3, alignItems:'center',
+                  borderWidth:1, borderColor:'rgba(200,241,53,0.3)', minWidth:42 },
+  calNum:       { color:C.accent, fontSize:14, fontWeight:'900', lineHeight:16 },
+  calUnit:      { color:C.muted, fontSize:7, fontWeight:'700', letterSpacing:0.5 },
+  serving:      { color:C.dim, fontSize:10, marginTop:2 },
+  divider:      { height:1, backgroundColor:C.border, marginVertical:6 },
+
+  // Benefits
+  benefitsBox:  { gap:4 },
+  benefitRow:   { flexDirection:'row', alignItems:'center', gap:5 },
+  benefitDot:   { color:C.accent, fontSize:5 },
+  benefitTxt:   { color:C.muted, fontSize:10, fontWeight:'600', flex:1, lineHeight:13 },
+
+  // Timing
+  timingRow:    { flexDirection:'row', flexWrap:'wrap', gap:3 },
+  timeChip:     { flexDirection:'row', alignItems:'center', gap:2, borderRadius:6,
+                  paddingHorizontal:5, paddingVertical:2 },
+  timeChipTxt:  { fontSize:8, fontWeight:'700' },
+
+  // Why to eat
+  whyRow:       { flexDirection:'row', alignItems:'flex-start', gap:4, marginTop:3 },
+  whyIcon:      { fontSize:10, lineHeight:14 },
+  whyTxt:       { color:C.dim, fontSize:9, lineHeight:13, flex:1, fontStyle:'italic' },
+
+  // BOTTOM bar
+  bottom:       { paddingHorizontal:12, paddingBottom:10, paddingTop:8,
+                  borderTopWidth:1, borderTopColor:C.border },
+  macroRow:     { flexDirection:'row', gap:8, marginTop:5, alignItems:'center' },
   macroLbl:     { fontSize:10, fontWeight:'700' },
-  timeChip:     { flexDirection:'row', alignItems:'center', gap:3, borderRadius:8,
-                  paddingHorizontal:7, paddingVertical:3, marginRight:5 },
-  timeChipTxt:  { fontSize:9, fontWeight:'700' },
-  planBox:      { backgroundColor:'rgba(200,241,53,0.08)', borderRadius:8, padding:8,
-                  marginTop:8, borderWidth:1, borderColor:'rgba(200,241,53,0.2)' },
-  planTxt:      { color:C.text, fontSize:12, fontWeight:'700', marginBottom:2 },
-  planReason:   { color:C.muted, fontSize:11, lineHeight:15 },
-  tip:          { color:C.dim, fontSize:11, marginTop:6, lineHeight:15 },
+  planPill:     { marginLeft:'auto', color:C.muted, fontSize:10, fontWeight:'700' },
+  tip:          { color:C.dim, fontSize:10, marginTop:5, lineHeight:14 },
 });
 
 // ── Meal Plan Row ─────────────────────────────────────────────
@@ -216,6 +298,7 @@ export default function NutritionScreen({ navigation }) {
   const [logMealType,   setLogMealType]   = useState('lunch');
   const [logging,       setLogging]       = useState(false);
   const [userGoals,     setUserGoals]     = useState([]);
+  const [showSummary,   setShowSummary]   = useState(false);
 
   // AI Scanner States
   const [aiImage,       setAiImage]       = useState(null);
@@ -239,7 +322,7 @@ export default function NutritionScreen({ navigation }) {
       if (g === 'weight_loss') setActiveGoal('weight_loss');
       else setActiveGoal('weight_gain');
     } catch {
-      Alert.alert('Error', 'Could not load nutrition data. Is backend running?');
+      Alert.alert('Error', 'Could not load nutrition data. Check your connection.');
     } finally {
       setLoading(false);
       setRefresh(false);
@@ -264,6 +347,13 @@ export default function NutritionScreen({ navigation }) {
         food_id:    logFood.id,
         meal_type:  logMealType,
         quantity_g: +logQty,
+        // inline nutrition so AI/custom foods (not in the catalog) log correctly
+        food_name:      logFood.name,
+        calories:       logFood.calories,
+        protein_g:      logFood.protein_g,
+        carbs_g:        logFood.carbs_g,
+        fat_g:          logFood.fat_g,
+        serving_size_g: logFood.serving_size_g,
       });
       setShowLogModal(false);
       load();
