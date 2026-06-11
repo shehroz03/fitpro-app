@@ -1,13 +1,14 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, Modal,
   TextInput, StyleSheet, Alert, ActivityIndicator,
-  RefreshControl, Image, FlatList, Animated, Dimensions, Pressable
+  RefreshControl, Image, FlatList, Animated, Dimensions, PanResponder
 } from 'react-native';
+import Svg, { Polyline, Rect } from 'react-native-svg';
 import * as ImagePicker from 'expo-image-picker';
 import { nutritionAPI, goalsAPI } from '../api/services';
 import { useAuthStore } from '../store/authStore';
-import { C } from '../utils/theme';
+import { useC } from '../utils/theme';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -61,7 +62,13 @@ const getFoodBenefits = (food) => {
 };
 
 // ── Macro bar mini ─────────────────────────────────────────────
+const makeMm = (C) => StyleSheet.create({
+  wrap: { height:4, borderRadius:2, overflow:'hidden', flexDirection:'row', backgroundColor:C.border, marginTop:4 },
+  seg:  { height:'100%' },
+});
 const MacroMini = ({ p, c, f }) => {
+  const C = useC();
+  const mm = useMemo(() => makeMm(C), [C]);
   const tot = p + c + f || 1;
   return (
     <View style={mm.wrap}>
@@ -71,21 +78,63 @@ const MacroMini = ({ p, c, f }) => {
     </View>
   );
 };
-const mm = StyleSheet.create({
-  wrap: { height:4, borderRadius:2, overflow:'hidden', flexDirection:'row', backgroundColor:C.border, marginTop:4 },
-  seg:  { height:'100%' },
-});
 
 // ── Food Card ─────────────────────────────────────────────────
+const makeFc = (C) => StyleSheet.create({
+  card:         { backgroundColor:C.card, borderRadius:16, borderWidth:1, borderColor:C.border,
+                  marginBottom:12, overflow:'hidden' },
+  cardSelected: { borderColor:C.accent, borderWidth:2, backgroundColor:`${C.accent}0A` },
+  imgWrap:      { height:160, position:'relative' },
+  img:          { width:'100%', height:'100%' },
+  calBadge:     { position:'absolute', top:10, left:10, backgroundColor:'rgba(0,0,0,0.75)',
+                  borderRadius:10, paddingHorizontal:8, paddingVertical:4, alignItems:'center',
+                  borderWidth:1, borderColor:'rgba(200,241,53,0.5)' },
+  calBadgeTxt:  { color:C.accent, fontSize:16, fontWeight:'900', lineHeight:18 },
+  calBadgeSub:  { color:C.muted,  fontSize:8,  fontWeight:'600' },
+  tick:         { position:'absolute', top:10, right:10, backgroundColor:C.accent,
+                  borderRadius:12, width:26, height:26, alignItems:'center', justifyContent:'center' },
+  catIcon:      { position:'absolute', bottom:10, left:10, backgroundColor:'rgba(0,0,0,0.6)',
+                  borderRadius:8, width:28, height:28, alignItems:'center', justifyContent:'center' },
+  detailOverlay:{ position:'absolute', right:0, top:0, bottom:0, width:'46%',
+                  backgroundColor:'rgba(8,8,14,0.88)', padding:8,
+                  borderLeftWidth:1, borderLeftColor:'rgba(200,241,53,0.25)',
+                  justifyContent:'center', gap:2 },
+  ovCalLbl:     { color:C.accent, fontSize:7, fontWeight:'900', letterSpacing:1 },
+  ovDivider:    { height:1, backgroundColor:'rgba(255,255,255,0.1)', marginVertical:4 },
+  ovBenRow:     { flexDirection:'row', alignItems:'flex-start', gap:4 },
+  ovDot:        { color:C.accent, fontSize:5, marginTop:2 },
+  ovBenTxt:     { color:'#ddd', fontSize:9, fontWeight:'600', flex:1, lineHeight:12 },
+  ovSectionLbl: { color:C.muted, fontSize:7, fontWeight:'900', letterSpacing:0.8, marginBottom:2 },
+  ovTimingRow:  { flexDirection:'row', flexWrap:'wrap', gap:3 },
+  ovChip:       { flexDirection:'row', alignItems:'center', gap:2, borderRadius:5,
+                  paddingHorizontal:4, paddingVertical:2 },
+  ovChipTxt:    { fontSize:7, fontWeight:'800' },
+  ovWhyTxt:     { color:'#aaa', fontSize:8, lineHeight:12, fontStyle:'italic' },
+  info:         { padding:12 },
+  name:         { color:C.text, fontSize:15, fontWeight:'800', marginBottom:2 },
+  serving:      { color:C.dim,  fontSize:11, marginBottom:2 },
+  macroRow:     { flexDirection:'row', gap:8, marginTop:4 },
+  macroLbl:     { fontSize:10, fontWeight:'700' },
+  timeChip:     { flexDirection:'row', alignItems:'center', gap:3, borderRadius:8,
+                  paddingHorizontal:7, paddingVertical:3, marginRight:5 },
+  timeChipTxt:  { fontSize:9, fontWeight:'700' },
+  planBox:      { backgroundColor:`${C.accent}14`, borderRadius:8, padding:8,
+                  marginTop:8, borderWidth:1, borderColor:`${C.accent}33` },
+  planTxt:      { color:C.text, fontSize:12, fontWeight:'700', marginBottom:2 },
+  planReason:   { color:C.muted, fontSize:11, lineHeight:15 },
+  tip:          { color:C.dim, fontSize:11, marginTop:6, lineHeight:15 },
+});
 const FoodCard = ({ food, selected, onToggle, goal }) => {
+  const C = useC();
+  const fc = useMemo(() => makeFc(C), [C]);
   const plan     = goal === 'weight_gain' ? food.gain_plan : food.loss_plan;
   const benefits = getFoodBenefits(food);
-  const timingKeys = (food.best_time || []).slice(0, 3);
+  const timingKeys = (food.best_time || []).slice(0, 2);
   const scaleAnim  = useRef(new Animated.Value(1)).current;
 
   const handlePress = () => {
     Animated.sequence([
-      Animated.spring(scaleAnim, { toValue:0.96, useNativeDriver:true, speed:50 }),
+      Animated.spring(scaleAnim, { toValue:0.94, useNativeDriver:true, speed:50 }),
       Animated.spring(scaleAnim, { toValue:1,    useNativeDriver:true, speed:50 }),
     ]).start();
     onToggle(food);
@@ -98,89 +147,106 @@ const FoodCard = ({ food, selected, onToggle, goal }) => {
         onPress={handlePress}
         activeOpacity={0.88}
       >
-        {/* TOP ROW: image left + detail box right */}
-        <View style={fc.topRow}>
+        {/* Food Image — full width */}
+        <View style={fc.imgWrap}>
+          <Image
+            source={{ uri: food.image }}
+            style={fc.img}
+            resizeMode="cover"
+            onError={() => {}}
+            defaultSource={{ uri: 'https://placehold.co/400x200/111118/C8F135.png?text=' + encodeURIComponent(food.name) }}
+          />
 
-          {/* Left — Food Image */}
-          <View style={fc.imgWrap}>
-            <Image
-              source={{ uri: food.image }}
-              style={fc.img}
-              resizeMode="cover"
-              onError={() => {}}
-              defaultSource={{ uri: 'https://placehold.co/200x200/111118/C8F135.png?text=' + encodeURIComponent(food.name) }}
-            />
-            {selected && (
-              <View style={fc.tick}>
-                <Text style={{ fontSize:11, color:'#0A0A0F', fontWeight:'900' }}>✓</Text>
-              </View>
-            )}
-            <View style={fc.catIcon}>
-              <Text style={{ fontSize:11 }}>{CAT_ICONS[food.category]||'🍽️'}</Text>
-            </View>
+          {/* Calorie Badge — top left */}
+          <View style={fc.calBadge}>
+            <Text style={fc.calBadgeTxt}>{food.calories}</Text>
+            <Text style={fc.calBadgeSub}>kcal</Text>
           </View>
 
-          {/* Right — Detail Box */}
-          <View style={fc.detailBox}>
-            {/* Name + calorie pill */}
-            <View style={fc.nameRow}>
-              <Text style={fc.name} numberOfLines={2}>{food.name}</Text>
-              <View style={fc.calPill}>
-                <Text style={fc.calNum}>{food.calories}</Text>
-                <Text style={fc.calUnit}>kcal</Text>
-              </View>
+          {/* Selected tick */}
+          {selected && (
+            <View style={fc.tick}>
+              <Text style={{ fontSize:14 }}>✓</Text>
             </View>
-            <Text style={fc.serving}>{food.serving_size_g}g per serving</Text>
+          )}
 
-            <View style={fc.divider} />
+          {/* Category icon — bottom left */}
+          <View style={fc.catIcon}>
+            <Text style={{ fontSize:12 }}>{CAT_ICONS[food.category]||'🍽️'}</Text>
+          </View>
+
+          {/* ── DETAIL OVERLAY — right side of image ── */}
+          <View style={fc.detailOverlay}>
+            <Text style={fc.ovCalLbl}>NUTRIENTS</Text>
+            <View style={fc.ovDivider} />
 
             {/* Benefits */}
-            <View style={fc.benefitsBox}>
-              {benefits.map((b, i) => (
-                <View key={i} style={fc.benefitRow}>
-                  <Text style={fc.benefitDot}>◆</Text>
-                  <Text style={fc.benefitTxt} numberOfLines={1}>{b}</Text>
-                </View>
-              ))}
-            </View>
+            {benefits.map((b, i) => (
+              <View key={i} style={fc.ovBenRow}>
+                <Text style={fc.ovDot}>◆</Text>
+                <Text style={fc.ovBenTxt}>{b}</Text>
+              </View>
+            ))}
 
-            <View style={fc.divider} />
+            <View style={fc.ovDivider} />
 
             {/* When to eat */}
-            <View style={fc.timingRow}>
+            <Text style={fc.ovSectionLbl}>BEST TIME</Text>
+            <View style={fc.ovTimingRow}>
               {timingKeys.map(t => (
-                <View key={t} style={[fc.timeChip, { backgroundColor:`${MEAL_TIMES[t]?.color||C.accent}25` }]}>
-                  <Text style={{ fontSize:8 }}>{MEAL_TIMES[t]?.icon}</Text>
-                  <Text style={[fc.timeChipTxt, { color:MEAL_TIMES[t]?.color||C.accent }]}>
+                <View key={t} style={[fc.ovChip, { backgroundColor:`${MEAL_TIMES[t]?.color||C.accent}30` }]}>
+                  <Text style={{ fontSize:7 }}>{MEAL_TIMES[t]?.icon}</Text>
+                  <Text style={[fc.ovChipTxt, { color:MEAL_TIMES[t]?.color||C.accent }]}>
                     {MEAL_TIMES[t]?.label||t}
                   </Text>
                 </View>
               ))}
             </View>
 
-            {/* Why to eat */}
+            {/* Why */}
             {plan && (
-              <View style={fc.whyRow}>
-                <Text style={fc.whyIcon}>{goal === 'weight_gain' ? '📈' : '📉'}</Text>
-                <Text style={fc.whyTxt} numberOfLines={2}>{plan.reason}</Text>
-              </View>
+              <>
+                <View style={fc.ovDivider} />
+                <Text style={fc.ovSectionLbl}>WHY EAT</Text>
+                <Text style={fc.ovWhyTxt} numberOfLines={3}>{plan.reason}</Text>
+              </>
             )}
           </View>
         </View>
 
-        {/* BOTTOM: macros + plan kcal + tip */}
-        <View style={fc.bottom}>
+        {/* Info below image */}
+        <View style={fc.info}>
+          <Text style={fc.name} numberOfLines={1}>{food.name}</Text>
+          <Text style={fc.serving}>{food.serving_size_g}g serving</Text>
           <MacroMini p={food.protein_g} c={food.carbs_g} f={food.fat_g} />
           <View style={fc.macroRow}>
             <Text style={[fc.macroLbl, { color:C.blue   }]}>P {food.protein_g}g</Text>
             <Text style={[fc.macroLbl, { color:C.orange }]}>C {food.carbs_g}g</Text>
             <Text style={[fc.macroLbl, { color:C.purple }]}>F {food.fat_g}g</Text>
-            {plan && (
-              <Text style={fc.planPill}>
-                {plan.servings}x/day · <Text style={{ color:C.accent }}>{plan.total_cal} kcal</Text>
-              </Text>
-            )}
           </View>
+
+          {/* Full timing chips row */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop:6 }}>
+            {(food.best_time||[]).map(t => (
+              <View key={t} style={[fc.timeChip, { backgroundColor:`${MEAL_TIMES[t]?.color||C.accent}22` }]}>
+                <Text style={{ fontSize:9 }}>{MEAL_TIMES[t]?.icon}</Text>
+                <Text style={[fc.timeChipTxt, { color:MEAL_TIMES[t]?.color||C.accent }]}>
+                  {MEAL_TIMES[t]?.label||t}
+                </Text>
+              </View>
+            ))}
+          </ScrollView>
+
+          {/* Plan info */}
+          {plan && (
+            <View style={fc.planBox}>
+              <Text style={fc.planTxt}>
+                {goal === 'weight_gain' ? '📈' : '📉'} {plan.servings}x/day = <Text style={{ color:C.accent, fontWeight:'800' }}>{plan.total_cal} kcal</Text>
+              </Text>
+              <Text style={fc.planReason} numberOfLines={2}>{plan.reason}</Text>
+            </View>
+          )}
+
           {food.tip && (
             <Text style={fc.tip} numberOfLines={2}>💡 {food.tip}</Text>
           )}
@@ -189,63 +255,22 @@ const FoodCard = ({ food, selected, onToggle, goal }) => {
     </Animated.View>
   );
 };
-const fc = StyleSheet.create({
-  card:         { backgroundColor:C.card, borderRadius:16, borderWidth:1, borderColor:C.border,
-                  marginBottom:12, overflow:'hidden' },
-  cardSelected: { borderColor:C.accent, borderWidth:2, backgroundColor:'rgba(200,241,53,0.04)' },
-
-  // TOP row
-  topRow:       { flexDirection:'row', minHeight:160 },
-
-  // Image (left side ~42%)
-  imgWrap:      { width:'42%', position:'relative' },
-  img:          { width:'100%', height:'100%' },
-  tick:         { position:'absolute', top:8, left:8, backgroundColor:C.accent,
-                  borderRadius:10, width:22, height:22, alignItems:'center', justifyContent:'center' },
-  catIcon:      { position:'absolute', bottom:8, left:8, backgroundColor:'rgba(0,0,0,0.65)',
-                  borderRadius:7, width:24, height:24, alignItems:'center', justifyContent:'center' },
-
-  // Detail box (right side ~58%)
-  detailBox:    { flex:1, padding:10, justifyContent:'space-between',
-                  borderLeftWidth:1, borderLeftColor:C.border },
-  nameRow:      { flexDirection:'row', alignItems:'flex-start', gap:6 },
-  name:         { color:C.text, fontSize:13, fontWeight:'800', flex:1, lineHeight:17 },
-  calPill:      { backgroundColor:'rgba(200,241,53,0.15)', borderRadius:8,
-                  paddingHorizontal:6, paddingVertical:3, alignItems:'center',
-                  borderWidth:1, borderColor:'rgba(200,241,53,0.3)', minWidth:42 },
-  calNum:       { color:C.accent, fontSize:14, fontWeight:'900', lineHeight:16 },
-  calUnit:      { color:C.muted, fontSize:7, fontWeight:'700', letterSpacing:0.5 },
-  serving:      { color:C.dim, fontSize:10, marginTop:2 },
-  divider:      { height:1, backgroundColor:C.border, marginVertical:6 },
-
-  // Benefits
-  benefitsBox:  { gap:4 },
-  benefitRow:   { flexDirection:'row', alignItems:'center', gap:5 },
-  benefitDot:   { color:C.accent, fontSize:5 },
-  benefitTxt:   { color:C.muted, fontSize:10, fontWeight:'600', flex:1, lineHeight:13 },
-
-  // Timing
-  timingRow:    { flexDirection:'row', flexWrap:'wrap', gap:3 },
-  timeChip:     { flexDirection:'row', alignItems:'center', gap:2, borderRadius:6,
-                  paddingHorizontal:5, paddingVertical:2 },
-  timeChipTxt:  { fontSize:8, fontWeight:'700' },
-
-  // Why to eat
-  whyRow:       { flexDirection:'row', alignItems:'flex-start', gap:4, marginTop:3 },
-  whyIcon:      { fontSize:10, lineHeight:14 },
-  whyTxt:       { color:C.dim, fontSize:9, lineHeight:13, flex:1, fontStyle:'italic' },
-
-  // BOTTOM bar
-  bottom:       { paddingHorizontal:12, paddingBottom:10, paddingTop:8,
-                  borderTopWidth:1, borderTopColor:C.border },
-  macroRow:     { flexDirection:'row', gap:8, marginTop:5, alignItems:'center' },
-  macroLbl:     { fontSize:10, fontWeight:'700' },
-  planPill:     { marginLeft:'auto', color:C.muted, fontSize:10, fontWeight:'700' },
-  tip:          { color:C.dim, fontSize:10, marginTop:5, lineHeight:14 },
-});
 
 // ── Meal Plan Row ─────────────────────────────────────────────
+const makeMp = (C) => StyleSheet.create({
+  row:       { flexDirection:'row', gap:12, marginBottom:14,
+               backgroundColor:C.card, borderRadius:14, borderWidth:1, borderColor:C.border, padding:12 },
+  timeCol:   { width:70, alignItems:'center', borderRightWidth:2, paddingRight:10 },
+  timeLabel: { fontSize:11, fontWeight:'800', marginTop:4, textAlign:'center' },
+  timeSub:   { fontSize:9,  color:C.dim, textAlign:'center', marginTop:2 },
+  foodItem:  { flexDirection:'row', justifyContent:'space-between', marginBottom:4 },
+  foodName:  { color:C.text, fontSize:12, fontWeight:'600', flex:1 },
+  foodCal:   { fontSize:12, fontWeight:'800', marginLeft:8 },
+  mealTotal: { color:C.muted, fontSize:10, marginTop:4, fontWeight:'600' },
+});
 const MealPlanRow = ({ mealKey, foods }) => {
+  const C = useC();
+  const mp = useMemo(() => makeMp(C), [C]);
   const mt = MEAL_TIMES[mealKey];
   if (!mt || foods.length === 0) return null;
   const totalCal = foods.reduce((s,f) => s + (f.calories||0), 0);
@@ -268,21 +293,13 @@ const MealPlanRow = ({ mealKey, foods }) => {
     </View>
   );
 };
-const mp = StyleSheet.create({
-  row:       { flexDirection:'row', gap:12, marginBottom:14,
-               backgroundColor:C.card, borderRadius:14, borderWidth:1, borderColor:C.border, padding:12 },
-  timeCol:   { width:70, alignItems:'center', borderRightWidth:2, paddingRight:10 },
-  timeLabel: { fontSize:11, fontWeight:'800', marginTop:4, textAlign:'center' },
-  timeSub:   { fontSize:9,  color:C.dim, textAlign:'center', marginTop:2 },
-  foodItem:  { flexDirection:'row', justifyContent:'space-between', marginBottom:4 },
-  foodName:  { color:C.text, fontSize:12, fontWeight:'600', flex:1 },
-  foodCal:   { fontSize:12, fontWeight:'800', marginLeft:8 },
-  mealTotal: { color:C.muted, fontSize:10, marginTop:4, fontWeight:'600' },
-});
 
 // ── MAIN SCREEN ───────────────────────────────────────────────
 export default function NutritionScreen({ navigation }) {
-  const user = useAuthStore(s => s.user);
+  const C = useC();
+  const aiStyles = useMemo(() => makeAiStyles(C), [C]);
+  const s        = useMemo(() => makeS(C), [C]);
+  const user = useAuthStore(st => st.user);
   const [activeGoal,    setActiveGoal]    = useState('weight_gain');
   const [allFoods,      setAllFoods]      = useState([]);
   const [daily,         setDaily]         = useState(null);
@@ -302,9 +319,63 @@ export default function NutritionScreen({ navigation }) {
 
   // AI Scanner States
   const [aiImage,       setAiImage]       = useState(null);
-  const [aiMarker,      setAiMarker]      = useState(null);
+  const [aiPath,        setAiPath]        = useState([]);    // finger trail (container px)
+  const [aiBox,         setAiBox]         = useState(null);  // circled region {x,y,w,h norm + px}
   const [aiResult,      setAiResult]      = useState(null);
   const [aiLoading,     setAiLoading]     = useState(false);
+  const [scrollEnabled, setScrollEnabled] = useState(true);
+
+  // refs for the circle-to-select gesture (read inside PanResponder closures)
+  const imgLayout  = useRef({ width: 1, height: 1 });   // rendered container size
+  const imgNatural = useRef({ width: 1, height: 1 });   // source image size
+  const pathPoints = useRef([]);
+
+  const aiPan = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder:        () => true,
+      onMoveShouldSetPanResponder:         () => true,
+      onStartShouldSetPanResponderCapture: () => true,
+      onMoveShouldSetPanResponderCapture:  () => true,
+      onPanResponderGrant: (e) => {
+        setScrollEnabled(false);
+        pathPoints.current = [{ x: e.nativeEvent.locationX, y: e.nativeEvent.locationY }];
+        setAiPath([...pathPoints.current]);
+        setAiBox(null);
+      },
+      onPanResponderMove: (e) => {
+        pathPoints.current.push({ x: e.nativeEvent.locationX, y: e.nativeEvent.locationY });
+        setAiPath([...pathPoints.current]);
+      },
+      onPanResponderRelease: () => {
+        setScrollEnabled(true);
+        const pts = pathPoints.current;
+        if (pts.length < 3) { setAiBox(null); return; }
+        const xs = pts.map(p => p.x), ys = pts.map(p => p.y);
+        const minX = Math.min(...xs), maxX = Math.max(...xs);
+        const minY = Math.min(...ys), maxY = Math.max(...ys);
+
+        // map container px → normalized image coords (resizeMode="contain")
+        const { width: cW, height: cH } = imgLayout.current;
+        const { width: iw, height: ih } = imgNatural.current;
+        const scale = Math.min(cW / iw, cH / ih);
+        const dw = iw * scale, dh = ih * scale;
+        const offX = (cW - dw) / 2, offY = (cH - dh) / 2;
+        const norm = (v, off, d) => Math.max(0, Math.min(1, (v - off) / d));
+        const nx1 = norm(minX, offX, dw), nx2 = norm(maxX, offX, dw);
+        const ny1 = norm(minY, offY, dh), ny2 = norm(maxY, offY, dh);
+
+        setAiBox({
+          x: nx1, y: ny1,
+          w: Math.max(0.02, nx2 - nx1),
+          h: Math.max(0.02, ny2 - ny1),
+          px: { x: minX, y: minY, w: maxX - minX, h: maxY - minY },
+        });
+      },
+      onPanResponderTerminate: () => {
+        setScrollEnabled(true);
+      },
+    })
+  ).current;
 
   const load = useCallback(async () => {
     try {
@@ -366,37 +437,40 @@ export default function NutritionScreen({ navigation }) {
   };
 
   // ── AI SCANNER LOGIC ──────────────────────────────────────────
+  const resetAiGesture = () => {
+    pathPoints.current = [];
+    setAiPath([]);
+    setAiBox(null);
+    setAiResult(null);
+  };
+
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: false,
-      quality: 0.8,
+      quality: 0.7,
       base64: true,
     });
     if (!result.canceled) {
-      setAiImage(result.assets[0]);
-      setAiMarker(null);
-      setAiResult(null);
+      const asset = result.assets[0];
+      setAiImage(asset);
+      imgNatural.current = { width: asset.width || 1, height: asset.height || 1 };
+      resetAiGesture();
     }
   };
 
-  const handleImageTap = (e) => {
-    const { locationX, locationY } = e.nativeEvent;
-    setAiMarker({ x: locationX, y: locationY });
-  };
-
   const analyzeFood = async () => {
-    if (!aiImage || !aiMarker) return;
+    if (!aiImage) return;
     setAiLoading(true);
     try {
       const res = await nutritionAPI.analyzeImage({
         imageBase64: aiImage.base64,
-        x: Math.round(aiMarker.x),
-        y: Math.round(aiMarker.y)
+        region: aiBox ? { x: aiBox.x, y: aiBox.y, w: aiBox.w, h: aiBox.h } : null,
+        mimeType: aiImage.mimeType || 'image/jpeg',
       });
       setAiResult(res.data.data);
     } catch (e) {
-      Alert.alert('AI Error', e.response?.data?.message || 'Could not analyze image');
+      Alert.alert('AI Error', e.message || 'Could not analyze image');
     } finally {
       setAiLoading(false);
     }
@@ -404,6 +478,7 @@ export default function NutritionScreen({ navigation }) {
 
   const logAiFood = () => {
     if (!aiResult) return;
+    const grams = aiResult.serving_size_g || 100;
     setLogFood({
       id: 'ai-custom',
       name: aiResult.name,
@@ -411,9 +486,9 @@ export default function NutritionScreen({ navigation }) {
       protein_g: aiResult.protein_g,
       carbs_g: aiResult.carbs_g,
       fat_g: aiResult.fat_g,
-      serving_size_g: 100,
+      serving_size_g: grams,
     });
-    setLogQty('100');
+    setLogQty(String(grams));
     setShowLogModal(true);
   };
 
@@ -519,6 +594,7 @@ export default function NutritionScreen({ navigation }) {
         style={{ flex:1 }}
         contentContainerStyle={{ padding:16, paddingBottom:100 }}
         showsVerticalScrollIndicator={false}
+        scrollEnabled={scrollEnabled}
         refreshControl={<RefreshControl refreshing={refresh}
           onRefresh={() => { setRefresh(true); load(); }} tintColor={C.accent} />}
       >
@@ -660,7 +736,7 @@ export default function NutritionScreen({ navigation }) {
           <View style={{ flex:1 }}>
             <View style={[s.goalCard, { borderColor: C.accent }]}>
               <Text style={s.goalCardTitle}>📸 AI Food Scanner</Text>
-              <Text style={s.goalCardSub}>Take a photo or upload an image. Tap on any food item to let our AI scan and detect its macros and calories!</Text>
+              <Text style={s.goalCardSub}>Upload a photo of your plate, then <Text style={{ color:C.accent, fontWeight:'800' }}>draw a circle around any one item</Text> with your finger. The AI will identify it and estimate its portion, calories & macros.</Text>
             </View>
 
             {!aiImage ? (
@@ -670,37 +746,114 @@ export default function NutritionScreen({ navigation }) {
               </TouchableOpacity>
             ) : (
               <View>
-                <Pressable onPress={handleImageTap} style={aiStyles.imgContainer}>
+                <View
+                  style={aiStyles.imgContainer}
+                  onLayout={(e) => {
+                    const { width, height } = e.nativeEvent.layout;
+                    imgLayout.current = { width, height };
+                  }}
+                  {...aiPan.panHandlers}
+                >
                   <Image source={{ uri: aiImage.uri }} style={aiStyles.previewImg} resizeMode="contain" />
-                  {aiMarker && (
-                    <View style={[aiStyles.marker, { left: aiMarker.x - 15, top: aiMarker.y - 15 }]}>
-                      <View style={aiStyles.markerDot} />
+
+                  {/* finger-trail + selected-region outline */}
+                  <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
+                    {aiPath.length > 1 && (
+                      <Polyline
+                        points={aiPath.map(p => `${p.x},${p.y}`).join(' ')}
+                        fill="none"
+                        stroke={C.accent}
+                        strokeWidth={3}
+                        strokeLinejoin="round"
+                        strokeLinecap="round"
+                        opacity={aiBox ? 0.3 : 0.95}
+                      />
+                    )}
+                    {aiBox?.px && (
+                      <Rect
+                        x={aiBox.px.x} y={aiBox.px.y}
+                        width={aiBox.px.w} height={aiBox.px.h}
+                        rx={14} ry={14}
+                        fill="rgba(200,241,53,0.10)"
+                        stroke={C.accent}
+                        strokeWidth={2.5}
+                        strokeDasharray="9 5"
+                      />
+                    )}
+                  </Svg>
+
+                  {/* hint while nothing is drawn yet */}
+                  {aiPath.length === 0 && !aiResult && (
+                    <View style={aiStyles.hintBadge}>
+                      <Text style={aiStyles.hintTxt}>✍️ Circle a food item</Text>
                     </View>
                   )}
-                </Pressable>
+                  {aiBox && (
+                    <View style={aiStyles.selBadge}>
+                      <Text style={aiStyles.selTxt}>✓ Item selected</Text>
+                    </View>
+                  )}
+                </View>
 
                 <View style={aiStyles.controls}>
                   <TouchableOpacity style={aiStyles.retakeBtn} onPress={pickImage}>
                     <Text style={aiStyles.retakeBtnTxt}>Retake</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={[aiStyles.analyzeBtn, (!aiMarker || aiLoading) && aiStyles.analyzeBtnDisabled]}
+                  <TouchableOpacity
+                    style={[aiStyles.analyzeBtn, aiLoading && aiStyles.analyzeBtnDisabled]}
                     onPress={analyzeFood}
-                    disabled={!aiMarker || aiLoading}
+                    disabled={aiLoading}
                   >
-                    {aiLoading ? <ActivityIndicator color="#0A0A0F" /> : <Text style={aiStyles.analyzeBtnTxt}>✨ Analyze Food</Text>}
+                    {aiLoading
+                      ? <ActivityIndicator color="#0A0A0F" />
+                      : <Text style={aiStyles.analyzeBtnTxt}>✨ {aiBox ? 'Analyze Selected' : 'Analyze Plate'}</Text>}
                   </TouchableOpacity>
                 </View>
 
+                {aiBox && !aiResult && (
+                  <TouchableOpacity onPress={resetAiGesture} style={aiStyles.clearBtn}>
+                    <Text style={aiStyles.clearTxt}>✕ Clear selection & circle again</Text>
+                  </TouchableOpacity>
+                )}
+
                 {aiResult && (
                   <View style={aiStyles.resultCard}>
-                    <Text style={aiStyles.resName}>{aiResult.name}</Text>
-                    <View style={fc.macroRow}>
-                      <Text style={[fc.macroLbl, { color:C.accent }]}>Cal {aiResult.calories}kcal</Text>
-                      <Text style={[fc.macroLbl, { color:C.blue   }]}>P {aiResult.protein_g}g</Text>
-                      <Text style={[fc.macroLbl, { color:C.orange }]}>C {aiResult.carbs_g}g</Text>
-                      <Text style={[fc.macroLbl, { color:C.purple }]}>F {aiResult.fat_g}g</Text>
+                    <View style={aiStyles.resHead}>
+                      <Text style={aiStyles.resName} numberOfLines={2}>{aiResult.name}</Text>
+                      {!!aiResult.confidence && (
+                        <View style={aiStyles.confPill}>
+                          <Text style={aiStyles.confTxt}>{aiResult.confidence}% sure</Text>
+                        </View>
+                      )}
                     </View>
+
+                    {!!aiResult.quantity && (
+                      <Text style={aiStyles.resQty}>🍽️ Portion: {aiResult.quantity}</Text>
+                    )}
+
+                    <View style={aiStyles.resMacroRow}>
+                      <View style={aiStyles.resMacroBox}>
+                        <Text style={[aiStyles.resMacroVal, { color:C.accent }]}>{aiResult.calories}</Text>
+                        <Text style={aiStyles.resMacroLbl}>kcal</Text>
+                      </View>
+                      <View style={aiStyles.resMacroBox}>
+                        <Text style={[aiStyles.resMacroVal, { color:C.blue }]}>{aiResult.protein_g}g</Text>
+                        <Text style={aiStyles.resMacroLbl}>protein</Text>
+                      </View>
+                      <View style={aiStyles.resMacroBox}>
+                        <Text style={[aiStyles.resMacroVal, { color:C.orange }]}>{aiResult.carbs_g}g</Text>
+                        <Text style={aiStyles.resMacroLbl}>carbs</Text>
+                      </View>
+                      <View style={aiStyles.resMacroBox}>
+                        <Text style={[aiStyles.resMacroVal, { color:C.purple }]}>{aiResult.fat_g}g</Text>
+                        <Text style={aiStyles.resMacroLbl}>fat</Text>
+                      </View>
+                    </View>
+
+                    {!!aiResult.note && (
+                      <Text style={aiStyles.resNote}>💡 {aiResult.note}</Text>
+                    )}
+
                     <TouchableOpacity style={aiStyles.logResBtn} onPress={logAiFood}>
                       <Text style={aiStyles.logResBtnTxt}>+ Log this Food</Text>
                     </TouchableOpacity>
@@ -893,26 +1046,39 @@ export default function NutritionScreen({ navigation }) {
   );
 }
 
-const aiStyles = StyleSheet.create({
-  uploadBtn: { height: 200, backgroundColor: 'rgba(200,241,53,0.05)', borderRadius: 16, borderWidth: 2, borderColor: 'rgba(200,241,53,0.2)', borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', marginVertical: 20 },
+const makeAiStyles = (C) => StyleSheet.create({
+  uploadBtn: { height: 200, backgroundColor: `${C.accent}0D`, borderRadius: 16, borderWidth: 2, borderColor: `${C.accent}33`, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', marginVertical: 20 },
   uploadBtnTxt: { color: C.accent, fontSize: 16, fontWeight: '700' },
   imgContainer: { width: '100%', height: 300, borderRadius: 16, overflow: 'hidden', backgroundColor: '#000', marginVertical: 20, position: 'relative' },
   previewImg: { width: '100%', height: '100%' },
-  marker: { position: 'absolute', width: 30, height: 30, borderRadius: 15, backgroundColor: 'rgba(200,241,53,0.3)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: C.accent },
-  markerDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: C.accent },
-  controls: { flexDirection: 'row', gap: 12, marginBottom: 20 },
+  hintBadge: { position: 'absolute', alignSelf: 'center', top: 14, backgroundColor: 'rgba(0,0,0,0.7)', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 7, borderWidth: 1, borderColor: 'rgba(200,241,53,0.4)' },
+  hintTxt: { color: C.accent, fontSize: 12, fontWeight: '700' },
+  selBadge: { position: 'absolute', alignSelf: 'center', bottom: 14, backgroundColor: C.accent, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 7 },
+  selTxt: { color: '#0A0A0F', fontSize: 12, fontWeight: '800' },
+  controls: { flexDirection: 'row', gap: 12, marginBottom: 12 },
   retakeBtn: { flex: 1, backgroundColor: C.card, padding: 14, borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: C.border },
   retakeBtnTxt: { color: C.text, fontWeight: '700' },
   analyzeBtn: { flex: 2, backgroundColor: C.accent, padding: 14, borderRadius: 12, alignItems: 'center' },
   analyzeBtnDisabled: { opacity: 0.5 },
   analyzeBtnTxt: { color: '#0A0A0F', fontWeight: '800', fontSize: 15 },
-  resultCard: { backgroundColor: 'rgba(200,241,53,0.08)', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(200,241,53,0.3)' },
-  resName: { color: C.text, fontSize: 18, fontWeight: '800', marginBottom: 10 },
-  logResBtn: { backgroundColor: C.accent, padding: 12, borderRadius: 10, alignItems: 'center', marginTop: 16 },
+  clearBtn: { alignItems: 'center', paddingVertical: 8, marginBottom: 12 },
+  clearTxt: { color: C.muted, fontSize: 12, fontWeight: '600' },
+  resultCard: { backgroundColor: `${C.accent}14`, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: `${C.accent}4D`, marginBottom: 20 },
+  resHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 8 },
+  resName: { color: C.text, fontSize: 18, fontWeight: '800', flex: 1 },
+  confPill: { backgroundColor: `${C.accent}2E`, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, borderWidth: 1, borderColor: `${C.accent}59` },
+  confTxt: { color: C.accent, fontSize: 10, fontWeight: '800' },
+  resQty: { color: C.text, fontSize: 13, fontWeight: '600', marginBottom: 12 },
+  resMacroRow: { flexDirection: 'row', gap: 8 },
+  resMacroBox: { flex: 1, backgroundColor: C.card2, borderRadius: 10, paddingVertical: 10, alignItems: 'center' },
+  resMacroVal: { fontSize: 16, fontWeight: '900' },
+  resMacroLbl: { color: C.muted, fontSize: 9, fontWeight: '600', marginTop: 2 },
+  resNote: { color: C.muted, fontSize: 12, lineHeight: 16, marginTop: 12, fontStyle: 'italic' },
+  logResBtn: { backgroundColor: C.accent, padding: 12, borderRadius: 10, alignItems: 'center', marginTop: 14 },
   logResBtnTxt: { color: '#0A0A0F', fontWeight: '800' }
 });
 
-const s = StyleSheet.create({
+const makeS = (C) => StyleSheet.create({
   root:           { flex:1, backgroundColor:C.bg },
   center:         { flex:1, backgroundColor:C.bg, alignItems:'center', justifyContent:'center' },
   loadTxt:        { color:C.muted, marginTop:12 },
@@ -939,7 +1105,7 @@ const s = StyleSheet.create({
   tab:            { flex:1, flexDirection:'row', alignItems:'center', justifyContent:'center',
                     gap:4, borderRadius:10, borderWidth:1, borderColor:C.border,
                     paddingVertical:8, backgroundColor:C.card },
-  tabActive:      { backgroundColor:'rgba(200,241,53,0.12)', borderColor:C.accent },
+  tabActive:      { backgroundColor:C.accentDim, borderColor:C.accent },
   tabTxt:         { color:C.muted, fontSize:10, fontWeight:'700' },
   tabTxtActive:   { color:C.accent },
   // Goal card

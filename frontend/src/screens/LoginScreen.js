@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, KeyboardAvoidingView, Platform,
   ScrollView, ActivityIndicator, Alert,
 } from 'react-native';
 import { useAuthStore } from '../store/authStore';
-import { C } from '../utils/theme';
+import { useC } from '../utils/theme';
 
 export default function LoginScreen({ navigation }) {
+  const C = useC();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
   const [loading,  setLoading]  = useState(false);
@@ -18,7 +20,6 @@ export default function LoginScreen({ navigation }) {
     setLoading(true);
     try {
       await login(email.trim(), password);
-      // Navigation handled by RootNavigator watching isLoggedIn
     } catch (e) {
       Alert.alert('Login Failed', e.message || e.response?.data?.message || 'Check your credentials');
     } finally {
@@ -31,11 +32,21 @@ export default function LoginScreen({ navigation }) {
       <ScrollView contentContainerStyle={styles.inner} keyboardShouldPersistTaps="handled">
 
         <View style={styles.logoWrap}>
-          <View style={styles.logoCircle}>
-            <Text style={styles.logoText}>FC</Text>
+          <View style={styles.logoRing}>
+            <View style={styles.logoCircle}>
+              <Text style={styles.logoText}>FC</Text>
+            </View>
           </View>
           <Text style={styles.appName}>FITCORE PRO</Text>
           <Text style={styles.tagline}>Your ultimate fitness companion</Text>
+          <View style={styles.highlights}>
+            {[['💪','AI Workouts'],['🥗','Nutrition AI'],['😴','Sleep Tracking']].map(([ic, lb]) => (
+              <View key={lb} style={styles.highlight}>
+                <Text style={{ fontSize:14 }}>{ic}</Text>
+                <Text style={styles.highlightTxt}>{lb}</Text>
+              </View>
+            ))}
+          </View>
         </View>
 
         <View style={styles.form}>
@@ -86,14 +97,20 @@ export default function LoginScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (C) => StyleSheet.create({
   root:        { flex: 1, backgroundColor: C.bg },
   inner:       { flexGrow: 1, justifyContent: 'center', padding: 24 },
-  logoWrap:    { alignItems: 'center', marginBottom: 40 },
-  logoCircle:  { width: 80, height: 80, borderRadius: 40, backgroundColor: C.accent, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  logoText:    { fontSize: 28, fontWeight: '900', color: '#0A0A0F' },
-  appName:     { fontSize: 26, fontWeight: '900', color: C.text, letterSpacing: 3 },
-  tagline:     { fontSize: 13, color: C.muted, marginTop: 4 },
+  logoWrap:      { alignItems: 'center', marginBottom: 36 },
+  logoRing:      { width: 96, height: 96, borderRadius: 48, borderWidth: 2, borderColor: `${C.accent}50`,
+                   alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
+  logoCircle:    { width: 80, height: 80, borderRadius: 40, backgroundColor: C.accent, alignItems: 'center', justifyContent: 'center' },
+  logoText:      { fontSize: 30, fontWeight: '900', color: '#0A0A0F' },
+  appName:       { fontSize: 26, fontWeight: '900', color: C.text, letterSpacing: 3 },
+  tagline:       { fontSize: 13, color: C.muted, marginTop: 4, marginBottom: 18 },
+  highlights:    { flexDirection: 'row', gap: 10 },
+  highlight:     { alignItems: 'center', gap: 3, backgroundColor: C.card, borderRadius: 12,
+                   paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: C.border },
+  highlightTxt:  { fontSize: 10, color: C.muted, fontWeight: '700' },
   form:        { backgroundColor: C.card, borderRadius: 24, padding: 24, borderWidth: 1, borderColor: C.border },
   formTitle:   { fontSize: 22, fontWeight: '800', color: C.text, marginBottom: 4 },
   formSub:     { fontSize: 13, color: C.muted, marginBottom: 24 },

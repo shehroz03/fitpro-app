@@ -1,17 +1,19 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, FlatList,
   StyleSheet, RefreshControl, ActivityIndicator, Alert, TextInput,
 } from 'react-native';
 import { workoutAPI } from '../api/services';
-import { C } from '../utils/theme';
+import { useC } from '../utils/theme';
 
-const CATS = ['All','strength','cardio','hiit','flexibility','core','recovery'];
+const CATS      = ['All','strength','cardio','hiit','flexibility','core','recovery'];
 const CAT_LABELS = { All:'All', strength:'Strength', cardio:'Cardio', hiit:'HIIT', flexibility:'Flex', core:'Core', recovery:'Recovery' };
-const LEVEL_COLORS = { beginner:C.teal, intermediate:C.blue, advanced:C.red };
-const CAT_ICONS    = { strength:'💪', cardio:'🏃', hiit:'🔥', flexibility:'🧘', core:'⚡', recovery:'🌿', yoga:'🧘' };
+const CAT_ICONS  = { strength:'💪', cardio:'🏃', hiit:'🔥', flexibility:'🧘', core:'⚡', recovery:'🌿', yoga:'🧘' };
 
 export default function WorkoutsScreen({ navigation }) {
+  const C = useC();
+  const s = useMemo(() => makeStyles(C), [C]);
+  const LEVEL_COLORS = useMemo(() => ({ beginner:C.teal, intermediate:C.blue, advanced:C.red }), [C]);
   const [plans,    setPlans]   = useState([]);
   const [loading,  setLoading] = useState(true);
   const [refresh,  setRefresh] = useState(false);
@@ -180,7 +182,7 @@ export default function WorkoutsScreen({ navigation }) {
   );
 }
 
-const s = StyleSheet.create({
+const makeStyles = (C) => StyleSheet.create({
   root:        { flex:1, backgroundColor:C.bg },
   topBar:      { paddingHorizontal:16, paddingTop:16, marginBottom:10 },
   secLabel:    { color:C.muted, fontSize:10, fontWeight:'700', letterSpacing:1.2, textTransform:'uppercase' },

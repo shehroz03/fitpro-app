@@ -1,12 +1,12 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, Modal,
   TextInput, StyleSheet, Alert, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { sleepAPI } from '../api/services';
-import { C } from '../utils/theme';
+import { useC } from '../utils/theme';
 
-const qualColor = (s) => s >= 80 ? C.teal : s >= 60 ? C.accent : s >= 40 ? C.orange : C.red;
+const qualColor = (score, C) => score >= 80 ? C.teal : score >= 60 ? C.accent : score >= 40 ? C.orange : C.red;
 const qualLabel = (s) => s >= 80 ? 'Excellent 😄' : s >= 60 ? 'Good 🙂' : s >= 40 ? 'Fair 😐' : 'Poor 😴';
 const fmtDur    = (min) => min ? `${Math.floor(min/60)}h ${min%60}m` : '—';
 const fmtTime   = (iso) => iso ? new Date(iso).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) : '—';
@@ -22,6 +22,8 @@ const SLEEP_TIPS = [
 ];
 
 export default function SleepScreen({ navigation }) {
+  const C = useC();
+  const s = useMemo(() => makeStyles(C), [C]);
   const [logs,    setLogs]    = useState([]);
   const [stats,   setStats]   = useState(null);
   const [loading, setLoading] = useState(true);
@@ -151,8 +153,8 @@ export default function SleepScreen({ navigation }) {
                       </Text>
                     </View>
                     {logs[0].quality_score && (
-                      <View style={[s.qualCircle, { borderColor:qualColor(logs[0].quality_score) }]}>
-                        <Text style={[s.qualNum, { color:qualColor(logs[0].quality_score) }]}>
+                      <View style={[s.qualCircle, { borderColor:qualColor(logs[0].quality_score, C) }]}>
+                        <Text style={[s.qualNum, { color:qualColor(logs[0].quality_score, C) }]}>
                           {logs[0].quality_score}
                         </Text>
                         <Text style={s.qualSub}>score</Text>
@@ -168,7 +170,7 @@ export default function SleepScreen({ navigation }) {
                     <View style={s.barChartWrap}>
                       {[...last7].reverse().map((log, i) => {
                         const h     = Math.min((log.duration_min||0)/540*80, 80);
-                        const color = qualColor(log.quality_score||60);
+                        const color = qualColor(log.quality_score||60, C);
                         return (
                           <View key={log.id} style={s.barItem}>
                             <Text style={s.barTopLabel}>{fmtDur(log.duration_min).split(' ')[0]}</Text>
@@ -200,7 +202,7 @@ export default function SleepScreen({ navigation }) {
                   </View>
                 ) : (
                   logs.map(log => {
-                    const qc = qualColor(log.quality_score||60);
+                    const qc = qualColor(log.quality_score||60, C);
                     return (
                       <View key={log.id} style={s.logCard}>
                         <View style={s.logTop}>
@@ -268,7 +270,7 @@ export default function SleepScreen({ navigation }) {
                     <View style={s.statsGrid}>
                       {[
                         { icon:'⏱', label:'Avg Duration',  val:fmtDur(stats.avg_duration_min),    color:C.accent },
-                        { icon:'⭐', label:'Avg Quality',   val:`${stats.avg_quality_score||0}/100`, color:qualColor(stats.avg_quality_score||60) },
+                        { icon:'⭐', label:'Avg Quality',   val:`${stats.avg_quality_score||0}/100`, color:qualColor(stats.avg_quality_score||60, C) },
                         { icon:'🌙', label:'Avg Deep Sleep',val:fmtDur(stats.avg_deep_sleep_min),   color:C.blue },
                         { icon:'💭', label:'Avg REM',       val:fmtDur(stats.avg_rem_sleep_min),    color:C.purple },
                         { icon:'🏆', label:'Best Sleep',    val:fmtDur(stats.best_duration_min),    color:C.teal },
@@ -402,8 +404,8 @@ export default function SleepScreen({ navigation }) {
                 value={form.quality_score}
                 onChangeText={v => setForm(p => ({ ...p, quality_score:v }))} />
               {form.quality_score && (
-                <View style={[s.qualPreview, { backgroundColor:`${qualColor(+form.quality_score)}18` }]}>
-                  <Text style={[s.qualPreviewTxt, { color:qualColor(+form.quality_score) }]}>
+                <View style={[s.qualPreview, { backgroundColor:`${qualColor(+form.quality_score, C)}18` }]}>
+                  <Text style={[s.qualPreviewTxt, { color:qualColor(+form.quality_score, C) }]}>
                     {qualLabel(+form.quality_score)}
                   </Text>
                 </View>
@@ -450,7 +452,7 @@ export default function SleepScreen({ navigation }) {
   );
 }
 
-const s = StyleSheet.create({
+const makeStyles = (C) => StyleSheet.create({
   root:          { flex:1, backgroundColor:C.bg },
   header:        { flexDirection:'row', justifyContent:'space-between', alignItems:'flex-end',
                    paddingHorizontal:16, paddingTop:16, marginBottom:10 },

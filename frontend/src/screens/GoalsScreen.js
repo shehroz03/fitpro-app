@@ -1,14 +1,13 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, Modal,
   TextInput, StyleSheet, Alert, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { goalsAPI, progressAPI } from '../api/services';
-import { C } from '../utils/theme';
+import { useC } from '../utils/theme';
 
-const GOAL_TYPES  = ['weight_loss','muscle_gain','endurance','flexibility','maintenance'];
-const TYPE_ICONS  = { weight_loss:'⚖️', muscle_gain:'💪', endurance:'🏃', flexibility:'🧘', maintenance:'🎯' };
-const TYPE_COLORS = { weight_loss:C.orange, muscle_gain:C.blue, endurance:C.teal, flexibility:C.purple, maintenance:C.accent };
+const GOAL_TYPES = ['weight_loss','muscle_gain','endurance','flexibility','maintenance'];
+const TYPE_ICONS = { weight_loss:'⚖️', muscle_gain:'💪', endurance:'🏃', flexibility:'🧘', maintenance:'🎯' };
 const TYPE_DESC   = {
   weight_loss:  'Reduce body fat through calorie deficit & cardio',
   muscle_gain:  'Build muscle through progressive overload & protein',
@@ -18,6 +17,13 @@ const TYPE_DESC   = {
 };
 
 export default function GoalsScreen({ navigation }) {
+  const C = useC();
+  const gc = useMemo(() => makeGc(C), [C]);
+  const s  = useMemo(() => makeS(C), [C]);
+  const TYPE_COLORS = useMemo(() => ({
+    weight_loss: C.orange, muscle_gain: C.blue, endurance: C.teal,
+    flexibility: C.purple, maintenance: C.accent,
+  }), [C]);
   const [goals,      setGoals]      = useState([]);
   const [stats,      setStats]      = useState(null);
   const [loading,    setLoading]    = useState(true);
@@ -448,7 +454,7 @@ export default function GoalsScreen({ navigation }) {
   );
 }
 
-const gc = StyleSheet.create({
+const makeGc = (C) => StyleSheet.create({
   card:          { backgroundColor:C.card, borderRadius:18, borderWidth:1, borderColor:C.border, padding:16, marginBottom:12 },
   cardDone:      { borderColor:'rgba(47,207,160,0.4)', backgroundColor:'rgba(47,207,160,0.04)' },
   cardPaused:    { opacity:0.65 },
@@ -476,7 +482,7 @@ const gc = StyleSheet.create({
   actionTxt:     { fontSize:11, fontWeight:'700' },
 });
 
-const s = StyleSheet.create({
+const makeS = (C) => StyleSheet.create({
   root:          { flex:1, backgroundColor:C.bg },
   header:        { flexDirection:'row', justifyContent:'space-between', alignItems:'flex-end', paddingHorizontal:16, paddingTop:16, marginBottom:14 },
   secLabel:      { color:C.muted, fontSize:10, fontWeight:'700', letterSpacing:1.2 },

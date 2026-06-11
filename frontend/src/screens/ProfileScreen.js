@@ -1,15 +1,21 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, Modal,
-  StyleSheet, Alert, ActivityIndicator, TextInput, RefreshControl,
+  StyleSheet, Alert, ActivityIndicator, TextInput, RefreshControl, Image, Switch,
 } from 'react-native';
 import { authAPI } from '../api/services';
 import { useAuthStore } from '../store/authStore';
 import { progressAPI } from '../api/services';
-import { C } from '../utils/theme';
+import { useC } from '../utils/theme';
+import { useThemeStore } from '../store/themeStore';
+import { AVATARS, avatarSource } from '../utils/avatars';
+
 
 export default function ProfileScreen({ navigation }) {
+  const C = useC();
+  const s = useMemo(() => makeStyles(C), [C]);
   const { user, logout, setUser } = useAuthStore();
+  const { isDark, toggle: toggleTheme } = useThemeStore();
   const [stats,       setStats]       = useState(null);
   const [loading,     setLoading]     = useState(false);
   const [refresh,     setRefresh]     = useState(false);
@@ -20,6 +26,7 @@ export default function ProfileScreen({ navigation }) {
     full_name: user?.full_name || '',
     bio:       user?.bio       || '',
     unit_system: user?.unit_system || 'metric',
+    avatar_url: user?.avatar_url || '',
   });
   const [metricsForm, setMetricsForm] = useState({
     height_cm: user?.height_cm      ? String(user.height_cm)      : '',
@@ -80,9 +87,9 @@ export default function ProfileScreen({ navigation }) {
   const initials = (user?.full_name || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2);
   const ws = stats?.workout_stats;
 
-  const StatBox = ({ val, label }) => (
+  const StatBox = ({ val, label, color }) => (
     <View style={s.statBox}>
-      <Text style={s.statVal}>{val || '—'}</Text>
+      <Text style={[s.statVal, color && { color }]}>{val || '—'}</Text>
       <Text style={s.statLabel}>{label}</Text>
     </View>
   );
@@ -123,9 +130,13 @@ export default function ProfileScreen({ navigation }) {
       {/* ── HERO ─────────────────────────────────────── */}
       <View style={s.hero}>
         <View style={s.avatarWrap}>
-          <View style={s.avatar}>
-            <Text style={s.avatarTxt}>{initials}</Text>
-          </View>
+          {avatarSource(user?.avatar_url) ? (
+            <Image source={avatarSource(user.avatar_url)} style={s.avatar} />
+          ) : (
+            <View style={s.avatar}>
+              <Text style={s.avatarTxt}>{initials}</Text>
+            </View>
+          )}
           <TouchableOpacity style={s.editAvatarBtn} onPress={() => setShowEdit(true)}>
             <Text style={{ fontSize: 12 }}>✏️</Text>
           </TouchableOpacity>
@@ -153,10 +164,10 @@ export default function ProfileScreen({ navigation }) {
         {/* ── WORKOUT STATS ──────────────────────────── */}
         <Text style={s.secTitle}>LIFETIME STATS</Text>
         <View style={s.statsRow}>
-          <StatBox val={ws?.total_workouts}              label="Workouts" />
-          <StatBox val={ws?.total_minutes ? `${Math.round(ws.total_minutes/60)}h` : '—'} label="Hours" />
-          <StatBox val={ws?.total_calories ? `${Math.round(ws.total_calories/1000)}k` : '—'} label="Calories" />
-          <StatBox val={stats?.streak?.longest_streak}  label="Best Streak" />
+          <StatBox val={ws?.total_workouts}              label="Workouts"    color={C.accent} />
+          <StatBox val={ws?.total_minutes ? `${Math.round(ws.total_minutes/60)}h` : '—'} label="Hours" color={C.blue} />
+          <StatBox val={ws?.total_calories ? `${Math.round(ws.total_calories/1000)}k` : '—'} label="Calories" color={C.orange} />
+          <StatBox val={stats?.streak?.longest_streak}  label="Best Streak" color={C.red} />
         </View>
 
         {/* ── BODY METRICS ───────────────────────────── */}
@@ -192,6 +203,18 @@ export default function ProfileScreen({ navigation }) {
         {/* ── SETTINGS ───────────────────────────────── */}
         <Text style={s.secTitle}>SETTINGS</Text>
         <View style={s.settingsCard}>
+          <SRow iconBg={isDark ? '#1A1A2E' : '#E8EDF5'} icon={isDark ? '🌙' : '☀️'}
+            label="Appearance"
+            sub={isDark ? 'Dark Mode' : 'Light Mode'}
+            right={
+              <Switch
+                value={isDark}
+                onValueChange={toggleTheme}
+                trackColor={{ false: C.border, true: C.accent }}
+                thumbColor={isDark ? '#0A0A0F' : '#FFFFFF'}
+              />
+            }
+          />
           <SRow iconBg="#FF9F0A" icon="🔔" label="Notifications" sub="Workout & meal reminders"
             onPress={() => Alert.alert('Notifications', 'Feature coming soon!')} />
           <SRow iconBg="linear-gradient(#0A84FF,#5E5CE6)" icon="💳" label="Premium Plan"
@@ -232,6 +255,16 @@ export default function ProfileScreen({ navigation }) {
             <InputField label="Bio" value={editForm.bio}
               onChange={v => setEditForm(p => ({ ...p, bio:v }))}
               placeholder="Tell us about yourself..." />
+
+            <Text style={s.inputLabel}>Avatar</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.avatarScroll}>
+              {AVATARS.map((a) => (
+                <TouchableOpacity key={a.id} onPress={() => setEditForm(p => ({ ...p, avatar_url: a.id }))}>
+                  <Image source={a.src} style={[s.avatarOpt, editForm.avatar_url === a.id && s.avatarOptOn]} />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
             <Text style={s.inputLabel}>Units</Text>
             <View style={s.unitToggle}>
               {['metric','imperial'].map(u => (
@@ -307,14 +340,14 @@ export default function ProfileScreen({ navigation }) {
   );
 }
 
-const s = StyleSheet.create({
+const makeStyles = (C) => StyleSheet.create({
   root:         { flex:1, backgroundColor:C.bg },
-  hero:         { backgroundColor:'rgba(200,241,53,0.06)', paddingTop:30, paddingBottom:24,
+  hero:         { backgroundColor:C.accentDim, paddingTop:30, paddingBottom:24,
                   alignItems:'center', borderBottomWidth:1, borderColor:C.border },
   avatarWrap:   { position:'relative', marginBottom:12 },
   avatar:       { width:82, height:82, borderRadius:41, backgroundColor:C.accent,
                   alignItems:'center', justifyContent:'center',
-                  borderWidth:3, borderColor:'rgba(200,241,53,0.35)' },
+                  borderWidth:3, borderColor:`${C.accent}60` },
   avatarTxt:    { fontSize:28, fontWeight:'900', color:'#0A0A0F' },
   editAvatarBtn:{ position:'absolute', bottom:0, right:-2, backgroundColor:C.card2,
                   borderRadius:12, width:24, height:24, alignItems:'center',
@@ -351,7 +384,6 @@ const s = StyleSheet.create({
   sSub:         { color:C.muted, fontSize:11, marginTop:1 },
   chevron:      { color:C.dim, fontSize:20 },
   version:      { color:C.dim, fontSize:12, textAlign:'center', marginBottom:16 },
-  // Modal
   modalBg:      { flex:1, backgroundColor:'rgba(0,0,0,0.75)', justifyContent:'flex-end' },
   modalCard:    { backgroundColor:C.card2, borderTopLeftRadius:24, borderTopRightRadius:24,
                   padding:24, borderTopWidth:1, borderColor:C.border },
@@ -360,6 +392,9 @@ const s = StyleSheet.create({
                   marginBottom:6, textTransform:'uppercase' },
   input:        { backgroundColor:C.bg, borderRadius:12, borderWidth:1, borderColor:C.border,
                   padding:12, color:C.text, fontSize:14, marginBottom:0 },
+  avatarScroll: { flexDirection:'row', marginBottom:14 },
+  avatarOpt:    { width:50, height:50, borderRadius:25, marginRight:10, borderWidth:2, borderColor:'transparent' },
+  avatarOptOn:  { borderColor:C.accent },
   unitToggle:   { flexDirection:'row', gap:10, marginBottom:14 },
   unitBtn:      { flex:1, borderRadius:12, borderWidth:1, borderColor:C.border,
                   paddingVertical:10, alignItems:'center', backgroundColor:C.bg },

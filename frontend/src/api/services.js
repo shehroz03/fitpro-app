@@ -37,7 +37,7 @@ export const authAPI = {
 
   updateProfile: async (payload) => {
     const allowed = ['full_name','gender','date_of_birth','phone','bio','unit_system',
-                     'height_cm','weight_kg','body_fat_pct','muscle_mass_kg','fitness_level'];
+                     'height_cm','weight_kg','body_fat_pct','muscle_mass_kg','fitness_level', 'avatar_url'];
     const updates = {};
     allowed.forEach(k => { if (payload[k] !== undefined) updates[k] = payload[k]; });
 
@@ -313,16 +313,24 @@ export const nutritionAPI = {
     return resp({ ...data, id: `custom-${data.id}`, is_custom: true }, 'Custom food saved');
   },
 
-  analyzeImage: async () => {
-    // Client-side mock (real AI needs a Supabase Edge Function to keep the key server-side)
-    await new Promise(r => setTimeout(r, 1200));
-    const mock = [
-      { name: 'Grilled Chicken Salad', calories: 340, protein_g: 35, carbs_g: 12, fat_g: 18 },
-      { name: 'Avocado Toast with Egg', calories: 420, protein_g: 18, carbs_g: 32, fat_g: 24 },
-      { name: 'Berry Protein Smoothie', calories: 280, protein_g: 25, carbs_g: 35, fat_g: 4 },
-      { name: 'Steak and Sweet Potato', calories: 550, protein_g: 42, carbs_g: 45, fat_g: 22 },
-    ];
-    return resp(mock[Math.floor(Math.random() * mock.length)], 'AI analysis complete');
+  // Real AI vision via the `analyze-food` Supabase Edge Function (OpenAI GPT-4o).
+  // `region` is the circled area as normalized coords {x,y,w,h} (0-1), or null.
+  analyzeImage: async ({ imageBase64, region = null, mimeType = 'image/jpeg' } = {}) => {
+    if (!imageBase64) throw new Error('No image provided');
+    const { data, error } = await supabase.functions.invoke('analyze-food', {
+      body: { imageBase64, region, mimeType },
+    });
+    if (error) {
+      // Surface the function's own error message when available.
+      let msg = error.message || 'AI analysis failed';
+      try {
+        const ctx = await error.context?.json?.();
+        if (ctx?.error) msg = ctx.error;
+      } catch { /* ignore */ }
+      throw new Error(msg);
+    }
+    if (data?.error) throw new Error(data.error);
+    return resp(data.data, data.message || 'AI analysis complete');
   },
 
   updateTargets: async (payload) => {

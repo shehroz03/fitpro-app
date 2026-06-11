@@ -1,17 +1,31 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity,
+  View, Text, ScrollView, TouchableOpacity, Image,
   StyleSheet, RefreshControl, ActivityIndicator, Alert,
 } from 'react-native';
 import { progressAPI, nutritionAPI, goalsAPI } from '../api/services';
 import { useAuthStore } from '../store/authStore';
-import { C } from '../utils/theme';
+import { useC } from '../utils/theme';
+import { avatarSource } from '../utils/avatars';
 
-const TYPE_COLORS = { weight_loss:C.orange, muscle_gain:C.blue, endurance:C.teal, flexibility:C.purple, maintenance:C.accent };
-const TYPE_ICONS  = { weight_loss:'⚖️', muscle_gain:'💪', endurance:'🏃', flexibility:'🧘', maintenance:'🎯' };
+const getGreeting = () => {
+  const h = new Date().getHours();
+  if (h < 12) return 'GOOD MORNING';
+  if (h < 17) return 'GOOD AFTERNOON';
+  return 'GOOD EVENING';
+};
+
+const TYPE_ICONS = { weight_loss:'⚖️', muscle_gain:'💪', endurance:'🏃', flexibility:'🧘', maintenance:'🎯' };
 
 export default function HomeScreen({ navigation }) {
-  const user = useAuthStore(s => s.user);
+  const C = useC();
+  const s = useMemo(() => makeStyles(C), [C]);
+  const TYPE_COLORS = useMemo(() => ({
+    weight_loss: C.orange, muscle_gain: C.blue, endurance: C.teal,
+    flexibility: C.purple, maintenance: C.accent,
+  }), [C]);
+
+  const user = useAuthStore(st => st.user);
   const [stats,   setStats]   = useState(null);
   const [nutri,   setNutri]   = useState(null);
   const [goals,   setGoals]   = useState([]);
@@ -69,13 +83,19 @@ export default function HomeScreen({ navigation }) {
       {/* ── HEADER ───────────────────────────────────── */}
       <View style={s.header}>
         <View>
-          <Text style={s.greeting}>GOOD MORNING</Text>
+          <Text style={s.greeting}>{getGreeting()}</Text>
           <Text style={s.name}>{user?.full_name?.split(' ')[0] || 'Champ'} 👋</Text>
         </View>
-        <TouchableOpacity style={s.avatar} onPress={() => navigation.navigate('Profile')}>
-          <Text style={s.avatarTxt}>
-            {(user?.full_name || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2)}
-          </Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+          {avatarSource(user?.avatar_url) ? (
+            <Image source={avatarSource(user.avatar_url)} style={s.avatarImg} />
+          ) : (
+            <View style={s.avatar}>
+              <Text style={s.avatarTxt}>
+                {(user?.full_name || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2)}
+              </Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -91,6 +111,22 @@ export default function HomeScreen({ navigation }) {
         <TouchableOpacity style={s.startBtn} onPress={() => navigation.navigate('Workouts')}>
           <Text style={s.startBtnTxt}>▶  Start Workout</Text>
         </TouchableOpacity>
+      </View>
+
+      {/* ── QUICK ACTIONS ─────────────────────────────── */}
+      <View style={s.quickRow}>
+        {[
+          { icon:'🍎', label:'Log Food',  screen:'Nutrition' },
+          { icon:'😴', label:'Sleep',     screen:'Sleep'     },
+          { icon:'🎯', label:'Goals',     screen:'Goals'     },
+          { icon:'🏋️', label:'Workouts',  screen:'Workouts'  },
+        ].map(q => (
+          <TouchableOpacity key={q.label} style={s.quickBtn}
+            onPress={() => navigation.navigate(q.screen)} activeOpacity={0.7}>
+            <Text style={s.quickIcon}>{q.icon}</Text>
+            <Text style={s.quickLabel}>{q.label}</Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       {/* ── STATS GRID ────────────────────────────────── */}
@@ -136,14 +172,14 @@ export default function HomeScreen({ navigation }) {
                 const lbl = d.day_name ? d.day_name[0] : ['S','M','T','W','T','F','S'][new Date(d.date).getDay()];
                 return (
                   <View key={d.date} style={s.barCol}>
-                    <View style={[s.weekBar, { height:h, backgroundColor: isT ? C.accent : 'rgba(200,241,53,0.22)' }]} />
+                    <View style={[s.weekBar, { height:h, backgroundColor: isT ? C.accent : C.accentDim }]} />
                     <Text style={[s.dayLbl, isT && s.dayLblActive]}>{lbl}</Text>
                   </View>
                 );
               })
             : ['M','T','W','T','F','S','S'].map((day,i) => (
                 <View key={`${day}${i}`} style={s.barCol}>
-                  <View style={[s.weekBar, { height:4, backgroundColor:'rgba(200,241,53,0.12)' }]} />
+                  <View style={[s.weekBar, { height:4, backgroundColor:C.border }]} />
                   <Text style={s.dayLbl}>{day}</Text>
                 </View>
               ))
@@ -242,7 +278,7 @@ export default function HomeScreen({ navigation }) {
         <View style={s.card}>
           <View style={s.row}>
             <Text style={s.cardTitle}>Last Night's Sleep 😴</Text>
-            <View style={[s.badge, { backgroundColor:'rgba(47,207,160,0.15)' }]}>
+            <View style={[s.badge, { backgroundColor:`${C.teal}22` }]}>
               <Text style={[s.badgeTxt, { color:C.teal }]}>
                 {(stats.last_sleep.quality_score||0) >= 70 ? 'Good' : 'Fair'}
               </Text>
@@ -269,17 +305,21 @@ export default function HomeScreen({ navigation }) {
   );
 }
 
-const s = StyleSheet.create({
+const makeStyles = (C) => StyleSheet.create({
   root:          { flex:1, backgroundColor:C.bg, paddingHorizontal:16 },
   center:        { flex:1, backgroundColor:C.bg, alignItems:'center', justifyContent:'center' },
   loadText:      { color:C.muted, marginTop:12 },
-  // Header
   header:        { flexDirection:'row', justifyContent:'space-between', alignItems:'center', paddingTop:16, marginBottom:18 },
   greeting:      { color:C.muted, fontSize:11, fontWeight:'700', letterSpacing:1.2 },
   name:          { color:C.text, fontSize:24, fontWeight:'900' },
   avatar:        { width:42, height:42, borderRadius:21, backgroundColor:C.accent, alignItems:'center', justifyContent:'center' },
+  avatarImg:     { width:42, height:42, borderRadius:21, borderWidth:2, borderColor:C.accent },
   avatarTxt:     { fontSize:14, fontWeight:'900', color:'#0A0A0F' },
-  // Hero
+  quickRow:      { flexDirection:'row', gap:8, marginBottom:12 },
+  quickBtn:      { flex:1, backgroundColor:C.card, borderRadius:14, borderWidth:1,
+                   borderColor:C.border, paddingVertical:11, alignItems:'center', gap:3 },
+  quickIcon:     { fontSize:20 },
+  quickLabel:    { color:C.muted, fontSize:9, fontWeight:'700' },
   heroCard:      { backgroundColor:C.accent, borderRadius:22, padding:20, marginBottom:12, overflow:'hidden' },
   heroLabel:     { fontSize:10, fontWeight:'700', color:'rgba(0,0,0,0.5)', letterSpacing:1, marginBottom:4 },
   heroTitle:     { fontSize:20, fontWeight:'900', color:'#0A0A0F', marginBottom:14 },
@@ -288,13 +328,11 @@ const s = StyleSheet.create({
   heroUnit:      { fontSize:10, color:'rgba(0,0,0,0.5)' },
   startBtn:      { backgroundColor:'rgba(0,0,0,0.14)', borderRadius:11, paddingVertical:10, paddingHorizontal:16, alignSelf:'flex-start' },
   startBtnTxt:   { fontSize:13, fontWeight:'800', color:'#0A0A0F' },
-  // Stats
   statGrid:      { flexDirection:'row', gap:8, marginBottom:12 },
   statBox:       { flex:1, backgroundColor:C.card, borderRadius:14, borderWidth:1, borderColor:C.border, paddingVertical:14, alignItems:'center' },
   statEmoji:     { fontSize:18, marginBottom:4 },
   statNum:       { fontSize:20, fontWeight:'900', color:C.text },
   statSub:       { fontSize:9, color:C.dim, marginTop:2 },
-  // Cards
   card:          { backgroundColor:C.card, borderRadius:18, borderWidth:1, borderColor:C.border, padding:16, marginBottom:12 },
   row:           { flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom:10 },
   cardTitle:     { fontSize:14, fontWeight:'700', color:C.text },
@@ -302,19 +340,15 @@ const s = StyleSheet.create({
   greenBadge:    { color:C.accent, fontSize:12, fontWeight:'700', backgroundColor:C.accentDim, paddingHorizontal:8, paddingVertical:3, borderRadius:10 },
   badge:         { borderRadius:10, paddingHorizontal:10, paddingVertical:3 },
   badgeTxt:      { fontSize:11, fontWeight:'700' },
-  // Calorie bar
   barBg:         { height:8, backgroundColor:C.border, borderRadius:4, marginBottom:6, overflow:'hidden' },
   barFill:       { height:'100%', backgroundColor:C.accent, borderRadius:4 },
   barSub:        { color:C.muted, fontSize:12 },
-  // Weekly chart
   weekChart:     { flexDirection:'row', alignItems:'flex-end', gap:5, height:72, marginTop:10 },
   barCol:        { flex:1, alignItems:'center', gap:4 },
   weekBar:       { width:'100%', borderRadius:3 },
   dayLbl:        { fontSize:10, color:C.dim },
   dayLblActive:  { color:C.accent, fontWeight:'700' },
-  // Goals
-  goalRow:       { flexDirection:'row', alignItems:'center', gap:12, paddingVertical:10,
-                   borderBottomWidth:0.5, borderColor:C.border },
+  goalRow:       { flexDirection:'row', alignItems:'center', gap:12, paddingVertical:10, borderBottomWidth:0.5, borderColor:C.border },
   goalIconBox:   { width:40, height:40, borderRadius:12, alignItems:'center', justifyContent:'center', flexShrink:0 },
   goalTopRow:    { flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom:6 },
   goalTitle:     { color:C.text, fontSize:13, fontWeight:'700', flex:1, marginRight:6 },
@@ -328,18 +362,12 @@ const s = StyleSheet.create({
   emptyGoal:     { alignItems:'center', paddingVertical:20 },
   emptyGoalTitle:{ color:C.text, fontSize:15, fontWeight:'700', marginBottom:4 },
   emptyGoalSub:  { color:C.muted, fontSize:13, textAlign:'center' },
-  addGoalBtn:    { backgroundColor:C.accentDim, borderRadius:12, paddingVertical:10,
-                   alignItems:'center', borderWidth:1, borderColor:C.accent, marginTop:8 },
+  addGoalBtn:    { backgroundColor:C.accentDim, borderRadius:12, paddingVertical:10, alignItems:'center', borderWidth:1, borderColor:C.accent, marginTop:8 },
   addGoalTxt:    { color:C.accent, fontSize:13, fontWeight:'800' },
-  // AI Card
-  aiCard:        { backgroundColor:'rgba(155,109,255,0.1)', borderRadius:18, borderWidth:1,
-                   borderColor:'rgba(155,109,255,0.25)', padding:14, marginBottom:12,
-                   flexDirection:'row', gap:12, alignItems:'flex-start' },
-  aiIcon:        { width:36, height:36, borderRadius:11, backgroundColor:'rgba(155,109,255,0.2)',
-                   alignItems:'center', justifyContent:'center' },
+  aiCard:        { backgroundColor:`${C.purple}18`, borderRadius:18, borderWidth:1, borderColor:`${C.purple}40`, padding:14, marginBottom:12, flexDirection:'row', gap:12, alignItems:'flex-start' },
+  aiIcon:        { width:36, height:36, borderRadius:11, backgroundColor:`${C.purple}30`, alignItems:'center', justifyContent:'center' },
   aiLabel:       { color:C.purple, fontSize:10, fontWeight:'700', letterSpacing:1, marginBottom:3 },
   aiText:        { color:C.text, fontSize:13, lineHeight:19 },
-  // Sleep
   sleepDur:      { fontSize:26, fontWeight:'900', color:C.text, marginTop:6 },
   sleepUnit:     { color:C.muted, fontSize:14, fontWeight:'400' },
 });

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   Animated, Easing, Alert, Modal, SafeAreaView,
@@ -9,7 +9,7 @@ import Svg, {
   Text as SvgText,
 } from 'react-native-svg';
 import { workoutAPI } from '../api/services';
-import { C } from '../utils/theme';
+import { useC } from '../utils/theme';
 import { Video, ResizeMode } from 'expo-av';
 import EXERCISES_JSON from '../data/exercises.json';
 
@@ -372,7 +372,10 @@ function HumanFigure({ moveType = 'squat', gender = 'male', active = true, thumb
   );
 }
 
+const makeRt = (C) => StyleSheet.create({wrap:{alignItems:'center',paddingVertical:20},title:{color:C.muted,fontSize:11,fontWeight:'700',letterSpacing:1,marginBottom:8},num:{fontSize:56,fontWeight:'900',marginBottom:12},barBg:{width:'100%',height:6,backgroundColor:C.border,borderRadius:3,overflow:'hidden',marginBottom:16},barFill:{height:'100%',borderRadius:3},skipBtn:{backgroundColor:C.border,borderRadius:10,paddingHorizontal:20,paddingVertical:8},skipTxt:{color:C.muted,fontWeight:'700',fontSize:13}});
 const RestTimer = ({ seconds, onDone }) => {
+  const C = useC();
+  const rt = useMemo(() => makeRt(C), [C]);
   const [left, setLeft] = useState(seconds);
   const prog = useRef(new Animated.Value(1)).current;
   useEffect(() => {
@@ -391,9 +394,10 @@ const RestTimer = ({ seconds, onDone }) => {
     </View>
   );
 };
-const rt=StyleSheet.create({wrap:{alignItems:'center',paddingVertical:20},title:{color:C.muted,fontSize:11,fontWeight:'700',letterSpacing:1,marginBottom:8},num:{fontSize:56,fontWeight:'900',marginBottom:12},barBg:{width:'100%',height:6,backgroundColor:C.border,borderRadius:3,overflow:'hidden',marginBottom:16},barFill:{height:'100%',borderRadius:3},skipBtn:{backgroundColor:C.border,borderRadius:10,paddingHorizontal:20,paddingVertical:8},skipTxt:{color:C.muted,fontWeight:'700',fontSize:13}});
 
 export default function WorkoutDetailScreen({ route, navigation }) {
+  const C = useC();
+  const s = useMemo(() => makeS(C), [C]);
   const { plan } = route.params;
   const [gender,setGender]=useState('male');
   const genderSlideAnim=useRef(new Animated.Value(0)).current;
@@ -626,7 +630,7 @@ export default function WorkoutDetailScreen({ route, navigation }) {
   );
 }
 
-const s=StyleSheet.create({
+const makeS=(C)=>StyleSheet.create({
   root:{flex:1,backgroundColor:C.bg},
   genderRow:{padding:16,paddingBottom:8},
   genderContainer:{flexDirection:'row',backgroundColor:C.card,borderRadius:16,borderWidth:1,borderColor:C.border,padding:4,height:54,position:'relative'},
