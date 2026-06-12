@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($fe = \"c:\\\\Users\\\\HP\\\\Downloads\\\\fitcore-fullstack-final\\\\fitcore-fullstack\\\\frontend\"; Get-ChildItem \"$fe\\\\assets\" -Directory | ForEach-Object { $c = \\(Get-ChildItem $_.FullName -Recurse -File -ErrorAction SilentlyContinue\\); $size=\\($c | Measure-Object -Property Length -Sum\\).Sum; [PSCustomObject]@{ Folder=\"assets\\\\\"+$_.Name; Files=$c.Count; MB=[math]::Round\\($size/1MB,1\\) } } | Sort-Object MB -Descending | Format-Table -AutoSize; \"---MEDIA ROOT---\"; $m = \"c:\\\\Users\\\\HP\\\\Downloads\\\\fitcore-fullstack-final\\\\media\"; \\(Get-ChildItem $m -Recurse -File | Measure-Object\\).Count; \"files in media\")"
+    ]
+  }
+}

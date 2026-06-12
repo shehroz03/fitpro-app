@@ -1,0 +1,20 @@
+[
+  {"id":"ex1", "name":"Barbell Squat",    "category":"strength",    "muscle_group":"Legs",       "equipment":"Barbell",      "difficulty":"intermediate", "calories_per_min":8,  "description":"Compound lower body exercise"},
+  {"id":"ex2", "name":"Bench Press",      "category":"strength",    "muscle_group":"Chest",      "equipment":"Barbell",      "difficulty":"intermediate", "calories_per_min":7,  "description":"Primary chest exercise"},
+  {"id":"ex3", "name":"Pull-ups",         "category":"strength",    "muscle_group":"Back",       "equipment":"Pull-up bar",  "difficulty":"intermediate", "calories_per_min":9,  "description":"Upper body pulling movement"},
+  {"id":"ex4", "name":"Deadlift",         "category":"strength",    "muscle_group":"Full Body",  "equipment":"Barbell",      "difficulty":"advanced",     "calories_per_min":10, "description":"Compound hip hinge"},
+  {"id":"ex5", "name":"Shoulder Press",   "category":"strength",    "muscle_group":"Shoulders",  "equipment":"Dumbbell",     "difficulty":"beginner",     "calories_per_min":6,  "description":"Overhead pressing movement"},
+  {"id":"ex6", "name":"Burpees",          "category":"cardio",      "muscle_group":"Full Body",  "equipment":"None",         "difficulty":"intermediate", "calories_per_min":12, "description":"High intensity full body"},
+  {"id":"ex7", "name":"Mountain Climbers","category":"cardio",      "muscle_group":"Core",       "equipment":"None",         "difficulty":"beginner",     "calories_per_min":11, "description":"Dynamic core cardio"},
+  {"id":"ex8", "name":"Jump Rope",        "category":"cardio",      "muscle_group":"Full Body",  "equipment":"Jump rope",    "difficulty":"beginner",     "calories_per_min":13, "description":"Classic cardio exercise"},
+  {"id":"ex9", "name":"Plank",            "category":"core",        "muscle_group":"Core",       "equipment":"None",         "difficulty":"beginner",     "calories_per_min":4,  "description":"Isometric core hold"},
+  {"id":"ex10","name":"Russian Twists",   "category":"core",        "muscle_group":"Obliques",   "equipment":"None",         "difficulty":"beginner",     "calories_per_min":5,  "description":"Rotational core exercise"},
+  {"id":"ex11","name":"Downward Dog",     "category":"flexibility", "muscle_group":"Full Body",  "equipment":"Yoga mat",     "difficulty":"beginner",     "calories_per_min":3,  "description":"Yoga pose stretch"},
+  {"id":"ex12","name":"Foam Rolling",     "category":"recovery",    "muscle_group":"Full Body",  "equipment":"Foam roller",  "difficulty":"beginner",     "calories_per_min":2,  "description":"Myofascial release"},
+  {"id":"ex13","name":"Jumping Jacks",    "category":"cardio",      "muscle_group":"Full Body",  "equipment":"None",         "difficulty":"beginner",     "calories_per_min":10, "description":"Classic warm-up cardio movement"},
+  {"id":"ex14","name":"High Knees",       "category":"cardio",      "muscle_group":"Legs",       "equipment":"None",         "difficulty":"beginner",     "calories_per_min":11, "description":"Running in place with high knee drive"},
+  {"id":"ex15","name":"Dumbbell Curl",    "category":"strength",    "muscle_group":"Biceps",     "equipment":"Dumbbell",     "difficulty":"beginner",     "calories_per_min":5,  "description":"Isolated bicep curl with dumbbell"},
+  {"id":"ex16","name":"Hip Thrust",       "category":"strength",    "muscle_group":"Glutes",     "equipment":"Barbell",      "difficulty":"intermediate", "calories_per_min":6,  "description":"Powerful glute isolation movement"},
+  {"id":"ex17","name":"Tricep Dips",      "category":"strength",    "muscle_group":"Triceps",    "equipment":"Bench",        "difficulty":"beginner",     "calories_per_min":6,  "description":"Bodyweight tricep isolation"},
+  {"id":"ex18","name":"Box Jumps",        "category":"hiit",        "muscle_group":"Legs",       "equipment":"Box",          "difficulty":"intermediate", "calories_per_min":13, "description":"Explosive plyometric jump onto box"}
+]
