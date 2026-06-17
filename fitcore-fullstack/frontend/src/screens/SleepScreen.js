@@ -1,51 +1,69 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   View, Text, ScrollView, TouchableOpacity, Modal,
   TextInput, StyleSheet, Alert, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { sleepAPI } from '../api/services';
 import { useC } from '../utils/theme';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const qualColor = (score, C) => score >= 80 ? C.teal : score >= 60 ? C.accent : score >= 40 ? C.orange : C.red;
-const qualLabel = (s) => s >= 80 ? 'Excellent 😄' : s >= 60 ? 'Good 🙂' : s >= 40 ? 'Fair 😐' : 'Poor 😴';
+const qualLabel = (s) => s >= 80 ? 'Excellent' : s >= 60 ? 'Good' : s >= 40 ? 'Fair' : 'Poor';
 const fmtDur    = (min) => min ? `${Math.floor(min/60)}h ${min%60}m` : '—';
 const fmtTime   = (iso) => iso ? new Date(iso).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) : '—';
 const fmtDate   = (iso) => iso ? new Date(iso).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}) : '—';
 
 const SLEEP_TIPS = [
-  { icon:'🕙', tip:'Sleep & wake at the same time every day' },
-  { icon:'📱', tip:'No screens 1 hour before bedtime' },
-  { icon:'🌡️', tip:'Keep room cool — 18-20°C is optimal' },
-  { icon:'🧘', tip:'10 min meditation before sleep' },
-  { icon:'☕', tip:'No caffeine after 2 PM' },
-  { icon:'🏋️', tip:'Avoid intense exercise within 3 hours of sleep' },
+  { ion:'clock-outline',          tip:'Sleep & wake at the same time every day' },
+  { ion:'cellphone-off',          tip:'No screens 1 hour before bedtime' },
+  { ion:'thermometer-low',        tip:'Keep room cool — 18-20°C is optimal' },
+  { ion:'meditation',             tip:'10 min meditation before sleep' },
+  { ion:'coffee-off-outline',     tip:'No caffeine after 2 PM' },
+  { ion:'dumbbell',               tip:'Avoid intense exercise within 3 hours of sleep' },
 ];
 
 export default function SleepScreen({ navigation }) {
   const C = useC();
+  const insets = useSafeAreaInsets();
   const s = useMemo(() => makeStyles(C), [C]);
-  const [logs,    setLogs]    = useState([]);
-  const [stats,   setStats]   = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [refresh, setRefresh] = useState(false);
-  const [showAdd, setShowAdd] = useState(false);
-  const [saving,  setSaving]  = useState(false);
-  const [form,    setForm]    = useState({
+  const queryClient = useQueryClient();
+  const [showAdd,   setShowAdd]   = useState(false);
+  const [saving,    setSaving]    = useState(false);
+  const [form,      setForm]      = useState({
     sleep_start:'', sleep_end:'', quality_score:'80',
     deep_sleep_min:'', rem_sleep_min:'', notes:'',
   });
-  const [activeTab, setActiveTab] = useState('logs'); // logs | stats | tips
+  const [activeTab, setActiveTab] = useState('logs');
 
-  const load = useCallback(async () => {
-    try {
-      const [lRes, sRes] = await Promise.all([sleepAPI.getLogs(), sleepAPI.getStats()]);
-      setLogs(lRes.data.data  || []);
-      setStats(sRes.data.data || null);
-    } catch { Alert.alert('Error', 'Could not load sleep data'); }
-    finally { setLoading(false); setRefresh(false); }
-  }, []);
+  const { data: logs = [], isLoading: logsLoading, isRefetching: logsRefreshing, refetch: refetchLogs } = useQuery({
+    queryKey: ['sleepLogs'],
+    queryFn: () => sleepAPI.getLogs().then(r => r.data.data || []),
+  });
+  const { data: stats = null, isLoading: statsLoading, isRefetching: statsRefreshing, refetch: refetchStats } = useQuery({
+    queryKey: ['sleepStats'],
+    queryFn: () => sleepAPI.getStats().then(r => r.data.data || null),
+  });
 
-  useEffect(() => { load(); }, [load]);
+  const loading = logsLoading || statsLoading;
+  const refresh = logsRefreshing || statsRefreshing;
+  const onRefresh = () => { refetchLogs(); refetchStats(); };
+
+  const invalidateSleep = () => {
+    queryClient.invalidateQueries({ queryKey: ['sleepLogs'] });
+    queryClient.invalidateQueries({ queryKey: ['sleepStats'] });
+  };
+
+  const { mutateAsync: logSleepMutation } = useMutation({
+    mutationFn: (payload) => sleepAPI.logSleep(payload),
+    onSuccess: invalidateSleep,
+  });
+
+  const { mutateAsync: deleteLogMutation } = useMutation({
+    mutationFn: (id) => sleepAPI.deleteLog(id),
+    onSuccess: invalidateSleep,
+  });
 
   // Prefill current time helpers
   // Format local datetime as YYYY-MM-DDTHH:MM:SS (local, not UTC)
@@ -70,7 +88,7 @@ export default function SleepScreen({ navigation }) {
     if (!form.sleep_start || !form.sleep_end) return Alert.alert('Error', 'Start and end times required');
     setSaving(true);
     try {
-      await sleepAPI.logSleep({
+      await logSleepMutation({
         sleep_start:    form.sleep_start,
         sleep_end:      form.sleep_end,
         quality_score:  form.quality_score  ? +form.quality_score  : undefined,
@@ -80,8 +98,7 @@ export default function SleepScreen({ navigation }) {
       });
       setShowAdd(false);
       setForm({ sleep_start:'', sleep_end:'', quality_score:'80', deep_sleep_min:'', rem_sleep_min:'', notes:'' });
-      load();
-      Alert.alert('😴 Sleep Logged!', 'Your sleep data has been recorded!');
+      Alert.alert('Sleep Logged', 'Your sleep data has been recorded.');
     } catch (e) {
       Alert.alert('Error', e.response?.data?.message || 'Could not log sleep');
     } finally { setSaving(false); }
@@ -91,14 +108,14 @@ export default function SleepScreen({ navigation }) {
     Alert.alert('Delete?', 'Remove this sleep log?', [
       { text:'Cancel', style:'cancel' },
       { text:'Delete', style:'destructive', onPress: async () => {
-        try { await sleepAPI.deleteLog(id); load(); } catch {}
+        try { await deleteLogMutation(id); } catch {}
       }},
     ]);
 
   const TABS = [
-    { key:'logs',  label:'History', icon:'📋' },
-    { key:'stats', label:'Stats',   icon:'📊' },
-    { key:'tips',  label:'Tips',    icon:'💡' },
+    { key:'logs',  label:'History', ion:'list-outline'      },
+    { key:'stats', label:'Stats',   ion:'stats-chart-outline' },
+    { key:'tips',  label:'Tips',    ion:'bulb-outline'      },
   ];
 
   const last7 = logs.slice(0, 7);
@@ -107,13 +124,14 @@ export default function SleepScreen({ navigation }) {
   return (
     <View style={s.root}>
       {/* Header */}
-      <View style={s.header}>
+      <View style={[s.header, { paddingTop: insets.top + 12 }]}>
         <View>
           <Text style={s.secLabel}>TRACK</Text>
-          <Text style={s.title}>Sleep 😴</Text>
+          <Text style={s.title}>Sleep</Text>
         </View>
-        <TouchableOpacity style={s.addBtn} onPress={() => setShowAdd(true)}>
-          <Text style={s.addBtnTxt}>+ Log Sleep</Text>
+        <TouchableOpacity style={[s.addBtn, { flexDirection:'row', alignItems:'center', gap:5 }]} onPress={() => setShowAdd(true)}>
+          <Ionicons name="add" size={15} color={C.purple} />
+          <Text style={s.addBtnTxt}>Log Sleep</Text>
         </TouchableOpacity>
       </View>
 
@@ -123,7 +141,7 @@ export default function SleepScreen({ navigation }) {
           <TouchableOpacity key={t.key}
             style={[s.tab, activeTab===t.key && s.tabOn]}
             onPress={() => setActiveTab(t.key)}>
-            <Text style={{ fontSize:14 }}>{t.icon}</Text>
+            <Ionicons name={t.ion} size={13} color={activeTab===t.key ? C.purple : C.muted} />
             <Text style={[s.tabTxt, activeTab===t.key && s.tabTxtOn]}>{t.label}</Text>
           </TouchableOpacity>
         ))}
@@ -136,7 +154,7 @@ export default function SleepScreen({ navigation }) {
             contentContainerStyle={s.list}
             showsVerticalScrollIndicator={false}
             refreshControl={<RefreshControl refreshing={refresh}
-              onRefresh={() => { setRefresh(true); load(); }} tintColor={C.accent} />}
+              onRefresh={onRefresh} tintColor={C.accent} />}
           >
 
             {/* ══ LOGS TAB ══════════════════════════════════ */}
@@ -193,7 +211,7 @@ export default function SleepScreen({ navigation }) {
                 <Text style={s.sectionTitle}>All Logs</Text>
                 {logs.length === 0 ? (
                   <View style={s.emptyWrap}>
-                    <Text style={{ fontSize:50, marginBottom:10 }}>😴</Text>
+                    <Ionicons name="moon-outline" size={48} color={C.purple} style={{ marginBottom:10 }} />
                     <Text style={s.emptyTitle}>No Sleep Logs</Text>
                     <Text style={s.emptySub}>Track your sleep to see insights and improvements.</Text>
                     <TouchableOpacity style={s.emptyBtn} onPress={() => setShowAdd(true)}>
@@ -230,23 +248,24 @@ export default function SleepScreen({ navigation }) {
                           <View style={s.stagesRow}>
                             {log.deep_sleep_min && (
                               <View style={s.stagePill}>
-                                <Text style={{ fontSize:12 }}>🌙</Text>
+                                <Ionicons name="moon" size={11} color={C.blue} />
                                 <Text style={s.stageTxt}>Deep: {fmtDur(log.deep_sleep_min)}</Text>
                               </View>
                             )}
                             {log.rem_sleep_min && (
                               <View style={[s.stagePill, { backgroundColor:'rgba(155,109,255,0.12)' }]}>
-                                <Text style={{ fontSize:12 }}>💭</Text>
+                                <Ionicons name="cloud-outline" size={11} color={C.purple} />
                                 <Text style={[s.stageTxt, { color:C.purple }]}>REM: {fmtDur(log.rem_sleep_min)}</Text>
                               </View>
                             )}
                           </View>
                         )}
 
-                        {log.notes && <Text style={s.logNotes}>📝 {log.notes}</Text>}
+                        {log.notes && <Text style={s.logNotes}>{log.notes}</Text>}
 
-                        <TouchableOpacity style={s.deleteBtn} onPress={() => handleDelete(log.id)}>
-                          <Text style={s.deleteBtnTxt}>🗑 Delete</Text>
+                        <TouchableOpacity style={[s.deleteBtn, { flexDirection:'row', alignItems:'center', gap:3 }]} onPress={() => handleDelete(log.id)}>
+                          <Ionicons name="trash-outline" size={12} color={C.dim} />
+                          <Text style={s.deleteBtnTxt}>Delete</Text>
                         </TouchableOpacity>
                       </View>
                     );
@@ -260,7 +279,7 @@ export default function SleepScreen({ navigation }) {
               <>
                 {!stats || stats.total_logged === 0 ? (
                   <View style={s.emptyWrap}>
-                    <Text style={{ fontSize:50, marginBottom:10 }}>📊</Text>
+                    <Ionicons name="stats-chart-outline" size={48} color={C.purple} style={{ marginBottom:10 }} />
                     <Text style={s.emptyTitle}>No Data Yet</Text>
                     <Text style={s.emptySub}>Log at least one night of sleep to see stats.</Text>
                   </View>
@@ -269,15 +288,15 @@ export default function SleepScreen({ navigation }) {
                     {/* Stats grid */}
                     <View style={s.statsGrid}>
                       {[
-                        { icon:'⏱', label:'Avg Duration',  val:fmtDur(stats.avg_duration_min),    color:C.accent },
-                        { icon:'⭐', label:'Avg Quality',   val:`${stats.avg_quality_score||0}/100`, color:qualColor(stats.avg_quality_score||60, C) },
-                        { icon:'🌙', label:'Avg Deep Sleep',val:fmtDur(stats.avg_deep_sleep_min),   color:C.blue },
-                        { icon:'💭', label:'Avg REM',       val:fmtDur(stats.avg_rem_sleep_min),    color:C.purple },
-                        { icon:'🏆', label:'Best Sleep',    val:fmtDur(stats.best_duration_min),    color:C.teal },
-                        { icon:'📅', label:'Nights Logged', val:String(stats.total_logged),         color:C.orange },
-                      ].map(({ icon,label,val,color }) => (
+                        { ion:'time-outline',        label:'Avg Duration',  val:fmtDur(stats.avg_duration_min),    color:C.accent },
+                        { ion:'star-outline',        label:'Avg Quality',   val:`${stats.avg_quality_score||0}/100`, color:qualColor(stats.avg_quality_score||60, C) },
+                        { ion:'moon-outline',        label:'Avg Deep Sleep',val:fmtDur(stats.avg_deep_sleep_min),   color:C.blue },
+                        { ion:'cloud-outline',       label:'Avg REM',       val:fmtDur(stats.avg_rem_sleep_min),    color:C.purple },
+                        { ion:'trophy-outline',      label:'Best Sleep',    val:fmtDur(stats.best_duration_min),    color:C.teal },
+                        { ion:'calendar-outline',    label:'Nights Logged', val:String(stats.total_logged),         color:C.orange },
+                      ].map(({ ion,label,val,color }) => (
                         <View key={label} style={s.statBox}>
-                          <Text style={{ fontSize:22, marginBottom:6 }}>{icon}</Text>
+                          <Ionicons name={ion} size={22} color={color} style={{ marginBottom:6 }} />
                           <Text style={[s.statVal, { color }]}>{val}</Text>
                           <Text style={s.statLabel}>{label}</Text>
                         </View>
@@ -288,13 +307,13 @@ export default function SleepScreen({ navigation }) {
                     <View style={s.stagesCard}>
                       <Text style={s.cardTitle}>Sleep Stages Guide</Text>
                       {[
-                        { icon:'😴', label:'Light Sleep',  pct:'50-60%', color:C.muted,  desc:'Body relaxes, easy to wake' },
-                        { icon:'🌙', label:'Deep Sleep',   pct:'15-25%', color:C.blue,   desc:'Body repairs, immune boost' },
-                        { icon:'💭', label:'REM Sleep',    pct:'20-25%', color:C.purple, desc:'Memory, learning, dreaming' },
-                        { icon:'🌅', label:'Awake cycles', pct:'5-10%',  color:C.orange, desc:'Normal brief arousals' },
-                      ].map(({ icon,label,pct,color,desc }) => (
+                        { ion:'bed-outline',     label:'Light Sleep',  pct:'50-60%', color:C.muted,  desc:'Body relaxes, easy to wake' },
+                        { ion:'moon-outline',    label:'Deep Sleep',   pct:'15-25%', color:C.blue,   desc:'Body repairs, immune boost' },
+                        { ion:'cloud-outline',   label:'REM Sleep',    pct:'20-25%', color:C.purple, desc:'Memory, learning, dreaming' },
+                        { ion:'sunny-outline',   label:'Awake cycles', pct:'5-10%',  color:C.orange, desc:'Normal brief arousals' },
+                      ].map(({ ion,label,pct,color,desc }) => (
                         <View key={label} style={s.stageRow}>
-                          <Text style={{ fontSize:18 }}>{icon}</Text>
+                          <Ionicons name={ion} size={18} color={color} />
                           <View style={{ flex:1 }}>
                             <View style={{ flexDirection:'row', justifyContent:'space-between' }}>
                               <Text style={[s.stageLabel, { color }]}>{label}</Text>
@@ -308,18 +327,25 @@ export default function SleepScreen({ navigation }) {
 
                     {/* Recommendations */}
                     <View style={s.recCard}>
-                      <Text style={s.cardTitle}>📋 Recommendations</Text>
+                      <Text style={s.cardTitle}>Recommendations</Text>
                       {[
-                        stats.avg_duration_min < 420 && '⚠️ Sleeping less than 7 hours. Aim for 7-9 hours.',
-                        stats.avg_duration_min > 540 && '⚠️ Sleeping over 9 hours could signal health issues.',
-                        (stats.avg_quality_score||0) < 60 && '⚠️ Sleep quality below 60. Check room temp & screen time.',
-                        stats.total_logged < 7 && '💡 Log at least 7 nights for accurate insights.',
+                        stats.avg_duration_min < 420 && 'Sleeping less than 7 hours. Aim for 7-9 hours.',
+                        stats.avg_duration_min > 540 && 'Sleeping over 9 hours could signal health issues.',
+                        (stats.avg_quality_score||0) < 60 && 'Sleep quality below 60. Check room temp & screen time.',
+                        stats.total_logged < 7 && 'Log at least 7 nights for accurate insights.',
                       ].filter(Boolean).map((rec,i) => (
-                        <Text key={i} style={s.recTxt}>{rec}</Text>
+                        <View key={i} style={{ flexDirection:'row', alignItems:'flex-start', gap:6, marginBottom:8 }}>
+                          <Ionicons name="alert-circle-outline" size={14} color={C.orange} style={{ marginTop:3 }} />
+                          <Text style={[s.recTxt, { marginBottom:0, flex:1 }]}>{rec}</Text>
+                        </View>
                       ))}
                       {stats.avg_duration_min >= 420 && stats.avg_duration_min <= 540
-                        && (stats.avg_quality_score||0) >= 60
-                        && <Text style={s.recTxtGood}>✅ Great sleep habits! Keep it up!</Text>}
+                        && (stats.avg_quality_score||0) >= 60 && (
+                        <View style={{ flexDirection:'row', alignItems:'center', gap:6 }}>
+                          <Ionicons name="checkmark-circle" size={15} color={C.teal} />
+                          <Text style={s.recTxtGood}>Great sleep habits! Keep it up!</Text>
+                        </View>
+                      )}
                     </View>
                   </>
                 )}
@@ -330,20 +356,20 @@ export default function SleepScreen({ navigation }) {
             {activeTab === 'tips' && (
               <>
                 <View style={s.tipsHero}>
-                  <Text style={{ fontSize:48 }}>💤</Text>
+                  <Ionicons name="moon" size={44} color={C.purple} />
                   <Text style={s.tipsHeroTitle}>Sleep Better Tonight</Text>
                   <Text style={s.tipsHeroSub}>Science-backed tips for deeper, more restorative sleep</Text>
                 </View>
-                {SLEEP_TIPS.map(({ icon, tip }, i) => (
+                {SLEEP_TIPS.map(({ ion, tip }, i) => (
                   <View key={i} style={s.tipCard}>
                     <View style={s.tipIconBox}>
-                      <Text style={{ fontSize:22 }}>{icon}</Text>
+                      <MaterialCommunityIcons name={ion} size={20} color={C.purple} />
                     </View>
                     <Text style={s.tipTxt}>{tip}</Text>
                   </View>
                 ))}
                 <View style={s.idealCard}>
-                  <Text style={s.idealTitle}>🎯 Ideal Sleep Goals</Text>
+                  <Text style={s.idealTitle}>Ideal Sleep Goals</Text>
                   {[
                     ['Duration',   '7–9 hours per night'],
                     ['Bedtime',    'Before 11:00 PM'],
@@ -371,15 +397,17 @@ export default function SleepScreen({ navigation }) {
         <View style={s.modalBg}>
           <ScrollView keyboardShouldPersistTaps="handled">
             <View style={s.modalCard}>
-              <Text style={s.modalTitle}>Log Sleep 😴</Text>
+              <Text style={s.modalTitle}>Log Sleep</Text>
 
               {/* Quick fill buttons */}
               <View style={s.quickFill}>
-                <TouchableOpacity style={s.quickFillBtn} onPress={prefillLastNight}>
-                  <Text style={s.quickFillTxt}>📅 Last Night</Text>
+                <TouchableOpacity style={[s.quickFillBtn, { flexDirection:'row', alignItems:'center', justifyContent:'center', gap:5 }]} onPress={prefillLastNight}>
+                  <Ionicons name="calendar-outline" size={13} color={C.purple} />
+                  <Text style={s.quickFillTxt}>Last Night</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={s.quickFillBtn} onPress={prefillTonight}>
-                  <Text style={s.quickFillTxt}>🌙 Tonight</Text>
+                <TouchableOpacity style={[s.quickFillBtn, { flexDirection:'row', alignItems:'center', justifyContent:'center', gap:5 }]} onPress={prefillTonight}>
+                  <Ionicons name="moon-outline" size={13} color={C.purple} />
+                  <Text style={s.quickFillTxt}>Tonight</Text>
                 </TouchableOpacity>
               </View>
 
@@ -440,7 +468,7 @@ export default function SleepScreen({ navigation }) {
                 <TouchableOpacity style={s.confirmBtn} onPress={handleLog} disabled={saving}>
                   {saving
                     ? <ActivityIndicator color="#000" size="small" />
-                    : <Text style={s.confirmTxt}>Save Sleep 😴</Text>
+                    : <Text style={s.confirmTxt}>Save Sleep</Text>
                   }
                 </TouchableOpacity>
               </View>

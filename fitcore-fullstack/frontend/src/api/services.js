@@ -12,6 +12,8 @@ import WORKOUT_PLANS from '../data/workoutPlans.json';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 const uid = () => useAuthStore.getState().user?.id;
+
+export { computeProgressionSuggestion } from '../utils/progression';
 const resp  = (data, message = 'Success') => ({ data: { success: true, message, data } });
 const presp = (data, total, page = 1, limit = 20) => ({
   data: {
@@ -22,6 +24,24 @@ const presp = (data, total, page = 1, limit = 20) => ({
 });
 const todayStr = () => new Date().toISOString().split('T')[0];
 const throwIf = (error) => { if (error) throw new Error(error.message); };
+
+// Pull the REAL message out of a Supabase Edge Function error.
+// On a non-2xx response supabase-js only gives "Edge Function returned a
+// non-2xx status code" — the actual reason is in error.context (a Response).
+async function fnErrorMessage(error, fallback = 'Request failed') {
+  try {
+    const ctx = error?.context;
+    if (ctx && typeof ctx.text === 'function') {
+      const raw = await ctx.text();
+      try {
+        const j = JSON.parse(raw);
+        if (j?.error) return j.error;
+      } catch { /* not JSON */ }
+      if (raw) return raw.slice(0, 300);
+    }
+  } catch { /* ignore */ }
+  return error?.message || fallback;
+}
 
 // ══════════════════════════════════════════════════════════════════════════
 //  AUTH / PROFILE
@@ -157,6 +177,51 @@ export const workoutAPI = {
     const { error } = await supabase.from('workout_logs').delete().eq('id', id).eq('user_id', uid());
     throwIf(error);
     return resp(null, 'Workout log deleted');
+  },
+
+  logSetsBatch: async (workoutLogId, sets) => {
+    if (!sets?.length) return resp([], 'No sets to log');
+    const userId = uid();
+    const rows = sets.map(s => ({ ...s, user_id: userId, workout_log_id: workoutLogId }));
+    const { data, error } = await supabase.from('set_logs').insert(rows).select();
+    throwIf(error);
+    return resp(data, 'Sets logged');
+  },
+
+  getExerciseHistory: async (exerciseId) => {
+    const { data, error } = await supabase
+      .from('set_logs')
+      .select('set_number, reps, weight_kg, logged_at, workout_log_id')
+      .eq('user_id', uid())
+      .eq('exercise_id', exerciseId)
+      .eq('completed', true)
+      .order('logged_at', { ascending: false })
+      .limit(50);
+    throwIf(error);
+
+    // Group into sessions (by workout_log_id), return last 5
+    const sessions = [];
+    const seen = new Set();
+    for (const row of (data || [])) {
+      if (!seen.has(row.workout_log_id)) {
+        seen.add(row.workout_log_id);
+        sessions.push(row.workout_log_id);
+      }
+    }
+    const result = sessions.slice(0, 5).map(wid => {
+      const rows = (data || []).filter(r => r.workout_log_id === wid);
+      return {
+        workout_log_id: wid,
+        logged_at: rows[0]?.logged_at,
+        sets: rows.sort((a, b) => a.set_number - b.set_number),
+      };
+    });
+    return resp(result);
+  },
+
+  getProgressionSuggestion: async (exerciseId, targetSets, targetReps) => {
+    const { data: { data: sessions } } = await workoutAPI.getExerciseHistory(exerciseId);
+    return computeProgressionSuggestion(sessions, targetSets, targetReps);
   },
 };
 
@@ -324,15 +389,7 @@ export const nutritionAPI = {
     const { data, error } = await supabase.functions.invoke('analyze-food', {
       body: { imageBase64, region, mimeType },
     });
-    if (error) {
-      // Surface the function's own error message when available.
-      let msg = error.message || 'AI analysis failed';
-      try {
-        const ctx = await error.context?.json?.();
-        if (ctx?.error) msg = ctx.error;
-      } catch { /* ignore */ }
-      throw new Error(msg);
-    }
+    if (error) throw new Error(await fnErrorMessage(error, 'AI analysis failed'));
     if (data?.error) throw new Error(data.error);
     return resp(data.data, data.message || 'AI analysis complete');
   },
@@ -359,14 +416,7 @@ export const aiCoachAPI = {
     const { data, error } = await supabase.functions.invoke('ai-coach', {
       body: { question, appData, mode },
     });
-    if (error) {
-      let msg = error.message || 'AI Coach error';
-      try {
-        const ctx = await error.context?.json?.();
-        if (ctx?.error) msg = ctx.error;
-      } catch { /* ignore */ }
-      throw new Error(msg);
-    }
+    if (error) throw new Error(await fnErrorMessage(error, 'AI Coach error'));
     if (data?.error) throw new Error(data.error);
     // report mode returns { report: {...} }, chat mode returns { response: '...' }
     if (mode === 'report' && !data?.report) throw new Error('Invalid report response from AI Coach');
@@ -477,10 +527,120 @@ export const progressAPI = {
     return resp(data, 'Measurement recorded');
   },
 
+  updateMeasurement: async (id, payload) => {
+    const profile = await fetchProfile();
+    let bmi = null;
+    if (payload.weight_kg && profile.height_cm) {
+      const h = profile.height_cm / 100;
+      bmi = +(payload.weight_kg / (h * h)).toFixed(1);
+    }
+    const updates = {
+      weight_kg: payload.weight_kg || null, body_fat_pct: payload.body_fat_pct || null,
+      muscle_mass_kg: payload.muscle_mass_kg || null,
+      chest_cm: payload.chest_cm || null, waist_cm: payload.waist_cm || null, hips_cm: payload.hips_cm || null,
+      notes: payload.notes || null,
+    };
+    if (bmi !== null) updates.bmi = bmi;
+    const { data, error } = await supabase.from('body_measurements')
+      .update(updates).eq('id', id).eq('user_id', uid()).select().single();
+    throwIf(error);
+    return resp(data, 'Measurement updated');
+  },
+
   deleteMeasurement: async (id) => {
     const { error } = await supabase.from('body_measurements').delete().eq('id', id).eq('user_id', uid());
     throwIf(error);
     return resp(null, 'Measurement deleted');
+  },
+
+  getPRs: async () => {
+    const { data, error } = await supabase
+      .from('set_logs')
+      .select('exercise_id, exercise_name, weight_kg, reps, logged_at')
+      .eq('user_id', uid())
+      .eq('completed', true)
+      .gt('weight_kg', 0)
+      .order('logged_at', { ascending: true });
+    throwIf(error);
+
+    const byEx = {};
+    for (const row of (data || [])) {
+      const key = row.exercise_id;
+      if (!byEx[key]) byEx[key] = { exercise_id: key, exercise_name: row.exercise_name, sets: [] };
+      byEx[key].sets.push(row);
+    }
+
+    const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+
+    const prs = Object.values(byEx).map(ex => {
+      const sets = ex.sets;
+      const byDate = {};
+      for (const s of sets) {
+        const d = (s.logged_at || '').split('T')[0];
+        if (!byDate[d] || s.weight_kg > byDate[d].weight_kg) byDate[d] = s;
+      }
+      const sessions = Object.values(byDate).sort((a, b) => (a.logged_at || '').localeCompare(b.logged_at || ''));
+      const spark    = sessions.slice(-6).map(s => s.weight_kg);
+      const prRow    = [...sets].sort((a, b) => b.weight_kg - a.weight_kg)[0];
+      const prevBest = [...sets].filter(s => s.weight_kg < prRow.weight_kg).sort((a, b) => b.weight_kg - a.weight_kg)[0] || null;
+      const momentum = spark.length >= 2
+        ? spark[spark.length - 1] > spark[spark.length - 2] ? 'up'
+          : spark[spark.length - 1] < spark[spark.length - 2] ? 'down' : 'plateau'
+        : 'plateau';
+      return {
+        exercise_id:   ex.exercise_id,
+        exercise_name: ex.exercise_name,
+        pr_weight:     prRow.weight_kg,
+        pr_reps:       prRow.reps,
+        pr_date:       prRow.logged_at,
+        is_new_pr:     (prRow.logged_at || '') >= sevenDaysAgo,
+        prev_weight:   prevBest?.weight_kg ?? null,
+        improvement:   prevBest ? +(prRow.weight_kg - prevBest.weight_kg).toFixed(1) : null,
+        spark, momentum,
+        total_sets: sets.length,
+      };
+    }).sort((a, b) => (b.is_new_pr ? 1 : 0) - (a.is_new_pr ? 1 : 0) || b.pr_weight - a.pr_weight);
+
+    return resp(prs);
+  },
+
+  getHabits: async () => {
+    const today  = todayStr();
+    const since7 = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+    const [
+      { data: workouts, error: e1 },
+      { data: sleepLogs, error: e2 },
+      { data: meals,    error: e3 },
+      profile,
+    ] = await Promise.all([
+      supabase.from('workout_logs').select('started_at').eq('user_id', uid()).gte('started_at', `${since7}T00:00:00`),
+      supabase.from('sleep_logs').select('sleep_start, duration_min').eq('user_id', uid()).gte('sleep_start', `${since7}T00:00:00`),
+      supabase.from('meal_logs').select('logged_at, calories, protein_g').eq('user_id', uid()).gte('logged_at', since7),
+      fetchProfile(),
+    ]);
+    throwIf(e1); throwIf(e2); throwIf(e3);
+
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(Date.now() - i * 86400000).toISOString().split('T')[0];
+      if (date > today) { days.push({ date, habits: null, score: null, is_future: true }); continue; }
+      const dayW   = (workouts  || []).filter(w => (w.started_at    || '').startsWith(date));
+      const dayS   = (sleepLogs || []).filter(s => (s.sleep_start   || '').startsWith(date));
+      const dayM   = (meals     || []).filter(m => m.logged_at === date);
+      const totCal = dayM.reduce((s, m) => s + (m.calories  || 0), 0);
+      const totPro = dayM.reduce((s, m) => s + (m.protein_g || 0), 0);
+      const totSlp = dayS.reduce((s, l) => s + (l.duration_min || 0), 0);
+      const habits = {
+        workout:  dayW.length > 0,
+        sleep:    totSlp >= 420,
+        protein:  totPro >= (profile.target_protein || 150) * 0.8,
+        calories: totCal > 0 && totCal <= (profile.target_calories || 2200) * 1.1,
+        meals:    dayM.length >= 2,
+      };
+      days.push({ date, habits, score: Object.values(habits).filter(Boolean).length * 20, is_future: false });
+    }
+    const todayData = days.find(d => d.date === today) || { date: today, habits: {}, score: 0, is_future: false };
+    return resp({ today: todayData, week: days, streak: profile.current_streak || 0, longest: profile.longest_streak || 0 });
   },
 };
 

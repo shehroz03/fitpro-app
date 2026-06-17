@@ -34,7 +34,7 @@ export const useAuthStore = create((set, get) => ({
   },
 
   // ── Register ────────────────────────────────────────────────
-  register: async ({ full_name, email, password }) => {
+  register: async ({ full_name, email, password, gender }) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -42,8 +42,13 @@ export const useAuthStore = create((set, get) => ({
     });
     if (error) throw new Error(error.message);
     if (!data.session) {
-      // Happens when "Confirm email" is ON in Supabase. Turn it OFF for instant login.
       throw new Error('Account created. Please disable email confirmation in Supabase, or verify your email.');
+    }
+    // Save gender immediately after signup so onboarding can skip the gender step
+    if (gender) {
+      await supabase.from('profiles')
+        .update({ gender, updated_at: new Date().toISOString() })
+        .eq('id', data.user.id);
     }
     const profile = await fetchProfile(data.user.id);
     set({ user: profile, accessToken: data.session.access_token, isLoggedIn: true });
@@ -65,7 +70,7 @@ export const useAuthStore = create((set, get) => ({
     set({ user: null, accessToken: null, isLoggedIn: false });
   },
 
-  // ── Update profile fields ───────────────────────────────────
+  // ── Update profile fields (writes to Supabase — used by OnboardingScreen/QuizOnboarding) ──
   setUser: async (updates) => {
     const current = get().user;
     if (!current) return;
@@ -77,4 +82,9 @@ export const useAuthStore = create((set, get) => ({
       .single();
     if (!error && data) set({ user: data });
   },
+
+  // ── Local-only state patch (no DB write — use when caller already saved to DB) ──
+  patchUser: (data) => set(state => ({
+    user: state.user ? { ...state.user, ...data } : data,
+  })),
 }));

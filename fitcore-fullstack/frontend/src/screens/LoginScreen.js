@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { useAuthStore } from '../store/authStore';
 import { useC } from '../utils/theme';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function LoginScreen({ navigation }) {
   const C = useC();
@@ -40,9 +41,9 @@ export default function LoginScreen({ navigation }) {
           <Text style={styles.appName}>FITCORE PRO</Text>
           <Text style={styles.tagline}>Your ultimate fitness companion</Text>
           <View style={styles.highlights}>
-            {[['💪','AI Workouts'],['🥗','Nutrition AI'],['😴','Sleep Tracking']].map(([ic, lb]) => (
+            {[['barbell-outline','AI Workouts'],['restaurant-outline','Nutrition AI'],['moon-outline','Sleep Tracking']].map(([ion, lb]) => (
               <View key={lb} style={styles.highlight}>
-                <Text style={{ fontSize:14 }}>{ic}</Text>
+                <Ionicons name={ion} size={13} color={C.accent} />
                 <Text style={styles.highlightTxt}>{lb}</Text>
               </View>
             ))}
@@ -50,7 +51,7 @@ export default function LoginScreen({ navigation }) {
         </View>
 
         <View style={styles.form}>
-          <Text style={styles.formTitle}>Welcome Back 👋</Text>
+          <Text style={styles.formTitle}>Welcome Back</Text>
           <Text style={styles.formSub}>Log in to continue your fitness journey</Text>
 
           <View style={styles.inputGroup}>

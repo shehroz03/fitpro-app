@@ -1,0 +1,278 @@
+[
+  {
+    "id": "female_onboarding_11_sleep_habits",
+    "type": "cards",
+    "title": "Step 11 of 20",
+    "subtitle": "Quality rest is crucial for recovery and reaching your fitness goals.",
+    "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuC3tQ_QbCqTHEfT-0YxW3WkKmhCkPhHcwZms5uxwfFIMTwoKHxoAJsRhAiGYbuuCMpqBBi1iZc8tR8OWKs5EW2-6X3nmA6uuNowsxbuCODs3QGiP8dXrEom8fdo1Zn9O6tnOfOtQK5QXFf_U-GxelapEwOuFBqU4DDo177-b5qkzrOhMsPWKrOlGRvczMiN5eH6CDUTdOn1yqSZyafHGI-ETBRypT3evtsDCKYE8yIh43NUJi-I702parXWZvgY899ii5OGi8NxNT3V",
+    "options": [
+      {
+        "label": "Less than 5 hours",
+        "value": "less_than_5_hours",
+        "icon": "battery_1_bar"
+      },
+      {
+        "label": "5-6 hours",
+        "value": "5-6_hours",
+        "icon": "battery_3_bar"
+      },
+      {
+        "label": "7-8 hours",
+        "value": "7-8_hours",
+        "icon": "battery_5_bar"
+      },
+      {
+        "label": "More than 8 hours",
+        "value": "more_than_8_hours",
+        "icon": "battery_full_alt"
+      }
+    ]
+  },
+  {
+    "id": "female_onboarding_12_water_intake",
+    "type": "cards",
+    "title": "Step 12 of 20",
+    "subtitle": "Hydration is key to your performance and recovery.",
+    "image": "",
+    "options": [
+      {
+        "label": "Less than 1L",
+        "value": "less_than_1l",
+        "icon": "local_drink"
+      },
+      {
+        "label": "1-2L",
+        "value": "1-2l",
+        "icon": "water_bottle"
+      },
+      {
+        "label": "2-3L",
+        "value": "2-3l",
+        "icon": "waves"
+      },
+      {
+        "label": "More than 3L",
+        "value": "more_than_3l",
+        "icon": "science"
+      }
+    ]
+  },
+  {
+    "id": "female_onboarding_13_activity_level",
+    "type": "info",
+    "title": "Step 13 of 20",
+    "subtitle": "This helps us calculate your daily caloric needs accurately.",
+    "image": ""
+  },
+  {
+    "id": "female_onboarding_14_dietary_preferences",
+    "type": "info",
+    "title": "Step 14 of 20",
+    "subtitle": "Select all that apply to help us tailor your plan.",
+    "image": ""
+  },
+  {
+    "id": "female_onboarding_15_age_input",
+    "type": "info",
+    "title": "How old are you?",
+    "subtitle": "This helps us personalize your coaching plan and set realistic goals.",
+    "image": ""
+  },
+  {
+    "id": "female_onboarding_16_height_input",
+    "type": "info",
+    "title": "Step 16 of 20",
+    "subtitle": "This helps us calculate your BMI and daily caloric needs.",
+    "image": ""
+  },
+  {
+    "id": "female_onboarding_17_current_weight_input",
+    "type": "info",
+    "title": "Step 17 of 20",
+    "subtitle": "This helps us personalize your fitness goals.",
+    "image": ""
+  },
+  {
+    "id": "female_onboarding_18_target_weight_input",
+    "type": "info",
+    "title": "What is your target weight?",
+    "subtitle": "Setting a realistic goal helps us create the perfect plan for you.",
+    "image": ""
+  },
+  {
+    "id": "female_onboarding_19_plan_analysis",
+    "type": "info",
+    "title": "Analyzing your profile...",
+    "subtitle": "We're building a tailored plan based on your unique goals, fitness level, and lifestyle.",
+    "image": ""
+  },
+  {
+    "id": "female_onboarding_20_final_success",
+    "type": "info",
+    "title": "Your personalized plan is ready!",
+    "subtitle": "We've crafted the perfect roadmap based on your goals.",
+    "image": ""
+  },
+  {
+    "id": "female_onboarding_fitness_analysis_transition",
+    "type": "info",
+    "title": "Step 4 of 20",
+    "subtitle": "We're calculating your personalized plan based on your responses.",
+    "image": ""
+  },
+  {
+    "id": "female_onboarding_fitness_level_selection",
+    "type": "info",
+    "title": "What's your fitness level?",
+    "subtitle": "Drag the dial to set your current level so we can personalize your plan.",
+    "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuAUZDawmG2NQZSFuK6GZ8LAGYjIZ9TeATGjuyWtHan3KESbUTJqYg-tsxoA0lpkg8Or_EvBxZa09cU5FwoX5SP9BsNjWf65L6WgncprI7wxmGXcLwH8tm_KEjaOajuxRSINLZJeZ5Q4-mRhOF6EjhciesjiEpX02OJTqWlNJHhOLioIjWb_L103rHfppzLMPcct3-ebRddSGps7_4xl1MLOtBA6TQopAdzw3_lVg8CbluEKXAT7iVdmtGvauoUtPFxQ_68awppTXDcR"
+  },
+  {
+    "id": "female_onboarding_program_benefits_comparison",
+    "type": "info",
+    "title": "Step 1 of 20",
+    "subtitle": "See how our tailored approach guarantees results compared to generic programs.",
+    "image": ""
+  },
+  {
+    "id": "female_onboarding_typical_day_habits",
+    "type": "cards",
+    "title": "Step 1 of 20",
+    "subtitle": "This helps us calculate your baseline activity level.",
+    "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuAc8mta05JSudh5a8CEBxFKUqHp4_TNusl42eRsB6L2hwfh0yHRwTwNYjvdpM-MgDz3lhjtvMxVi7TWqZV35eDQeJ0ZUaeYL-9tt2zAhx0tili0zMeFUXVObYGaaXehpNOeuM2hIBL812hkjm2395S4QwOugYSAO7F6lfsHEHxtix37KNhSrzHG3UPwBANQjCpI1wThl-wvHGXvb8ecp1L2iDOjClkH8Ez2VcDIAptb1Tx9VE04Ce9BxBhfegyfIp4w4jmgfT0o1dUy",
+    "options": [
+      {
+        "label": "Mostly seated at work",
+        "value": "mostly_seated_at_work",
+        "icon": "chair"
+      },
+      {
+        "label": "Mostly sedentary at home",
+        "value": "mostly_sedentary_at_home",
+        "icon": "weekend"
+      },
+      {
+        "label": "Walking daily",
+        "value": "walking_daily",
+        "icon": "directions_walk"
+      },
+      {
+        "label": "On my feet all day",
+        "value": "on_my_feet_all_day",
+        "icon": "directions_run"
+      }
+    ]
+  },
+  {
+    "id": "female_onboarding_workout_level_preference",
+    "type": "info",
+    "title": "What's your preferred workout level?",
+    "subtitle": "We'll use this to tailor your initial plan.",
+    "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuD1kNjQJHDmIdyAUSkKsepa6TER-7l4PbU1F_MI-IDbD42ygJt9Jau9xAMbJ33wUl9CxoSyYirmnp7DfsrUW87bmIfCRbAcj-Q9dVGslJZ60TeqXA2IMR_R5BWAz3u7dF4lI9FHMsdPKDezjxs8gRTpjbDnVnXRKuxOiry72Ziohfw7UocHoAJOxqw8qhFjl-0LKJbX6l4hSLRF6rXcKe5AjexFFHtYwtv3ltXlEUZw0pu5xBBXkDc96PJ90OFHgYmTmiJyb91onN6I"
+  },
+  {
+    "id": "male_onboarding_11_sleep_habits",
+    "type": "info",
+    "title": "How much do you sleep on average?",
+    "subtitle": "Quality sleep is crucial for muscle recovery, hormone balance, and daily energy levels. We use this to optimize your rest days.",
+    "image": ""
+  },
+  {
+    "id": "male_onboarding_12_water_intake",
+    "type": "info",
+    "title": "Step 12 of 20",
+    "subtitle": "Proper hydration is key for your goals.",
+    "image": ""
+  },
+  {
+    "id": "male_onboarding_13_activity_level",
+    "type": "info",
+    "title": "How active are you during the day?",
+    "subtitle": "This helps us calculate your daily calorie burn.",
+    "image": ""
+  },
+  {
+    "id": "male_onboarding_14_dietary_preferences",
+    "type": "info",
+    "title": "Step 14 of 20",
+    "subtitle": "Select all that apply to personalize your nutrition plan.",
+    "image": ""
+  },
+  {
+    "id": "male_onboarding_15_age_input",
+    "type": "info",
+    "title": "Step 15 of 20",
+    "subtitle": "This helps us personalize your fitness and nutrition plan.",
+    "image": ""
+  },
+  {
+    "id": "male_onboarding_16_height_input",
+    "type": "info",
+    "title": "Step 16 of 20",
+    "subtitle": "This helps us calculate your daily metabolic rate.",
+    "image": ""
+  },
+  {
+    "id": "male_onboarding_17_current_weight_input",
+    "type": "info",
+    "title": "Step 17 of 20",
+    "subtitle": "This helps us calculate your daily caloric needs.",
+    "image": ""
+  },
+  {
+    "id": "male_onboarding_18_target_weight_input",
+    "type": "info",
+    "title": "Step 18 of 20",
+    "subtitle": "Set a realistic goal for your journey.",
+    "image": ""
+  },
+  {
+    "id": "male_onboarding_19_plan_analysis",
+    "type": "info",
+    "title": "Step 19 of 20",
+    "subtitle": "We're building a tailored plan based on your unique goals, fitness level, and lifestyle.",
+    "image": ""
+  },
+  {
+    "id": "male_onboarding_20_final_success",
+    "type": "info",
+    "title": "Your personalized plan is ready!",
+    "subtitle": "We've built a program based on your goals and profile.",
+    "image": ""
+  },
+  {
+    "id": "male_onboarding_fitness_analysis_transition",
+    "type": "info",
+    "title": "Fitness analysis",
+    "subtitle": "Processing your profile data to create a custom plan.",
+    "image": ""
+  },
+  {
+    "id": "male_onboarding_fitness_level_selection",
+    "type": "info",
+    "title": "What's your fitness level?",
+    "subtitle": "Slide to set your current baseline.",
+    "image": ""
+  },
+  {
+    "id": "male_onboarding_program_benefits_comparison",
+    "type": "info",
+    "title": "Step 12 of 20",
+    "subtitle": "Stop wasting time on generic programs.",
+    "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuDAmPa2wJGvdqj1ZcV21bRYjohOFs2y5wJmNwe4OmmjcbKt3B0Q4p898w7UZNoRz6YOP1isquP_0qNqqldKushqUOWh5cte_xAggs8pGhHz8lxylv1ivB2PQBnL6YwSR2COtLzI3w9YG4i6rFRcx1SN7zc_svihv2QTb0oQNM4qizvizfwfL1bdO1G2sCE6FocNqvpVRGTOiffxejLULx2DK7-DIDyHBGPN0N5SxlbqYDgZFvZKazi22djVx8rYCdRIT-xaE9tGPASw"
+  },
+  {
+    "id": "male_onboarding_typical_day_habits",
+    "type": "info",
+    "title": "What does your typical day look like?",
+    "subtitle": "This helps us tailor your activity goals and baseline calorie burn.",
+    "image": ""
+  },
+  {
+    "id": "male_onboarding_workout_level_preference",
+    "type": "info",
+    "title": "What's your preferred workout level?",
+    "subtitle": "Select the intensity that feels right for your current fitness goals.",
+    "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuD1kNjQJHDmIdyAUSkKsepa6TER-7l4PbU1F_MI-IDbD42ygJt9Jau9xAMbJ33wUl9CxoSyYirmnp7DfsrUW87bmIfCRbAcj-Q9dVGslJZ60TeqXA2IMR_R5BWAz3u7dF4lI9FHMsdPKDezjxs8gRTpjbDnVnXRKuxOiry72Ziohfw7UocHoAJOxqw8qhFjl-0LKJbX6l4hSLRF6rXcKe5AjexFFHtYwtv3ltXlEUZw0pu5xBBXkDc96PJ90OFHgYmTmiJyb91onN6I"
+  }
+]

@@ -1,13 +1,21 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   View, Text, ScrollView, TouchableOpacity, Modal,
   TextInput, StyleSheet, Alert, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { goalsAPI, progressAPI } from '../api/services';
 import { useC } from '../utils/theme';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 const GOAL_TYPES = ['weight_loss','muscle_gain','endurance','flexibility','maintenance'];
-const TYPE_ICONS = { weight_loss:'⚖️', muscle_gain:'💪', endurance:'🏃', flexibility:'🧘', maintenance:'🎯' };
+const TYPE_MC = {
+  weight_loss:'scale-bathroom', muscle_gain:'arm-flex', endurance:'run',
+  flexibility:'yoga', maintenance:'target',
+};
+const TypeIcon = ({ type, size = 24, color = '#888' }) => (
+  <MaterialCommunityIcons name={TYPE_MC[type] || 'target'} size={size} color={color} />
+);
 const TYPE_DESC   = {
   weight_loss:  'Reduce body fat through calorie deficit & cardio',
   muscle_gain:  'Build muscle through progressive overload & protein',
@@ -24,13 +32,9 @@ export default function GoalsScreen({ navigation }) {
     weight_loss: C.orange, muscle_gain: C.blue, endurance: C.teal,
     flexibility: C.purple, maintenance: C.accent,
   }), [C]);
-  const [goals,      setGoals]      = useState([]);
-  const [stats,      setStats]      = useState(null);
-  const [loading,    setLoading]    = useState(true);
-  const [refresh,    setRefresh]    = useState(false);
+  const queryClient = useQueryClient();
   const [showAdd,    setShowAdd]    = useState(false);
   const [saving,     setSaving]     = useState(false);
-  // Progress update modal (replaces Alert.prompt - works on Android+iOS)
   const [showUpdate, setShowUpdate] = useState(false);
   const [updateGoal, setUpdateGoal] = useState(null);
   const [updateVal,  setUpdateVal]  = useState('');
@@ -40,25 +44,50 @@ export default function GoalsScreen({ navigation }) {
     target_value:'', unit:'kg', target_date:'',
   });
 
-  const load = useCallback(async () => {
-    try {
-      const [gRes, sRes] = await Promise.all([
-        goalsAPI.getAll(),
-        progressAPI.getDashboard(),
-      ]);
-      setGoals(gRes.data.data || []);
-      setStats(sRes.data.data);
-    } catch { Alert.alert('Error', 'Could not load goals'); }
-    finally { setLoading(false); setRefresh(false); }
-  }, []);
+  const { data: goals = [], isLoading: goalsLoading, isRefetching: goalsRefreshing, refetch: refetchGoals } = useQuery({
+    queryKey: ['goals'],
+    queryFn: () => goalsAPI.getAll().then(r => r.data.data || []),
+  });
 
-  useEffect(() => { load(); }, [load]);
+  const { data: stats, isLoading: statsLoading, isRefetching: statsRefreshing, refetch: refetchStats } = useQuery({
+    queryKey: ['dashboard'],
+    queryFn: () => progressAPI.getDashboard().then(r => r.data.data),
+  });
+
+  const loading = goalsLoading || statsLoading;
+  const refresh = goalsRefreshing || statsRefreshing;
+
+  const invalidateGoals = () => {
+    queryClient.invalidateQueries({ queryKey: ['goals'] });
+    queryClient.invalidateQueries({ queryKey: ['goals', 'active'] });
+    queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+  };
+
+  const { mutateAsync: createGoal } = useMutation({
+    mutationFn: (payload) => goalsAPI.create(payload),
+    onSuccess: invalidateGoals,
+  });
+
+  const { mutateAsync: updateProgress } = useMutation({
+    mutationFn: ({ id, val }) => goalsAPI.updateProgress(id, val),
+    onSuccess: invalidateGoals,
+  });
+
+  const { mutateAsync: updateStatus } = useMutation({
+    mutationFn: ({ id, status }) => goalsAPI.updateStatus(id, status),
+    onSuccess: invalidateGoals,
+  });
+
+  const { mutateAsync: deleteGoal } = useMutation({
+    mutationFn: (id) => goalsAPI.delete(id),
+    onSuccess: invalidateGoals,
+  });
 
   const handleCreate = async () => {
     if (!form.title.trim()) return Alert.alert('Error', 'Goal title is required');
     setSaving(true);
     try {
-      await goalsAPI.create({
+      await createGoal({
         type:         form.type,
         title:        form.title.trim(),
         description:  form.description.trim() || undefined,
@@ -68,8 +97,7 @@ export default function GoalsScreen({ navigation }) {
       });
       setShowAdd(false);
       setForm({ type:'weight_loss', title:'', description:'', target_value:'', unit:'kg', target_date:'' });
-      load();
-      Alert.alert('🎯 Goal Created!', 'Your new goal is set!');
+      Alert.alert('Goal Created', 'Your new goal is set.');
     } catch (e) {
       Alert.alert('Error', e.response?.data?.message || 'Could not create goal');
     } finally { setSaving(false); }
@@ -84,11 +112,10 @@ export default function GoalsScreen({ navigation }) {
   const handleUpdateProgress = async () => {
     if (!updateGoal || isNaN(+updateVal)) return;
     try {
-      const res = await goalsAPI.updateProgress(updateGoal.id, +updateVal);
+      const res = await updateProgress({ id: updateGoal.id, val: +updateVal });
       setShowUpdate(false);
       setUpdateGoal(null);
-      load();
-      Alert.alert('✅', res.data.message || 'Progress updated!');
+      Alert.alert('Updated', res.data.message || 'Progress updated.');
     } catch { Alert.alert('Error', 'Could not update progress'); }
   };
 
@@ -97,7 +124,7 @@ export default function GoalsScreen({ navigation }) {
     Alert.alert(label, `"${goal.title}"`, [
       { text:'Cancel', style:'cancel' },
       { text:'Confirm', onPress: async () => {
-        try { await goalsAPI.updateStatus(goal.id, newStatus); load(); } catch {}
+        try { await updateStatus({ id: goal.id, status: newStatus }); } catch {}
       }},
     ]);
   };
@@ -106,7 +133,7 @@ export default function GoalsScreen({ navigation }) {
     Alert.alert('Delete Goal?', `"${title}" will be permanently removed.`, [
       { text:'Cancel', style:'cancel' },
       { text:'Delete', style:'destructive', onPress: async () => {
-        try { await goalsAPI.delete(id); load(); } catch {}
+        try { await deleteGoal(id); } catch {}
       }},
     ]);
 
@@ -126,7 +153,7 @@ export default function GoalsScreen({ navigation }) {
       <View style={[gc.card, isDone && gc.cardDone, isPaused && gc.cardPaused]}>
         <View style={gc.top}>
           <View style={[gc.iconBox, { backgroundColor:`${color}18` }]}>
-            <Text style={{ fontSize:26 }}>{TYPE_ICONS[goal.type]||'🎯'}</Text>
+            <TypeIcon type={goal.type} size={24} color={color} />
           </View>
           <View style={{ flex:1 }}>
             <Text style={gc.title}>{goal.title}</Text>
@@ -138,8 +165,8 @@ export default function GoalsScreen({ navigation }) {
             <View style={[gc.typeBadge, { backgroundColor:`${color}20` }]}>
               <Text style={[gc.typeTxt, { color }]}>{(goal.type||'').replace('_',' ')}</Text>
             </View>
-            {isDone  && <Text style={{ fontSize:16 }}>🏆</Text>}
-            {isPaused && <Text style={{ fontSize:14 }}>⏸️</Text>}
+            {isDone  && <Ionicons name="trophy" size={16} color={C.teal} />}
+            {isPaused && <Ionicons name="pause-circle-outline" size={16} color={C.muted} />}
           </View>
         </View>
 
@@ -154,14 +181,19 @@ export default function GoalsScreen({ navigation }) {
             <View style={gc.progressBg}>
               <View style={[gc.progressFill, { width:`${pct}%`, backgroundColor:color }]} />
             </View>
-            {isDone && <Text style={[gc.completedLabel, { color:C.teal }]}>🎉 Goal achieved!</Text>}
+            {isDone && (
+              <View style={{ flexDirection:'row', alignItems:'center', gap:5, marginTop:6 }}>
+                <Ionicons name="checkmark-circle" size={14} color={C.teal} />
+                <Text style={[gc.completedLabel, { color:C.teal, marginTop:0 }]}>Goal achieved!</Text>
+              </View>
+            )}
           </View>
         )}
 
         <View style={gc.metaRow}>
           {goal.target_date && (
             <View style={gc.metaItem}>
-              <Text style={gc.metaIcon}>📅</Text>
+              <Ionicons name="calendar-outline" size={12} color={C.dim} />
               <Text style={gc.metaTxt}>
                 {new Date(goal.target_date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}
               </Text>
@@ -170,7 +202,7 @@ export default function GoalsScreen({ navigation }) {
           {daysLeft !== null && !isDone && (
             <View style={[gc.daysBadge, daysLeft<=7 && { backgroundColor:'rgba(255,69,58,0.15)' }]}>
               <Text style={[gc.daysTxt, daysLeft<=7 && { color:C.red }]}>
-                {daysLeft===0 ? '⚠️ Due today!' : `${daysLeft} days left`}
+                {daysLeft===0 ? 'Due today!' : `${daysLeft} days left`}
               </Text>
             </View>
           )}
@@ -181,31 +213,31 @@ export default function GoalsScreen({ navigation }) {
             {goal.target_value > 0 && (
               <TouchableOpacity style={[gc.actionBtn, { borderColor:color, backgroundColor:`${color}12` }]}
                 onPress={() => openUpdateModal(goal)}>
-                <Text style={{ fontSize:13 }}>📊</Text>
+                <Ionicons name="stats-chart-outline" size={12} color={color} />
                 <Text style={[gc.actionTxt, { color }]}>Update</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity style={[gc.actionBtn, { borderColor:C.teal, backgroundColor:'rgba(47,207,160,0.1)' }]}
               onPress={() => handleStatusChange(goal,'completed')}>
-              <Text style={{ fontSize:13 }}>✅</Text>
+              <Ionicons name="checkmark" size={12} color={C.teal} />
               <Text style={[gc.actionTxt, { color:C.teal }]}>Complete</Text>
             </TouchableOpacity>
             {!isPaused ? (
               <TouchableOpacity style={[gc.actionBtn, { borderColor:C.muted }]}
                 onPress={() => handleStatusChange(goal,'paused')}>
-                <Text style={{ fontSize:13 }}>⏸️</Text>
+                <Ionicons name="pause" size={12} color={C.muted} />
                 <Text style={[gc.actionTxt, { color:C.muted }]}>Pause</Text>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity style={[gc.actionBtn, { borderColor:C.blue, backgroundColor:'rgba(77,141,255,0.1)' }]}
                 onPress={() => handleStatusChange(goal,'active')}>
-                <Text style={{ fontSize:13 }}>▶️</Text>
+                <Ionicons name="play" size={12} color={C.blue} />
                 <Text style={[gc.actionTxt, { color:C.blue }]}>Resume</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity style={[gc.actionBtn, { borderColor:'rgba(255,69,58,0.3)', backgroundColor:'rgba(255,69,58,0.07)' }]}
               onPress={() => handleDelete(goal.id, goal.title)}>
-              <Text style={{ fontSize:13 }}>🗑️</Text>
+              <Ionicons name="trash-outline" size={12} color={C.red} />
               <Text style={[gc.actionTxt, { color:C.red }]}>Delete</Text>
             </TouchableOpacity>
           </View>
@@ -214,7 +246,8 @@ export default function GoalsScreen({ navigation }) {
         {isDone && (
           <TouchableOpacity style={[gc.actionBtn, { borderColor:'rgba(255,69,58,0.3)', marginTop:8, alignSelf:'flex-end' }]}
             onPress={() => handleDelete(goal.id, goal.title)}>
-            <Text style={[gc.actionTxt, { color:C.red }]}>🗑️ Remove</Text>
+            <Ionicons name="trash-outline" size={12} color={C.red} />
+            <Text style={[gc.actionTxt, { color:C.red }]}>Remove</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -232,10 +265,11 @@ export default function GoalsScreen({ navigation }) {
       <View style={s.header}>
         <View>
           <Text style={s.secLabel}>MY FITNESS</Text>
-          <Text style={s.title}>Goals 🎯</Text>
+          <Text style={s.title}>Goals</Text>
         </View>
-        <TouchableOpacity style={s.addBtn} onPress={() => setShowAdd(true)}>
-          <Text style={s.addBtnTxt}>+ New Goal</Text>
+        <TouchableOpacity style={[s.addBtn, { flexDirection:'row', alignItems:'center', gap:5 }]} onPress={() => setShowAdd(true)}>
+          <Ionicons name="add" size={15} color={C.accent} />
+          <Text style={s.addBtnTxt}>New Goal</Text>
         </TouchableOpacity>
       </View>
 
@@ -246,18 +280,18 @@ export default function GoalsScreen({ navigation }) {
             contentContainerStyle={s.list}
             showsVerticalScrollIndicator={false}
             refreshControl={<RefreshControl refreshing={refresh}
-              onRefresh={() => { setRefresh(true); load(); }} tintColor={C.accent} />}
+              onRefresh={() => { refetchGoals(); refetchStats(); }} tintColor={C.accent} />}
           >
             {/* Stats */}
             <View style={s.statsRow}>
               {[
-                { icon:'🔥', val:streak,           label:'Streak' },
-                { icon:'✅', val:completed.length,  label:'Done' },
-                { icon:'🎯', val:active.length,     label:'Active' },
-                { icon:'🏋️', val:ws?.total_workouts||0, label:'Workouts' },
-              ].map(({ icon,val,label }) => (
+                { ion:'flame',            val:streak,           label:'Streak',   color:C.orange },
+                { ion:'checkmark-circle', val:completed.length, label:'Done',     color:C.teal },
+                { ion:'flag',             val:active.length,    label:'Active',   color:C.accent },
+                { ion:'barbell',          val:ws?.total_workouts||0, label:'Workouts', color:C.blue },
+              ].map(({ ion,val,label,color }) => (
                 <View key={label} style={s.statBox}>
-                  <Text style={{ fontSize:18, marginBottom:4 }}>{icon}</Text>
+                  <Ionicons name={ion} size={17} color={color} style={{ marginBottom:4 }} />
                   <Text style={s.statVal}>{val}</Text>
                   <Text style={s.statLabel}>{label}</Text>
                 </View>
@@ -266,11 +300,11 @@ export default function GoalsScreen({ navigation }) {
 
             {goals.length === 0 && (
               <View style={s.emptyWrap}>
-                <Text style={{ fontSize:60, marginBottom:14 }}>🎯</Text>
-                <Text style={s.emptyTitle}>No Goals Yet!</Text>
+                <Ionicons name="flag-outline" size={56} color={C.accent} style={{ marginBottom:14 }} />
+                <Text style={s.emptyTitle}>No Goals Yet</Text>
                 <Text style={s.emptySub}>Set your first fitness goal and start tracking progress every day.</Text>
                 <TouchableOpacity style={s.emptyBtn} onPress={() => setShowAdd(true)}>
-                  <Text style={s.emptyBtnTxt}>🚀 Create First Goal</Text>
+                  <Text style={s.emptyBtnTxt}>Create First Goal</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -300,7 +334,7 @@ export default function GoalsScreen({ navigation }) {
             {completed.length > 0 && (
               <>
                 <View style={s.sectionHeader}>
-                  <Text style={[s.sectionTitle, { color:C.teal }]}>🏆 Completed</Text>
+                  <Text style={[s.sectionTitle, { color:C.teal }]}>Completed</Text>
                   <View style={[s.countBadge, { backgroundColor:'rgba(47,207,160,0.15)' }]}>
                     <Text style={[s.countBadgeTxt, { color:C.teal }]}>{completed.length}</Text>
                   </View>
@@ -318,7 +352,7 @@ export default function GoalsScreen({ navigation }) {
       <Modal visible={showUpdate} transparent animationType="fade">
         <View style={s.overlayBg}>
           <View style={s.updateCard}>
-            <Text style={s.modalTitle}>📊 Update Progress</Text>
+            <Text style={s.modalTitle}>Update Progress</Text>
             {updateGoal && (
               <>
                 <Text style={s.updateGoalName}>{updateGoal.title}</Text>
@@ -355,7 +389,7 @@ export default function GoalsScreen({ navigation }) {
         <View style={s.modalBg}>
           <ScrollView keyboardShouldPersistTaps="handled">
             <View style={s.modalCard}>
-              <Text style={s.modalTitle}>New Goal 🎯</Text>
+              <Text style={s.modalTitle}>New Goal</Text>
 
               <Text style={s.inputLabel}>Goal Type</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom:14 }}>
@@ -366,7 +400,7 @@ export default function GoalsScreen({ navigation }) {
                     <TouchableOpacity key={t}
                       style={[s.typePill, on && { backgroundColor:`${color}22`, borderColor:color }]}
                       onPress={() => setForm(p => ({ ...p, type:t }))}>
-                      <Text style={{ fontSize:20 }}>{TYPE_ICONS[t]}</Text>
+                      <TypeIcon type={t} size={20} color={on ? color : C.muted} />
                       <Text style={[s.typePillTxt, on && { color }]}>{t.replace('_',' ')}</Text>
                     </TouchableOpacity>
                   );
@@ -374,7 +408,7 @@ export default function GoalsScreen({ navigation }) {
               </ScrollView>
 
               <View style={s.typeDescBox}>
-                <Text style={{ fontSize:20 }}>{TYPE_ICONS[form.type]}</Text>
+                <TypeIcon type={form.type} size={20} color={TYPE_COLORS[form.type]} />
                 <Text style={s.typeDescTxt}>{TYPE_DESC[form.type]}</Text>
               </View>
 
@@ -442,7 +476,7 @@ export default function GoalsScreen({ navigation }) {
                 <TouchableOpacity style={s.confirmBtn} onPress={handleCreate} disabled={saving}>
                   {saving
                     ? <ActivityIndicator color="#000" size="small" />
-                    : <Text style={s.confirmTxt}>Create Goal 🎯</Text>
+                    : <Text style={s.confirmTxt}>Create Goal</Text>
                   }
                 </TouchableOpacity>
               </View>

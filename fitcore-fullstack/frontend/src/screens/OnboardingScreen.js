@@ -1,26 +1,26 @@
 import React, { useState, useRef, useMemo } from 'react';
-import {
-  View, Text, TouchableOpacity, StyleSheet, TextInput,
-  ScrollView, Image, Animated, Alert, ActivityIndicator, KeyboardAvoidingView, Platform,
-} from 'react-native';
+import { Image } from 'expo-image';
+import { View, Text, TouchableOpacity, StyleSheet, TextInput,
+  ScrollView,  Animated, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { goalsAPI } from '../api/services';
 import { useAuthStore } from '../store/authStore';
 import { useC } from '../utils/theme';
 import { AVATARS } from '../utils/avatars';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 export const onboardedKey = (uid) => `fitcore_onboarded:${uid}`;
 
 const LEVELS = [
-  { key: 'beginner',     icon: '🌱', label: 'Beginner',     sub: 'New to fitness' },
-  { key: 'intermediate', icon: '🔥', label: 'Intermediate', sub: 'Train regularly' },
-  { key: 'advanced',     icon: '⚡', label: 'Advanced',      sub: 'Very experienced' },
+  { key: 'beginner',     ion: 'sprout-outline',  label: 'Beginner',     sub: 'New to fitness' },
+  { key: 'intermediate', ion: 'fire',            label: 'Intermediate', sub: 'Train regularly' },
+  { key: 'advanced',     ion: 'lightning-bolt',  label: 'Advanced',      sub: 'Very experienced' },
 ];
 
 const GOALS = [
-  { key: 'weight_loss', icon: '📉', label: 'Lose Weight',     sub: 'Burn fat & get lean' },
-  { key: 'weight_gain', icon: '📈', label: 'Gain Muscle',     sub: 'Build size & strength' },
-  { key: 'maintenance', icon: '⚖️', label: 'Stay Fit',        sub: 'Maintain & tone' },
+  { key: 'weight_loss', ion: 'trending-down',   label: 'Lose Weight',     sub: 'Burn fat & get lean' },
+  { key: 'weight_gain', ion: 'trending-up',     label: 'Gain Muscle',     sub: 'Build size & strength' },
+  { key: 'maintenance', ion: 'scale-balance',   label: 'Stay Fit',        sub: 'Maintain & tone' },
 ];
 
 const TOTAL = 5;
@@ -124,17 +124,17 @@ export default function OnboardingScreen({ onComplete }) {
         {/* ── STEP 1: Gender + Age ── */}
         {step === 0 && (
           <>
-            <Text style={s.title}>Tell us about you 👋</Text>
+            <Text style={s.title}>Tell us about you</Text>
             <Text style={s.subtitle}>This helps us personalize your plan.</Text>
 
             <Text style={s.label}>Gender</Text>
             <View style={s.row2}>
-              {[['male','♂','Male'], ['female','♀','Female']].map(([k, ic, lbl]) => (
+              {[['male', require('../../assets/gender/male.jpeg'), 'Male'], ['female', require('../../assets/gender/female.jpeg'), 'Female']].map(([k, img, lbl]) => (
                 <TouchableOpacity key={k}
-                  style={[s.bigCard, form.gender === k && s.bigCardOn]}
+                  style={[s.genderCard, form.gender === k && s.genderCardOn]}
                   onPress={() => set('gender', k)} activeOpacity={0.85}>
-                  <Text style={[s.bigIcon, form.gender === k && { color: C.accent }]}>{ic}</Text>
-                  <Text style={[s.bigLbl, form.gender === k && { color: C.text }]}>{lbl}</Text>
+                  <Image source={img} style={[s.genderImg, form.gender === k && s.genderImgOn]} contentFit="cover" />
+                  <Text style={[s.genderLbl, form.gender === k && { color: C.text }]}>{lbl}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -151,7 +151,7 @@ export default function OnboardingScreen({ onComplete }) {
         {/* ── STEP 2: Height + Weight ── */}
         {step === 1 && (
           <>
-            <Text style={s.title}>Your body basics 📏</Text>
+            <Text style={s.title}>Your body basics</Text>
             <Text style={s.subtitle}>We'll calculate your BMI automatically.</Text>
 
             <Text style={s.label}>Height (cm)</Text>
@@ -182,7 +182,7 @@ export default function OnboardingScreen({ onComplete }) {
         {/* ── STEP 3: Body Fat + Muscle Mass (optional) ── */}
         {step === 2 && (
           <>
-            <Text style={s.title}>Advanced metrics 💪</Text>
+            <Text style={s.title}>Advanced metrics</Text>
             <Text style={s.subtitle}>Optional — skip if you don't know these.</Text>
 
             <Text style={s.label}>Body Fat %</Text>
@@ -204,7 +204,7 @@ export default function OnboardingScreen({ onComplete }) {
         {/* ── STEP 4: Level + Goal ── */}
         {step === 3 && (
           <>
-            <Text style={s.title}>Your fitness goal 🎯</Text>
+            <Text style={s.title}>Your fitness goal</Text>
             <Text style={s.subtitle}>We'll tune workouts & nutrition for this.</Text>
 
             <Text style={s.label}>Experience Level</Text>
@@ -212,12 +212,15 @@ export default function OnboardingScreen({ onComplete }) {
               <TouchableOpacity key={l.key}
                 style={[s.listCard, form.fitness_level === l.key && s.listCardOn]}
                 onPress={() => set('fitness_level', l.key)} activeOpacity={0.85}>
-                <Text style={s.listIcon}>{l.icon}</Text>
+                <View style={s.listIcon}>
+                  <MaterialCommunityIcons name={l.ion} size={22}
+                    color={form.fitness_level === l.key ? C.accent : C.muted} />
+                </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[s.listLbl, form.fitness_level === l.key && { color: C.text }]}>{l.label}</Text>
                   <Text style={s.listSub}>{l.sub}</Text>
                 </View>
-                {form.fitness_level === l.key && <Text style={s.check}>✓</Text>}
+                {form.fitness_level === l.key && <Ionicons name="checkmark" size={18} color={C.accent} />}
               </TouchableOpacity>
             ))}
 
@@ -226,12 +229,15 @@ export default function OnboardingScreen({ onComplete }) {
               <TouchableOpacity key={g.key}
                 style={[s.listCard, form.goal === g.key && s.listCardOn]}
                 onPress={() => set('goal', g.key)} activeOpacity={0.85}>
-                <Text style={s.listIcon}>{g.icon}</Text>
+                <View style={s.listIcon}>
+                  <MaterialCommunityIcons name={g.ion} size={22}
+                    color={form.goal === g.key ? C.accent : C.muted} />
+                </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[s.listLbl, form.goal === g.key && { color: C.text }]}>{g.label}</Text>
                   <Text style={s.listSub}>{g.sub}</Text>
                 </View>
-                {form.goal === g.key && <Text style={s.check}>✓</Text>}
+                {form.goal === g.key && <Ionicons name="checkmark" size={18} color={C.accent} />}
               </TouchableOpacity>
             ))}
           </>
@@ -240,7 +246,7 @@ export default function OnboardingScreen({ onComplete }) {
         {/* ── STEP 5: Avatar ── */}
         {step === 4 && (
           <>
-            <Text style={s.title}>Pick your avatar 🙂</Text>
+            <Text style={s.title}>Pick your avatar</Text>
             <Text style={s.subtitle}>Choose a profile picture (you can change it later).</Text>
 
             <View style={s.avatarGrid}>
@@ -253,7 +259,7 @@ export default function OnboardingScreen({ onComplete }) {
             </View>
 
             <View style={s.finishNote}>
-              <Text style={s.finishNoteTxt}>🎉 You're all set! Tap Finish to start your journey.</Text>
+              <Text style={s.finishNoteTxt}>You're all set! Tap Finish to start your journey.</Text>
             </View>
           </>
         )}
@@ -270,7 +276,7 @@ export default function OnboardingScreen({ onComplete }) {
         <TouchableOpacity style={s.nextBtn} onPress={next} disabled={saving} activeOpacity={0.85}>
           {saving
             ? <ActivityIndicator color="#0A0A0F" />
-            : <Text style={s.nextTxt}>{step === TOTAL - 1 ? 'Finish 🎉' : 'Next ›'}</Text>}
+            : <Text style={s.nextTxt}>{step === TOTAL - 1 ? 'Finish' : 'Next ›'}</Text>}
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -294,11 +300,12 @@ const makeStyles = (C) => StyleSheet.create({
                   paddingHorizontal: 16, paddingVertical: 14, color: C.text, fontSize: 16, marginBottom: 12 },
 
   row2:         { flexDirection: 'row', gap: 12, marginBottom: 12 },
-  bigCard:      { flex: 1, backgroundColor: C.card, borderRadius: 16, borderWidth: 1.5, borderColor: C.border,
-                  alignItems: 'center', paddingVertical: 24 },
-  bigCardOn:    { borderColor: C.accent, backgroundColor: 'rgba(200,241,53,0.06)' },
-  bigIcon:      { fontSize: 40, color: C.muted, marginBottom: 8 },
-  bigLbl:       { color: C.muted, fontSize: 15, fontWeight: '800' },
+  genderCard:   { flex: 1, backgroundColor: C.card, borderRadius: 16, borderWidth: 1.5, borderColor: C.border,
+                  alignItems: 'center', padding: 12 },
+  genderCardOn: { borderColor: C.accent, backgroundColor: C.accentDim },
+  genderImg:    { width: 100, height: 100, borderRadius: 12, marginBottom: 12, opacity: 0.6 },
+  genderImgOn:  { opacity: 1, borderWidth: 2, borderColor: C.accent },
+  genderLbl:    { color: C.muted, fontSize: 16, fontWeight: '800' },
 
   bmiBox:       { backgroundColor: 'rgba(200,241,53,0.08)', borderRadius: 14, borderWidth: 1,
                   borderColor: 'rgba(200,241,53,0.25)', padding: 16, alignItems: 'center', marginTop: 8 },
@@ -308,7 +315,8 @@ const makeStyles = (C) => StyleSheet.create({
   listCard:     { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: C.card,
                   borderRadius: 14, borderWidth: 1.5, borderColor: C.border, padding: 14, marginBottom: 10 },
   listCardOn:   { borderColor: C.accent, backgroundColor: 'rgba(200,241,53,0.06)' },
-  listIcon:     { fontSize: 26 },
+  listIcon:     { width: 36, height: 36, borderRadius: 10, backgroundColor: C.bg,
+                  alignItems: 'center', justifyContent: 'center' },
   listLbl:      { color: C.muted, fontSize: 15, fontWeight: '800' },
   listSub:      { color: C.dim, fontSize: 12, marginTop: 2 },
   check:        { color: C.accent, fontSize: 18, fontWeight: '900' },

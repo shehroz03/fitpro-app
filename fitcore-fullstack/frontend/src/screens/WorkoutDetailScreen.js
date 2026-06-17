@@ -1,16 +1,13 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  Animated, Easing, Alert, Modal, SafeAreaView,
+  Animated, Easing, Alert, Modal, SafeAreaView, TextInput, ActivityIndicator,
 } from 'react-native';
-import Svg, {
-  Path, Ellipse, Circle, Line, G, Defs,
-  RadialGradient, LinearGradient, Stop,
-  Text as SvgText,
-} from 'react-native-svg';
 import { workoutAPI } from '../api/services';
 import { useC } from '../utils/theme';
+import { useAuthStore } from '../store/authStore';
 import { Video, ResizeMode } from 'expo-av';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import EXERCISES_JSON from '../data/exercises.json';
 
 const EXERCISE_DATA = {
@@ -103,7 +100,6 @@ const EXERCISE_DATA = {
     tips:['Soft landing on full foot','Hinge on landing','Full hip extension at top','Step down safely'] },
 };
 const DEF = { sets:3, reps:12, rest:60, move:'squat', muscle:'Full Body', tips:['Form first','Control movement','Breathe properly','Stay consistent'] };
-const SPD = { run:520,squat:1000,press:1100,pullup:1500,deadlift:1100,lunge:900,burpee:650,twist:750,pushup:900,climb:520,jumprope:480,plank:2000,downwarddog:1800,foamroll:1500,jumpjack:500,highknees:480,curl:1100,hipthrust:1000,tricdip:950,boxjump:700 };
 
 const VIDEOS = {
   male: {
@@ -152,223 +148,89 @@ const VIDEOS = {
   }
 };
 
-function getSkin(gender) {
-  if (gender === 'female') return {
-    base:'#D4956A', mid:'#C4825A', dark:'#A86845', light:'#E8AA82',
-    hi:'rgba(255,200,160,.35)', shadow:'rgba(100,50,20,.4)',
-    hair:'#3A2010', suit:'#222233', suit2:'#333344', lip:'#C06060', eye:'#3A2A18',
-  };
-  return {
-    base:'#C8845A', mid:'#B87248', dark:'#9A5C38', light:'#DFA070',
-    hi:'rgba(240,180,130,.3)', shadow:'rgba(80,40,10,.45)',
-    hair:'#2A1A08', suit:'#1A1A2A', suit2:'#252535', lip:'#B06050', eye:'#2A1E14',
-  };
+// ── Exercise move → icon/color map ────────────────────────────
+const MOVE_INFO = {
+  run:         { icon:'walk-outline',    color:'#2FCFA0' },
+  squat:       { icon:'barbell-outline', color:'#C8F135' },
+  press:       { icon:'barbell-outline', color:'#4D8DFF' },
+  pullup:      { icon:'fitness-outline', color:'#FF9F0A' },
+  deadlift:    { icon:'barbell-outline', color:'#C8F135' },
+  lunge:       { icon:'walk-outline',    color:'#9B6DFF' },
+  burpee:      { icon:'flash-outline',   color:'#FF453A' },
+  legraise:    { icon:'body-outline',    color:'#4D8DFF' },
+  twist:       { icon:'body-outline',    color:'#2FCFA0' },
+  pushup:      { icon:'fitness-outline', color:'#C8F135' },
+  climb:       { icon:'walk-outline',    color:'#FF9F0A' },
+  jumprope:    { icon:'flash-outline',   color:'#4D8DFF' },
+  plank:       { icon:'body-outline',    color:'#9B6DFF' },
+  downwarddog: { icon:'body-outline',    color:'#2FCFA0' },
+  foamroll:    { icon:'body-outline',    color:'#FF8C42' },
+  jumpjack:    { icon:'flash-outline',   color:'#C8F135' },
+  highknees:   { icon:'walk-outline',    color:'#FF453A' },
+  curl:        { icon:'barbell-outline', color:'#4D8DFF' },
+  hipthrust:   { icon:'fitness-outline', color:'#FF6B9D' },
+  tricdip:     { icon:'barbell-outline', color:'#9B6DFF' },
+  boxjump:     { icon:'flash-outline',   color:'#C8F135' },
+};
+
+// ── Small icon card for exercise list ─────────────────────────
+function ExThumb({ move, accentColor }) {
+  const info = MOVE_INFO[move] || { icon:'barbell-outline', color: accentColor };
+  return (
+    <View style={{ width:80, height:90, borderRadius:14, overflow:'hidden',
+      backgroundColor:`${info.color}15`, borderWidth:1, borderColor:`${info.color}30`,
+      alignItems:'center', justifyContent:'center', gap:6 }}>
+      <View style={{ width:44, height:44, borderRadius:22,
+        backgroundColor:`${info.color}25`, alignItems:'center', justifyContent:'center' }}>
+        <Ionicons name={info.icon} size={22} color={info.color} />
+      </View>
+      <View style={{ width:32, height:3, borderRadius:2, backgroundColor:`${info.color}55` }} />
+    </View>
+  );
 }
 
-function getPose(move, t) {
-  const P = {
-    run:      { rY:168, ln:-10,hd:-7,  aLu:-50+t*72,aLe:-28+t*36,aRu:18-t*72,aRe:16-t*36,lLf:28+t*44,lLk:-6-t*52,lRf:-36+t*44,lRk:-6+t*52 },
-    squat:    { rY:185+t*26,ln:t*11,hd:0, aLu:20+t*16,aLe:t*20,aRu:-20-t*16,aRe:t*20,lLf:36+t*26,lLk:-52-t*20,lRf:-36-t*26,lRk:-52-t*20 },
-    press:    { rY:168, ln:0,hd:5,    aLu:-(88+t*34),aLe:t*18,aRu:88+t*34,aRe:t*18,lLf:5,lLk:0,lRf:-5,lRk:0 },
-    pullup:   { rY:166-t*18,ln:0,hd:12, aLu:-(134+t*16),aLe:t*10,aRu:134+t*16,aRe:t*10,lLf:7+t*20,lLk:-t*30,lRf:-7-t*20,lRk:-t*30 },
-    deadlift: { rY:176, ln:40*t,hd:-20*t, aLu:9-t*5,aLe:t*5,aRu:-9+t*5,aRe:t*5,lLf:7+t*18,lLk:-t*30,lRf:-7-t*18,lRk:-t*30 },
-    lunge:    { rY:180+t*16,ln:5,hd:0, aLu:-13+t*10,aLe:0,aRu:13-t*10,aRe:0,lLf:46+t*10,lLk:-65-t*13,lRf:-13-t*4,lRk:-t*11 },
-    burpee:   { rY:186+t*28,ln:28*t,hd:-9*t, aLu:9-t*9,aLe:0,aRu:-9+t*9,aRe:0,lLf:-16-t*60,lLk:t*80,lRf:-16-t*50,lRk:t*70 },
-    legraise: { rY:195, ln:-85+t*5,hd:20-t*5, aLu:-5,aLe:0,aRu:5,aRe:0,lLf:-(75+t*10),lLk:t*15,lRf:-(80+t*10),lRk:t*15 },
-    twist:    { rY:175, ln:-26+t*52,hd:-26+t*52, aLu:-(40-t*80),aLe:0,aRu:40-t*80,aRe:0,lLf:28,lLk:-52,lRf:-28,lRk:-52 },
-    pushup:   { rY:195, ln:-15+t*8,hd:-20+t*15, aLu:-(30-t*25),aLe:-20+t*15,aRu:-(35-t*25),aRe:-20+t*15,lLf:4,lLk:0,lRf:-4,lRk:0 },
-    climb:    { rY:180+t*8,ln:-16,hd:-5, aLu:-(75-t*30),aLe:-20,aRu:-(16+t*20),aRe:8,lLf:-(25+t*20),lLk:t*42,lRf:16+t*28,lRk:-t*32 },
-  };
-  return P[move] || P.squat;
-}
+// ── Full-size exercise video player ───────────────────────────
+function ExerciseVideo({ src, active, accentColor }) {
+  const [ready, setReady] = React.useState(false);
+  const readyRef = React.useRef(false);
+  React.useEffect(() => { readyRef.current = false; setReady(false); }, [src]);
+  const onReady = () => { if (readyRef.current) return; readyRef.current = true; setReady(true); };
 
-function HumanFigure({ moveType = 'squat', gender = 'male', active = true, thumbnail = false }) {
-  const anim = useRef(new Animated.Value(0)).current;
-  const [t, setT] = React.useState(0);
-
-  useEffect(() => {
-    const id = anim.addListener(({ value }) => setT(value));
-    return () => anim.removeListener(id);
-  }, []);
-
-  useEffect(() => {
-    if (!active) { anim.setValue(0); return; }
-    const speed = SPD[moveType] || 900;
-    const loop = Animated.loop(Animated.sequence([
-      Animated.timing(anim, { toValue:1, duration:speed, easing:Easing.inOut(Easing.cubic), useNativeDriver:false }),
-      Animated.timing(anim, { toValue:0, duration:speed, easing:Easing.inOut(Easing.cubic), useNativeDriver:false }),
-    ]));
-    loop.start();
-    return () => loop.stop();
-  }, [active, moveType]);
-
-  const vSrc = VIDEOS[gender]?.[moveType];
-  if (vSrc) {
-    const vW = thumbnail ? 80 : 200;
-    const vH = thumbnail ? 100 : 300;
-    const innerH = vW * (16 / 9);
-    const finalInnerH = Math.max(vH * 1.15, innerH);
+  if (!src) {
     return (
-      <View style={{ width: vW, height: vH, overflow: 'hidden', borderRadius: thumbnail ? 10 : 14 }}>
-        <View style={{ width: '100%', height: finalInnerH, position: 'absolute', top: 0 }}>
-          <Video
-            source={vSrc}
-            style={{ width: '100%', height: '100%' }}
-            resizeMode={ResizeMode.COVER}
-            shouldPlay={active}
-            isLooping
-            isMuted
-            positionMillis={0}
-          />
+      <View style={{ width:200, height:300, borderRadius:14, overflow:'hidden',
+        backgroundColor:'#111118', alignItems:'center', justifyContent:'center', gap:12 }}>
+        <View style={{ width:80, height:80, borderRadius:40,
+          backgroundColor:`${accentColor}20`, alignItems:'center', justifyContent:'center' }}>
+          <Ionicons name="barbell-outline" size={40} color={accentColor} />
         </View>
-        {active && !thumbnail && (
-          <View style={{position:'absolute',top:10,right:12,flexDirection:'row',alignItems:'center',gap:5,zIndex:2}}>
-            <View style={{width:8,height:8,borderRadius:4,backgroundColor:gender==='female'?'#FF6B9D':'#C8F135'}}/>
-            <Text style={{color:gender==='female'?'#FF6B9D':'#C8F135',fontSize:9,fontWeight:'900',letterSpacing:1}}>LIVE</Text>
-          </View>
-        )}
+        <Text style={{ color:'rgba(255,255,255,0.3)', fontSize:11 }}>Video unavailable</Text>
       </View>
     );
   }
 
-  const W=200, H=300, cx=W/2, isF=gender==='female';
-  const SK=getSkin(gender);
-  const p=getPose(moveType,t);
-  const fv=v=>parseFloat(v.toFixed(2));
-  const R=(px,py,ox,oy,deg)=>{ const r=deg*Math.PI/180,c=Math.cos(r),s=Math.sin(r),dx=px-ox,dy=py-oy; return{x:ox+dx*c-dy*s,y:oy+dx*s+dy*c}; };
-
-  const SHW=isF?36:50,HPW=isF?38:33,WSW=isF?22:28;
-  const TH=62,NW=isF?7:10,NH=13,HRX=isF?17:20,HRY=isF?21:23;
-  const ARM=48,FORE=42,AW=isF?10:15,FW=isF?7.5:11;
-  const THG=65,SHN=62,TWG=isF?17:22,SWG=isF?11:14;
-
-  const rootX=cx, rootY=(p.rY||178)+(H-290)*0.5, lean=p.ln||0;
-  const sL=R(rootX-SHW,rootY-TH,rootX,rootY,lean), sR=R(rootX+SHW,rootY-TH,rootX,rootY,lean);
-  const wL=R(rootX-WSW,rootY-TH*.32,rootX,rootY,lean), wR=R(rootX+WSW,rootY-TH*.32,rootX,rootY,lean);
-  const hpL={x:rootX-HPW,y:rootY}, hpR={x:rootX+HPW,y:rootY};
-  const nkB=R(rootX,rootY-TH+5,rootX,rootY,lean), nkT=R(rootX,rootY-TH-NH,rootX,rootY,lean);
-  const hdC=R(rootX,rootY-TH-NH-HRY+5,rootX,rootY,lean), scT=R(rootX,rootY-TH,rootX,rootY,lean);
-  const eL=R(sL.x,sL.y+ARM,sL.x,sL.y,p.aLu||0), hL=R(eL.x,eL.y+FORE,eL.x,eL.y,(p.aLe||0)+(p.aLu||0));
-  const eR=R(sR.x,sR.y+ARM,sR.x,sR.y,p.aRu||0), hR=R(eR.x,eR.y+FORE,eR.x,eR.y,(p.aRe||0)+(p.aRu||0));
-  const kL=R(hpL.x+HPW*.26,hpL.y+THG,hpL.x,hpL.y,p.lLf||0), fL=R(kL.x,kL.y+SHN,kL.x,kL.y,(p.lLk||0)+(p.lLf||0));
-  const kR=R(hpR.x-HPW*.26,hpR.y+THG,hpR.x,hpR.y,p.lRf||0), fR=R(kR.x,kR.y+SHN,kR.x,kR.y,(p.lRk||0)+(p.lRf||0));
-
-  const limb=(x1,y1,x2,y2,w1,w2)=>{ w2=w2??w1*.74; const dx=x2-x1,dy=y2-y1,L=Math.sqrt(dx*dx+dy*dy); if(L<.5)return''; const nx=-dy/L,ny=dx/L,mx=(x1+x2)/2,my=(y1+y2)/2; return`M${fv(x1+nx*w1)},${fv(y1+ny*w1)} Q${fv(mx+nx*w1*.2)},${fv(my+ny*w1*.2)} ${fv(x2+nx*w2)},${fv(y2+ny*w2)} L${fv(x2-nx*w2)},${fv(y2-ny*w2)} Q${fv(mx-nx*w1*.2)},${fv(my-ny*w1*.2)} ${fv(x1-nx*w1)},${fv(y1-ny*w1)} Z`; };
-  const handP=(ex,ey,ang)=>{ const a=ang*Math.PI/180,fw={x:Math.sin(a),y:Math.cos(a)},pp={x:Math.cos(a),y:-Math.sin(a)},F=[[14,-8],[16,-4],[16,0],[15,4],[11,8]],pts=F.map(([L,o])=>`L${fv(ex+pp.x*o+fw.x*L)},${fv(ey+pp.y*o+fw.y*L)}`); return`M${fv(ex+pp.x*-8)},${fv(ey+pp.y*-8)} ${pts.join(' ')} L${fv(ex+pp.x*8)},${fv(ey+pp.y*8)} Z`; };
-  const footP=(kx,ky,fx,fy)=>{ const dx=fx-kx,dy=fy-ky,L=Math.sqrt(dx*dx+dy*dy); if(L<.5)return''; const nx=-dy/L,ny=dx/L; return`M${fv(fx+nx*7)},${fv(fy+ny*7)} L${fv(fx+nx*7+dx/L*20)},${fv(fy+ny*7+dy/L*20+3)} L${fv(fx-nx*7+dx/L*20)},${fv(fy-ny*7+dy/L*20+3)} L${fv(fx-nx*7-dx/L*4)},${fv(fy-ny*7-dy/L*4)} Z`; };
-
-  const torso=`M${fv(sL.x)},${fv(sL.y)} C${fv(sL.x-9)},${fv(sL.y+TH*.22)} ${fv(wL.x-5)},${fv(wL.y)} ${fv(hpL.x)},${fv(hpL.y)} C${fv(hpL.x+5)},${fv(hpL.y+5)} ${fv(hpR.x-5)},${fv(hpR.y+5)} ${fv(hpR.x)},${fv(hpR.y)} C${fv(wR.x+5)},${fv(wR.y)} ${fv(sR.x+9)},${fv(sR.y+TH*.22)} ${fv(sR.x)},${fv(sR.y)} C${fv(sR.x-2)},${fv(scT.y-9)} ${fv(sL.x+2)},${fv(scT.y-9)} ${fv(sL.x)},${fv(sL.y)} Z`;
-  const nkPath=`M${fv(nkB.x-NW)},${fv(nkB.y)} Q${fv(nkT.x-NW*1.1)},${fv((nkB.y+nkT.y)/2)} ${fv(nkT.x)},${fv(nkT.y)} Q${fv(nkT.x+NW*1.1)},${fv((nkB.y+nkT.y)/2)} ${fv(nkB.x+NW)},${fv(nkB.y)} Z`;
-  const shorts=`M${fv(hpL.x+4)},${fv(hpL.y-4)} C${fv(hpL.x+2)},${fv(hpL.y+22)} ${fv(rootX-8)},${fv(hpL.y+30)} ${fv(rootX-4)},${fv(hpL.y+30)} L${fv(rootX+4)},${fv(hpL.y+30)} C${fv(rootX+8)},${fv(hpL.y+30)} ${fv(hpR.x-2)},${fv(hpR.y+22)} ${fv(hpR.x-4)},${fv(hpR.y-4)} Z`;
-  const uid=`h${gender[0]}${moveType.slice(0,2)}`;
-  const AC=gender==='female'?'#FF6B9D':'#C8F135';
-
   return (
-    <Svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
-      <Defs>
-        <RadialGradient id={`${uid}sk`} cx="40%" cy="30%" r="65%"><Stop offset="0%" stopColor={SK.light}/><Stop offset="50%" stopColor={SK.base}/><Stop offset="100%" stopColor={SK.dark}/></RadialGradient>
-        <RadialGradient id={`${uid}hd`} cx="38%" cy="30%" r="62%"><Stop offset="0%" stopColor={SK.light}/><Stop offset="45%" stopColor={SK.base}/><Stop offset="100%" stopColor={SK.dark}/></RadialGradient>
-        <LinearGradient id={`${uid}ll`} x1="0%" y1="0%" x2="100%" y2="0%"><Stop offset="0%" stopColor={SK.light}/><Stop offset="45%" stopColor={SK.base}/><Stop offset="100%" stopColor={SK.dark}/></LinearGradient>
-        <LinearGradient id={`${uid}rl`} x1="100%" y1="0%" x2="0%" y2="0%"><Stop offset="0%" stopColor={SK.light}/><Stop offset="45%" stopColor={SK.base}/><Stop offset="100%" stopColor={SK.dark}/></LinearGradient>
-        <RadialGradient id={`${uid}tg`} cx="38%" cy="25%" r="70%"><Stop offset="0%" stopColor={SK.light}/><Stop offset="40%" stopColor={SK.base}/><Stop offset="100%" stopColor={SK.dark}/></RadialGradient>
-      </Defs>
-
-      {/* Ground */}
-      <Ellipse cx={fv(cx)} cy={fv(H-5)} rx="46" ry="5" fill={SK.shadow} opacity="0.55"/>
-
-      {/* BACK LEG */}
-      <Path d={limb(hpL.x+HPW*.08,hpL.y,kL.x,kL.y,TWG,TWG*.70)} fill={`url(#${uid}ll)`}/>
-      <Ellipse cx={fv(kL.x)} cy={fv(kL.y)} rx={fv(SWG*1.1)} ry={fv(SWG*1.1)} fill={`url(#${uid}sk)`}/>
-      <Path d={limb(kL.x,kL.y,fL.x,fL.y,SWG,SWG*.58)} fill={`url(#${uid}ll)`}/>
-      <Path d={footP(kL.x,kL.y,fL.x,fL.y)} fill={SK.suit}/>
-      <Ellipse cx={fv(fL.x)} cy={fv(fL.y+3)} rx={fv(SWG*.85)} ry={fv(SWG*.5)} fill="white" opacity="0.6"/>
-
-      {/* BACK ARM */}
-      <Path d={limb(sL.x,sL.y,eL.x,eL.y,AW,AW*.72)} fill={`url(#${uid}ll)`}/>
-      <Ellipse cx={fv(eL.x)} cy={fv(eL.y)} rx={fv(FW*.9)} ry={fv(FW*.9)} fill={`url(#${uid}sk)`}/>
-      <Path d={limb(eL.x,eL.y,hL.x,hL.y,FW,FW*.64)} fill={`url(#${uid}ll)`}/>
-      <Path d={handP(hL.x,hL.y,(p.aLu||0)+(p.aLe||0))} fill={SK.dark} opacity="0.82"/>
-
-      {/* TORSO */}
-      <Path d={torso} fill={`url(#${uid}tg)`}/>
-
-      {isF ? <>
-        <Ellipse cx={fv(sL.x*.25+rootX*.75-5)} cy={fv(sL.y*.22+(rootY-TH*.56)*.78)} rx="13" ry="8.5" fill={SK.mid} opacity="0.55" rotation={fv(lean)} originX={fv(rootX)} originY={fv(rootY)}/>
-        <Ellipse cx={fv(sR.x*.25+rootX*.75+5)} cy={fv(sR.y*.22+(rootY-TH*.56)*.78)} rx="13" ry="8.5" fill={SK.mid} opacity="0.55" rotation={fv(lean)} originX={fv(rootX)} originY={fv(rootY)}/>
-        <Line x1={fv(rootX-8)} y1={fv(scT.y+5)} x2={fv(rootX-14)} y2={fv(scT.y+TH*.32)} stroke={SK.suit2} strokeWidth="4" strokeLinecap="round"/>
-        <Line x1={fv(rootX+8)} y1={fv(scT.y+5)} x2={fv(rootX+14)} y2={fv(scT.y+TH*.32)} stroke={SK.suit2} strokeWidth="4" strokeLinecap="round"/>
-      </> : <>
-        <Ellipse cx={fv(sL.x*.35+rootX*.65-2)} cy={fv(scT.y+TH*.28)} rx={fv(SHW*.38)} ry={fv(TH*.18)} fill={SK.mid} opacity="0.3" rotation={fv(lean+5)} originX={fv(rootX)} originY={fv(rootY)}/>
-        <Ellipse cx={fv(sR.x*.35+rootX*.65+2)} cy={fv(scT.y+TH*.28)} rx={fv(SHW*.38)} ry={fv(TH*.18)} fill={SK.mid} opacity="0.3" rotation={fv(lean-5)} originX={fv(rootX)} originY={fv(rootY)}/>
-        <Line x1={fv(scT.x)} y1={fv(scT.y+6)} x2={fv(scT.x)} y2={fv(rootY-TH*.08)} stroke={SK.dark} strokeWidth="1.2" opacity="0.22"/>
-        {[0,1,2].map(i=><Line key={i} x1={fv(rootX-SHW*.44)} y1={fv(rootY-TH*.32+i*TH*.12)} x2={fv(rootX+SHW*.44)} y2={fv(rootY-TH*.32+i*TH*.12)} stroke={SK.dark} strokeWidth="1" opacity="0.18"/>)}
-      </>}
-
-      <Ellipse cx={fv(sL.x*.18+scT.x*.82)} cy={fv((scT.y+rootY-TH*.48)/2)} rx={fv(SHW*.2)} ry={fv(TH*.17)} fill={SK.hi} rotation={fv(lean)} originX={fv(rootX)} originY={fv(rootY)}/>
-      <Path d={nkPath} fill={`url(#${uid}tg)`}/>
-
-      {/* HEAD */}
-      <G rotation={fv(p.hd||0)} originX={fv(hdC.x)} originY={fv(hdC.y)}>
-        <Ellipse cx={fv(hdC.x)} cy={fv(hdC.y)} rx={fv(HRX)} ry={fv(HRY)} fill={`url(#${uid}hd)`}/>
-        <Path d={`M${fv(hdC.x-HRX*.7)},${fv(hdC.y+HRY*.4)} Q${fv(hdC.x)},${fv(hdC.y+HRY*.88)} ${fv(hdC.x+HRX*.7)},${fv(hdC.y+HRY*.4)}`} fill="none" stroke={SK.dark} strokeWidth="1" opacity="0.18"/>
-        {/* Eyes */}
-        <Ellipse cx={fv(hdC.x-HRX*.34)} cy={fv(hdC.y-HRY*.07)} rx={fv(HRX*.18)} ry={fv(HRY*.12)} fill={SK.eye}/>
-        <Ellipse cx={fv(hdC.x+HRX*.34)} cy={fv(hdC.y-HRY*.07)} rx={fv(HRX*.18)} ry={fv(HRY*.12)} fill={SK.eye}/>
-        <Ellipse cx={fv(hdC.x-HRX*.36)} cy={fv(hdC.y-HRY*.08)} rx={fv(HRX*.08)} ry={fv(HRY*.06)} fill="white" opacity="0.62"/>
-        <Ellipse cx={fv(hdC.x+HRX*.32)} cy={fv(hdC.y-HRY*.08)} rx={fv(HRX*.08)} ry={fv(HRY*.06)} fill="white" opacity="0.62"/>
-        {/* Eyebrows */}
-        <Path d={`M${fv(hdC.x-HRX*.48)},${fv(hdC.y-HRY*.22)} Q${fv(hdC.x-HRX*.3)},${fv(hdC.y-HRY*.28)} ${fv(hdC.x-HRX*.17)},${fv(hdC.y-HRY*.21)}`} fill="none" stroke={SK.hair} strokeWidth={isF?"1.8":"2.2"} strokeLinecap="round"/>
-        <Path d={`M${fv(hdC.x+HRX*.17)},${fv(hdC.y-HRY*.21)} Q${fv(hdC.x+HRX*.3)},${fv(hdC.y-HRY*.28)} ${fv(hdC.x+HRX*.48)},${fv(hdC.y-HRY*.22)}`} fill="none" stroke={SK.hair} strokeWidth={isF?"1.8":"2.2"} strokeLinecap="round"/>
-        {/* Nose */}
-        <Path d={`M${fv(hdC.x)},${fv(hdC.y-HRY*.08)} L${fv(hdC.x)},${fv(hdC.y+HRY*.2)} Q${fv(hdC.x-HRX*.12)},${fv(hdC.y+HRY*.26)} ${fv(hdC.x)},${fv(hdC.y+HRY*.27)} Q${fv(hdC.x+HRX*.12)},${fv(hdC.y+HRY*.26)} ${fv(hdC.x)},${fv(hdC.y+HRY*.2)}`} fill="none" stroke={SK.dark} strokeWidth="1" opacity="0.32"/>
-        {/* Lips */}
-        <Path d={`M${fv(hdC.x-HRX*.2)},${fv(hdC.y+HRY*.38)} Q${fv(hdC.x)},${fv(hdC.y+HRY*.34)} ${fv(hdC.x+HRX*.2)},${fv(hdC.y+HRY*.38)}`} fill="none" stroke={SK.lip} strokeWidth={isF?"2.2":"1.8"} strokeLinecap="round"/>
-        {isF&&<Path d={`M${fv(hdC.x-HRX*.2)},${fv(hdC.y+HRY*.38)} Q${fv(hdC.x)},${fv(hdC.y+HRY*.46)} ${fv(hdC.x+HRX*.2)},${fv(hdC.y+HRY*.38)}`} fill={SK.lip} opacity="0.38"/>}
-        {/* Hair */}
-        {isF ? <>
-          <Ellipse cx={fv(hdC.x)} cy={fv(hdC.y-HRY*.68)} rx={fv(HRX*.88)} ry={fv(HRY*.44)} fill={SK.hair}/>
-          <Path d={`M${fv(hdC.x+HRX*.6)},${fv(hdC.y-HRY*.38)} Q${fv(hdC.x+HRX*1.35)},${fv(hdC.y+HRY*.2)} ${fv(hdC.x+HRX*.78)},${fv(hdC.y+HRY*.78)}`} fill="none" stroke={SK.hair} strokeWidth="5" strokeLinecap="round"/>
-        </> : <>
-          <Path d={`M${fv(hdC.x-HRX*.88)},${fv(hdC.y-HRY*.18)} Q${fv(hdC.x)},${fv(hdC.y-HRY*1.0)} ${fv(hdC.x+HRX*.88)},${fv(hdC.y-HRY*.18)}`} fill={SK.hair}/>
-          <Ellipse cx={fv(hdC.x-HRX*.9)} cy={fv(hdC.y+HRY*.06)} rx={fv(HRX*.13)} ry={fv(HRY*.17)} fill={SK.base}/>
-          <Ellipse cx={fv(hdC.x+HRX*.9)} cy={fv(hdC.y+HRY*.06)} rx={fv(HRX*.13)} ry={fv(HRY*.17)} fill={SK.base}/>
-        </>}
-        <Ellipse cx={fv(hdC.x-HRX*.26)} cy={fv(hdC.y-HRY*.3)} rx={fv(HRX*.27)} ry={fv(HRY*.19)} fill={SK.hi} rotation="-22" originX={fv(hdC.x-HRX*.26)} originY={fv(hdC.y-HRY*.3)}/>
-      </G>
-
-      {/* SHOULDERS */}
-      <Ellipse cx={fv(sL.x)} cy={fv(sL.y)} rx={fv(isF?9:12)} ry={fv(isF?9:12)} fill={`url(#${uid}sk)`}/>
-      <Ellipse cx={fv(sL.x-2)} cy={fv(sL.y-3)} rx="4" ry="3" fill={SK.hi} opacity="0.42"/>
-      <Ellipse cx={fv(sR.x)} cy={fv(sR.y)} rx={fv(isF?9:12)} ry={fv(isF?9:12)} fill={`url(#${uid}sk)`}/>
-      <Ellipse cx={fv(sR.x-2)} cy={fv(sR.y-3)} rx="4" ry="3" fill={SK.hi} opacity="0.42"/>
-
-      {/* FRONT ARM */}
-      <Path d={limb(sR.x,sR.y,eR.x,eR.y,AW,AW*.72)} fill={`url(#${uid}rl)`}/>
-      <Path d={limb(sR.x,sR.y,eR.x,eR.y,AW*.35,AW*.22)} fill={SK.hi} opacity="0.35"/>
-      <Ellipse cx={fv(eR.x)} cy={fv(eR.y)} rx={fv(FW*.9)} ry={fv(FW*.9)} fill={`url(#${uid}sk)`}/>
-      <Path d={limb(eR.x,eR.y,hR.x,hR.y,FW,FW*.64)} fill={`url(#${uid}rl)`}/>
-      <Path d={handP(hR.x,hR.y,(p.aRu||0)+(p.aRe||0))} fill={SK.base} opacity="0.93"/>
-
-      {/* SHORTS */}
-      <Path d={shorts} fill={SK.suit} opacity="0.95"/>
-      <Path d={`M${fv(hpL.x+2)},${fv(hpL.y-5)} Q${fv(rootX)},${fv(hpL.y-8)} ${fv(hpR.x-2)},${fv(hpR.y-5)}`} fill="none" stroke={SK.suit2} strokeWidth="4" strokeLinecap="round"/>
-
-      {/* FRONT LEG */}
-      <Path d={limb(hpR.x-HPW*.08,hpR.y,kR.x,kR.y,TWG,TWG*.70)} fill={`url(#${uid}rl)`}/>
-      <Path d={limb(hpR.x-HPW*.08,hpR.y,kR.x,kR.y,TWG*.35,TWG*.22)} fill={SK.hi} opacity="0.3"/>
-      <Ellipse cx={fv(kR.x)} cy={fv(kR.y)} rx={fv(SWG*1.1)} ry={fv(SWG*1.1)} fill={`url(#${uid}sk)`}/>
-      <Path d={limb(kR.x,kR.y,fR.x,fR.y,SWG,SWG*.58)} fill={`url(#${uid}rl)`}/>
-      <Path d={limb(kR.x,kR.y,fR.x,fR.y,SWG*.32,SWG*.2)} fill={SK.hi} opacity="0.25"/>
-      <Path d={footP(kR.x,kR.y,fR.x,fR.y)} fill={SK.suit}/>
-      <Ellipse cx={fv(fR.x+3)} cy={fv(fR.y+2)} rx={fv(SWG*.85)} ry={fv(SWG*.5)} fill="white" opacity="0.68"/>
-
-      {/* Hip highlights */}
-      <Ellipse cx={fv(hpL.x+9)} cy={fv(hpL.y-4)} rx="8" ry="6" fill={SK.hi} opacity="0.35"/>
-      <Ellipse cx={fv(hpR.x-9)} cy={fv(hpR.y-4)} rx="8" ry="6" fill={SK.hi} opacity="0.35"/>
-
-      {/* LIVE badge */}
-      {active&&<G><Circle cx={fv(W-14)} cy="13" r="5" fill={AC} opacity="0.9"/><SvgText x={fv(W-8)} y="17" fill={AC} fontSize="8" fontWeight="900" textAnchor="end">LIVE</SvgText></G>}
-    </Svg>
+    <View style={{ width:200, height:300, borderRadius:14, overflow:'hidden', backgroundColor:'#111118' }}>
+      {!ready && (
+        <View style={{ position:'absolute', inset:0, alignItems:'center', justifyContent:'center', zIndex:1 }}>
+          <ActivityIndicator color={accentColor} size="large" />
+        </View>
+      )}
+      <Video source={src}
+        style={{ width:'100%', height:'100%', opacity: ready ? 1 : 0 }}
+        resizeMode={ResizeMode.COVER}
+        shouldPlay={active} isLooping isMuted
+        onReadyForDisplay={onReady}
+        onPlaybackStatusUpdate={st => { if (st.isPlaying && !readyRef.current) onReady(); }}
+      />
+      {active && ready && (
+        <View style={{ position:'absolute', top:10, right:12,
+          flexDirection:'row', alignItems:'center', gap:5, zIndex:2 }}>
+          <View style={{ width:8, height:8, borderRadius:4, backgroundColor:accentColor }} />
+          <Text style={{ color:accentColor, fontSize:9, fontWeight:'900', letterSpacing:1 }}>LIVE</Text>
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -387,7 +249,7 @@ const RestTimer = ({ seconds, onDone }) => {
   const color=left>30?C.teal:left>10?C.accent:C.red;
   return (
     <View style={rt.wrap}>
-      <Text style={rt.title}>💤 REST TIME</Text>
+      <Text style={rt.title}>REST TIME</Text>
       <Text style={[rt.num,{color}]}>{left}s</Text>
       <View style={rt.barBg}><Animated.View style={[rt.barFill,{width:barW,backgroundColor:color}]}/></View>
       <TouchableOpacity style={rt.skipBtn} onPress={onDone}><Text style={rt.skipTxt}>Skip Rest →</Text></TouchableOpacity>
@@ -399,7 +261,8 @@ export default function WorkoutDetailScreen({ route, navigation }) {
   const C = useC();
   const s = useMemo(() => makeS(C), [C]);
   const { plan } = route.params;
-  const [gender,setGender]=useState('male');
+  const userGender = useAuthStore(st => st.user?.gender);
+  const [gender,setGender]=useState(userGender === 'female' ? 'female' : 'male');
   const genderSlideAnim=useRef(new Animated.Value(0)).current;
   const [phase,setPhase]=useState('overview');
   const [exIdx,setExIdx]=useState(0);
@@ -407,12 +270,14 @@ export default function WorkoutDetailScreen({ route, navigation }) {
   const [setsDone,setSetsDone]=useState([]);
   const [isResting,setIsResting]=useState(false);
   const [isActive,setIsActive]=useState(false);
-  const [repCount,setRepCount]=useState(0);
+  const [curReps,setCurReps]=useState('');
+  const [curWeight,setCurWeight]=useState('');
+  const [setData,setSetData]=useState({});
   const [totalTime,setTotalTime]=useState(0);
   const [logging,setLogging]=useState(false);
   const [showTips,setShowTips]=useState(false);
+  const [suggestion,setSuggestion]=useState(null);
   const timerRef=useRef(null);
-  const repAnim=useRef(new Animated.Value(1)).current;
   const progressAnim=useRef(new Animated.Value(0)).current;
 
   const exList=(plan.exercises||[]).map((e)=>{
@@ -429,12 +294,81 @@ export default function WorkoutDetailScreen({ route, navigation }) {
   useEffect(()=>{if(phase!=='workout')return;timerRef.current=setInterval(()=>setTotalTime(p=>p+1),1000);return()=>clearInterval(timerRef.current);},[phase]);
   useEffect(()=>{Animated.timing(progressAnim,{toValue:totalSets>0?doneSets/totalSets:0,duration:400,useNativeDriver:false}).start();},[doneSets]);
 
+  useEffect(()=>{
+    if(phase!=='workout')return;
+    let alive=true;
+    setSuggestion(null);
+    workoutAPI.getProgressionSuggestion(curEx.id,curEx.sets||3,curEx.reps||0)
+      .then(r=>{if(alive)setSuggestion(r);})
+      .catch(()=>{});
+    return()=>{alive=false;};
+  },[curEx.id,phase]);
+
   const fmtTime=s=>`${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
-  const handleStartSet=()=>{setIsActive(true);setRepCount(0);};
-  const handleRepTap=()=>{if(!isActive||isResting)return;Animated.sequence([Animated.spring(repAnim,{toValue:1.5,useNativeDriver:true,speed:60}),Animated.spring(repAnim,{toValue:1,useNativeDriver:true,speed:60})]).start();setRepCount(p=>p+1);};
-  const handleCompleteSet=()=>{setSetsDone(p=>[...p,{exIdx,exName:curEx.name,set:setNum,reps:repCount||curEx.reps}]);setIsActive(false);setIsResting(true);};
+  const fmtSuggestion=(sg)=>{
+    if(!sg||sg.type==='baseline')return null;
+    const bw=!sg.lastWeight;
+    if(sg.type==='increase')return bw
+      ?`Last: ${sg.lastReps} reps → try ${sg.suggestedReps} today ↑`
+      :`Last: ${curEx.sets}×${sg.lastWeight}kg → try ${curEx.sets}×${sg.suggestedWeight}kg today ↑`;
+    if(sg.type==='deload')return bw
+      ?`Tough 2 sessions — try ${sg.suggestedReps} reps today ↓`
+      :`Tough 2 sessions — try ${sg.suggestedWeight}kg today (−10%) ↓`;
+    return bw
+      ?`Last: ${sg.lastReps} reps — keep it up`
+      :`Last: ${curEx.sets}×${sg.lastWeight}kg — keep it up`;
+  };
+  const sgText=fmtSuggestion(suggestion);
+  const sgColor=!suggestion?C.muted:suggestion.type==='increase'?C.teal:suggestion.type==='deload'?(C.red||'#FF5A5A'):C.muted;
+  const handleStartSet=()=>{
+    const key=`${curEx.id}_${setNum}`;
+    const existing=setData[key];
+    if(existing){setCurReps(existing.reps);setCurWeight(existing.weight);}
+    else{const prev=setData[`${curEx.id}_${setNum-1}`];setCurReps(String(curEx.reps||0));setCurWeight(prev?.weight||'');}
+    setIsActive(true);
+  };
+  const handleCompleteSet=()=>{
+    const reps=parseFloat(curReps);
+    const weight=parseFloat(curWeight||'0');
+    if(isNaN(reps)||reps<0){Alert.alert('Invalid reps','Enter a valid rep count (≥ 0).');return;}
+    const w=(!isNaN(weight)&&weight>=0)?weight:0;
+    const key=`${curEx.id}_${setNum}`;
+    setSetData(p=>({...p,[key]:{reps:String(Math.round(reps)),weight:String(w),done:true}}));
+    setSetsDone(p=>[...p,{exIdx,exName:curEx.name,set:setNum,reps:Math.round(reps),weight:w}]);
+    setIsActive(false);
+    setIsResting(true);
+  };
   const handleRestDone=()=>{setIsResting(false);const n=setNum+1;if(n>curEx.sets){const nx=exIdx+1;if(nx>=exercises.length){setPhase('complete');}else{setExIdx(nx);setSetNum(1);}}else{setSetNum(n);}};
-  const handleSave=async()=>{setLogging(true);try{await workoutAPI.logWorkout({plan_id:plan.id,name:plan.name,category:plan.category,started_at:new Date(Date.now()-totalTime*1000).toISOString(),ended_at:new Date().toISOString(),duration_min:Math.round(totalTime/60),calories_burned:plan.calories||Math.round(totalTime/60*8),notes:`${doneSets} sets. ${gender}.`,rating:5});Alert.alert('🎉 Saved!','Workout logged!');}catch{Alert.alert('Note','Could not save — great workout!');}finally{setLogging(false);navigation.goBack();}};
+  const handleSave=async()=>{
+    setLogging(true);
+    try{
+      const {data:{data:logRow}}=await workoutAPI.logWorkout({
+        plan_id:plan.id,name:plan.name,category:plan.category,
+        started_at:new Date(Date.now()-totalTime*1000).toISOString(),
+        ended_at:new Date().toISOString(),
+        duration_min:Math.round(totalTime/60),
+        calories_burned:plan.calories||Math.round(totalTime/60*8),
+        notes:`${doneSets} sets. ${gender}.`,rating:5,
+      });
+      const setRows=[];
+      exercises.forEach(ex=>{
+        for(let sn=1;sn<=(ex.sets||3);sn++){
+          const entry=setData[`${ex.id}_${sn}`];
+          if(entry?.done){
+            const reps=parseFloat(entry.reps);
+            const weight=parseFloat(entry.weight||'0');
+            if(!isNaN(reps)&&reps>=0){
+              setRows.push({exercise_id:ex.id,exercise_name:ex.name,set_number:sn,reps:Math.round(reps),weight_kg:(!isNaN(weight)&&weight>=0)?weight:0,completed:true});
+            }
+          }
+        }
+      });
+      if(setRows.length>0)await workoutAPI.logSetsBatch(logRow.id,setRows);
+      Alert.alert('Saved','Workout logged.');
+    }catch(e){
+      Alert.alert('Error',e.message||'Could not save workout.');
+    }finally{setLogging(false);navigation.goBack();}
+  };
 
   const progWidth=progressAnim.interpolate({inputRange:[0,1],outputRange:['0%','100%']});
 
@@ -447,42 +381,48 @@ export default function WorkoutDetailScreen({ route, navigation }) {
               backgroundColor:genderSlideAnim.interpolate({inputRange:[0,1],outputRange:[C.accent,'#FF6B9D']}),
               left:genderSlideAnim.interpolate({inputRange:[0,1],outputRange:['2%','50%']}),
             }]}/>
-            {[['male','♂','Male',C.accent],['female','♀','Female','#FF6B9D']].map(([g,icon,lbl,col])=>(
+            {[['male','male','Male',C.accent],['female','female','Female','#FF6B9D']].map(([g,ion,lbl,col])=>(
               <TouchableOpacity key={g} style={s.genderOption} onPress={()=>setGender(g)} activeOpacity={0.8}>
-                <Text style={[s.genderOptionIcon,gender===g&&{color:'#000'}]}>{icon}</Text>
+                <Ionicons name={ion} size={18} color={gender===g?'#000':col} />
                 <Text style={[s.genderOptionLbl,gender===g&&{color:'#000'}]}>{lbl}</Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
         <View style={s.hero}>
-          <View style={s.heroIcon}><Text style={{fontSize:44}}>{plan.icon||'🏋️'}</Text></View>
+          <View style={s.heroIcon}>
+            <MaterialCommunityIcons name="dumbbell" size={40} color={accentColor} />
+          </View>
           <Text style={s.heroTitle}>{plan.name}</Text>
           <View style={s.heroMeta}>
-            {[[`${plan.duration_min}m`,'⏱'],[`${plan.calories}kcal`,'🔥'],[plan.difficulty,'📊'],[`${exercises.length}ex`,'💪']].map(([v,i])=>(
-              <View key={v} style={s.metaPill}><Text style={{fontSize:13}}>{i}</Text><Text style={s.metaTxt}>{v}</Text></View>
+            {[[`${plan.duration_min}m`,'time-outline'],[`${plan.calories}kcal`,'flame-outline'],[plan.difficulty,'stats-chart-outline'],[`${exercises.length}ex`,'barbell-outline']].map(([v,ion])=>(
+              <View key={v} style={s.metaPill}>
+                <Ionicons name={ion} size={13} color={C.muted} />
+                <Text style={s.metaTxt}>{v}</Text>
+              </View>
             ))}
           </View>
         </View>
         <View style={s.section}>
           <Text style={s.secLabel}>EXERCISES</Text>
           {exercises.map((ex,i)=>(
-            <View key={ex.id} style={s.exRow}>
+            <TouchableOpacity key={ex.id} style={s.exRow} onPress={() => { setExIdx(i); setSetNum(1); setPhase('workout'); }} activeOpacity={0.7}>
               <View style={s.exNum}><Text style={s.exNumTxt}>{i+1}</Text></View>
-              <View style={s.figThumb}><HumanFigure moveType={ex.move||'squat'} gender={gender} active={false} thumbnail={true}/></View>
+              <ExThumb move={ex.move||'squat'} accentColor={accentColor} />
               <View style={{flex:1}}>
                 <Text style={s.exName}>{ex.name}</Text>
                 <Text style={s.exMeta}>{ex.sets||3} sets × {ex.reps||12} reps</Text>
-                <Text style={s.exMuscle}>🎯 {ex.muscle||'Full Body'}</Text>
+                <Text style={s.exMuscle}>{ex.muscle||'Full Body'}</Text>
               </View>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
         <View style={{height:100}}/>
       </ScrollView>
       <View style={s.startWrap}>
-        <TouchableOpacity style={[s.bigBtn,{backgroundColor:accentColor}]} onPress={()=>setPhase('workout')}>
-          <Text style={[s.bigBtnTxt,{color:'#000'}]}>▶  START WORKOUT</Text>
+        <TouchableOpacity style={[s.bigBtn,{backgroundColor:accentColor,flexDirection:'row',justifyContent:'center',alignItems:'center',gap:8}]} onPress={()=>setPhase('workout')}>
+          <Ionicons name="play" size={16} color="#000" />
+          <Text style={[s.bigBtnTxt,{color:'#000'}]}>START WORKOUT</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -490,16 +430,20 @@ export default function WorkoutDetailScreen({ route, navigation }) {
 
   if(phase==='complete') return (
     <SafeAreaView style={[s.root,{alignItems:'center',justifyContent:'center',padding:24}]}>
-      <Text style={{fontSize:70,marginBottom:12}}>🎉</Text>
+      <Ionicons name="trophy" size={64} color={accentColor} style={{marginBottom:12}} />
       <Text style={[s.heroTitle,{fontSize:24,textAlign:'center',marginBottom:8}]}>WORKOUT COMPLETE!</Text>
       <Text style={{color:C.muted,fontSize:14,textAlign:'center',marginBottom:24}}>Great job finishing {plan.name}!</Text>
       <View style={s.completeStats}>
-        {[['⏱',fmtTime(totalTime),'Time'],['✅',`${doneSets}`,'Sets'],['🔥',`~${Math.round(totalTime/60*8)}`,'Kcal']].map(([icon,val,lbl])=>(
-          <View key={lbl} style={s.completeStat}><Text style={{fontSize:22,marginBottom:4}}>{icon}</Text><Text style={[s.completeStatVal,{color:accentColor}]}>{val}</Text><Text style={s.completeStatLbl}>{lbl}</Text></View>
+        {[['time-outline',fmtTime(totalTime),'Time'],['checkmark-circle-outline',`${doneSets}`,'Sets'],['flame-outline',`~${Math.round(totalTime/60*8)}`,'Kcal']].map(([ion,val,lbl])=>(
+          <View key={lbl} style={s.completeStat}>
+            <Ionicons name={ion} size={22} color={accentColor} style={{marginBottom:4}} />
+            <Text style={[s.completeStatVal,{color:accentColor}]}>{val}</Text>
+            <Text style={s.completeStatLbl}>{lbl}</Text>
+          </View>
         ))}
       </View>
       <TouchableOpacity style={[s.bigBtn,{backgroundColor:accentColor,width:'100%'}]} onPress={handleSave} disabled={logging}>
-        <Text style={[s.bigBtnTxt,{color:'#000'}]}>{logging?'Saving...':'💾  SAVE WORKOUT'}</Text>
+        <Text style={[s.bigBtnTxt,{color:'#000'}]}>{logging?'Saving...':'SAVE WORKOUT'}</Text>
       </TouchableOpacity>
       <TouchableOpacity style={[s.bigBtn,{backgroundColor:C.border,marginTop:10,width:'100%'}]} onPress={()=>navigation.goBack()}>
         <Text style={[s.bigBtnTxt,{color:C.text}]}>Go Back</Text>
@@ -510,7 +454,7 @@ export default function WorkoutDetailScreen({ route, navigation }) {
   return (
     <SafeAreaView style={s.root}>
       <View style={s.topBar}>
-        <TouchableOpacity onPress={()=>Alert.alert('Quit?','End workout?',[{text:'Keep Going',style:'cancel'},{text:'Quit',style:'destructive',onPress:()=>navigation.goBack()}])} style={s.quitBtn}><Text style={s.quitTxt}>✕</Text></TouchableOpacity>
+        <TouchableOpacity onPress={()=>Alert.alert('Quit?','End workout?',[{text:'Keep Going',style:'cancel'},{text:'Quit',style:'destructive',onPress:()=>navigation.goBack()}])} style={s.quitBtn}><Ionicons name="close" size={20} color={C.muted} /></TouchableOpacity>
         <View style={{flex:1,marginHorizontal:12}}>
           <View style={s.progBg}><Animated.View style={[s.progFill,{width:progWidth,backgroundColor:accentColor}]}/></View>
           <Text style={s.progTxt}>{doneSets} / {totalSets} sets</Text>
@@ -522,23 +466,26 @@ export default function WorkoutDetailScreen({ route, navigation }) {
           <View style={{flex:1}}>
             <Text style={s.stepLbl}>EXERCISE {exIdx+1} OF {exercises.length}</Text>
             <Text style={s.activeExName}>{curEx.name}</Text>
-            <Text style={s.activeMuscle}>🎯 {curEx.muscle}</Text>
+            <Text style={s.activeMuscle}>{curEx.muscle}</Text>
           </View>
-          <TouchableOpacity style={[s.tipsBtn,{borderColor:accentColor,backgroundColor:`${accentColor}15`}]} onPress={()=>setShowTips(true)}>
-            <Text style={[s.tipsBtnTxt,{color:accentColor}]}>💡 Tips</Text>
+          <TouchableOpacity style={[s.tipsBtn,{borderColor:accentColor,backgroundColor:`${accentColor}15`,flexDirection:'row',alignItems:'center',gap:4}]} onPress={()=>setShowTips(true)}>
+            <Ionicons name="bulb-outline" size={13} color={accentColor} />
+            <Text style={[s.tipsBtnTxt,{color:accentColor}]}>Tips</Text>
           </TouchableOpacity>
         </View>
 
         <View style={[s.figPanel,{borderColor:`${accentColor}35`}]}>
-          <View style={[s.figStage,{backgroundColor:'#E8E4DC'}]}>
+          <View style={[s.figStage,{backgroundColor:'#0A0A0F'}]}>
             <View style={s.setBadge}><Text style={s.setBadgeTxt}>{curEx.sets}×{curEx.reps===0?'∞':curEx.reps}</Text></View>
-            <HumanFigure moveType={curEx.move||'squat'} gender={gender} active={isActive}/>
+            <ExerciseVideo src={VIDEOS[gender]?.[curEx.move||'squat']} active={isActive} accentColor={accentColor} />
           </View>
           <View style={s.setDots}>
-            {Array.from({length:curEx.sets||3}).map((_,i)=>{const done=i<setNum-1,curr=i===setNum-1;return <View key={i} style={[s.dot,done&&{backgroundColor:C.teal,borderColor:C.teal},curr&&{backgroundColor:accentColor,borderColor:accentColor}]}>{done&&<Text style={{fontSize:8,color:'#000'}}>✓</Text>}{curr&&<Text style={{fontSize:8,color:'#000',fontWeight:'900'}}>{setNum}</Text>}</View>;})}
+            {Array.from({length:curEx.sets||3}).map((_,i)=>{const done=i<setNum-1,curr=i===setNum-1;return <View key={i} style={[s.dot,done&&{backgroundColor:C.teal,borderColor:C.teal},curr&&{backgroundColor:accentColor,borderColor:accentColor}]}>{done&&<Ionicons name="checkmark" size={8} color="#000" />}{curr&&<Text style={{fontSize:8,color:'#000',fontWeight:'900'}}>{setNum}</Text>}</View>;})}
           </View>
-          <Text style={s.figStatus}>{isResting?'💤 Resting...':isActive?'💪 Set in progress!':'⚡ Ready!'}</Text>
+          <Text style={s.figStatus}>{isResting?'Resting...':isActive?'Set in progress':'Ready'}</Text>
         </View>
+
+        {sgText&&<View style={[s.sgBanner,{borderColor:sgColor}]}><Text style={[s.sgTxt,{color:sgColor}]}>{sgText}</Text></View>}
 
         <View style={s.setCard}>
           <View style={s.setCardRow}>
@@ -553,17 +500,44 @@ export default function WorkoutDetailScreen({ route, navigation }) {
 
         {isResting?<RestTimer seconds={curEx.rest} onDone={handleRestDone}/>
         :isActive?(<>
-          <TouchableOpacity style={[s.repTapZone,{borderColor:accentColor,backgroundColor:`${accentColor}08`}]} onPress={handleRepTap} activeOpacity={0.8}>
-            <Animated.View style={{transform:[{scale:repAnim}]}}><Text style={[s.repNum,{color:accentColor}]}>{repCount}</Text></Animated.View>
-            <Text style={s.repHint}>tap to count reps</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[s.actionBtn,{borderColor:C.teal,backgroundColor:'rgba(47,207,160,0.1)'}]} onPress={handleCompleteSet}>
-            <Text style={[s.actionBtnTxt,{color:C.teal}]}>✅  Set Complete</Text>
+          <View style={[s.inputRow,{borderColor:C.border}]}>
+            <View style={s.inputBox}>
+              <Text style={[s.inputLbl,{color:C.dim}]}>REPS</Text>
+              <TextInput
+                style={[s.numInput,{color:C.text,borderColor:accentColor}]}
+                value={curReps}
+                onChangeText={setCurReps}
+                keyboardType="number-pad"
+                placeholder="0"
+                placeholderTextColor={C.dim}
+                selectTextOnFocus
+              />
+            </View>
+            <View style={[s.inputDivider,{backgroundColor:C.border}]}/>
+            <View style={s.inputBox}>
+              <Text style={[s.inputLbl,{color:C.dim}]}>WEIGHT (kg)</Text>
+              <TextInput
+                style={[s.numInput,{color:C.text,borderColor:C.border}]}
+                value={curWeight}
+                onChangeText={setCurWeight}
+                keyboardType="decimal-pad"
+                placeholder="0"
+                placeholderTextColor={C.dim}
+                selectTextOnFocus
+              />
+            </View>
+          </View>
+          <TouchableOpacity style={[s.actionBtn,{borderColor:C.teal,backgroundColor:'rgba(47,207,160,0.1)',flexDirection:'row',justifyContent:'center',alignItems:'center',gap:7}]} onPress={handleCompleteSet}>
+            <Ionicons name="checkmark-circle" size={16} color={C.teal} />
+            <Text style={[s.actionBtnTxt,{color:C.teal}]}>Set Done →</Text>
           </TouchableOpacity>
         </>)
-        :<TouchableOpacity style={[s.bigBtn,{backgroundColor:accentColor,marginBottom:10}]} onPress={handleStartSet}><Text style={[s.bigBtnTxt,{color:'#000'}]}>▶  Start Set {setNum}</Text></TouchableOpacity>}
+        :<TouchableOpacity style={[s.bigBtn,{backgroundColor:accentColor,marginBottom:10,flexDirection:'row',justifyContent:'center',alignItems:'center',gap:7}]} onPress={handleStartSet}>
+          <Ionicons name="play" size={15} color="#000" />
+          <Text style={[s.bigBtnTxt,{color:'#000'}]}>Start Set {setNum}</Text>
+        </TouchableOpacity>}
 
-        {setsDone.length>0&&<View style={s.logSec}><Text style={s.secLabel}>COMPLETED</Text>{setsDone.slice(-4).reverse().map((d,i)=><View key={i} style={s.logRow}><Text>✅</Text><Text style={s.logTxt}>{d.exName} — Set {d.set} — {d.reps} reps</Text></View>)}</View>}
+        {setsDone.length>0&&<View style={s.logSec}><Text style={s.secLabel}>COMPLETED</Text>{setsDone.slice(-4).reverse().map((d,i)=><View key={i} style={s.logRow}><Ionicons name="checkmark-circle" size={14} color={C.teal} /><Text style={s.logTxt}>{d.exName} — Set {d.set} — {d.reps} reps{d.weight>0?` @ ${d.weight}kg`:''}</Text></View>)}</View>}
       </ScrollView>
 
       <Modal visible={showTips} transparent animationType="slide">
@@ -571,13 +545,13 @@ export default function WorkoutDetailScreen({ route, navigation }) {
           <View style={s.tipsModalCard}>
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{paddingBottom:8}}>
               {/* Video */}
-              <View style={[s.tipsModalFig,{backgroundColor:'#E8E4DC'}]}>
-                <HumanFigure moveType={curEx.move||'squat'} gender={gender} active={true}/>
+              <View style={[s.tipsModalFig,{backgroundColor:'#0A0A0F'}]}>
+                <ExerciseVideo src={VIDEOS[gender]?.[curEx.move||'squat']} active={true} accentColor={accentColor} />
               </View>
 
               {/* Title + muscle */}
               <Text style={s.tipTitle}>{curEx.name}</Text>
-              <Text style={s.tipMuscle}>🎯 {curEx.muscle}</Text>
+              <Text style={s.tipMuscle}>{curEx.muscle}</Text>
 
               {/* Set plan card */}
               <View style={[s.tipPlanCard,{borderColor:`${accentColor}40`,backgroundColor:`${accentColor}10`}]}>
@@ -621,7 +595,7 @@ export default function WorkoutDetailScreen({ route, navigation }) {
             </ScrollView>
 
             <TouchableOpacity style={[s.bigBtn,{backgroundColor:accentColor,marginTop:12}]} onPress={()=>setShowTips(false)}>
-              <Text style={[s.bigBtnTxt,{color:'#000'}]}>Got It! 💪</Text>
+              <Text style={[s.bigBtnTxt,{color:'#000'}]}>Got It</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -649,7 +623,6 @@ const makeS=(C)=>StyleSheet.create({
   exRow:{flexDirection:'row',alignItems:'center',gap:8,backgroundColor:C.card,borderRadius:16,borderWidth:1,borderColor:C.border,padding:10,marginBottom:10},
   exNum:{width:26,height:26,borderRadius:13,backgroundColor:C.accentDim,alignItems:'center',justifyContent:'center',borderWidth:1,borderColor:C.accent},
   exNumTxt:{color:C.accent,fontSize:11,fontWeight:'900'},
-  figThumb:{width:80,height:100,borderRadius:10,overflow:'hidden'},
   exName:{color:C.text,fontSize:13,fontWeight:'700',marginBottom:2},
   exMeta:{color:C.muted,fontSize:11,marginBottom:2},
   exMuscle:{color:C.dim,fontSize:10},
@@ -687,9 +660,13 @@ const makeS=(C)=>StyleSheet.create({
   setInfoLbl:{color:C.dim,fontSize:10,fontWeight:'700',letterSpacing:1,marginBottom:4},
   setInfoVal:{color:C.text,fontSize:22,fontWeight:'900'},
   setDiv:{width:1,height:40,backgroundColor:C.border},
-  repTapZone:{borderRadius:20,borderWidth:2,padding:26,alignItems:'center',marginBottom:12,borderStyle:'dashed'},
-  repNum:{fontSize:72,fontWeight:'900',lineHeight:80},
-  repHint:{color:C.muted,fontSize:13,marginTop:4},
+  sgBanner:{borderRadius:8,borderWidth:1,paddingHorizontal:12,paddingVertical:6,marginBottom:10,alignSelf:'flex-start'},
+  sgTxt:{fontSize:11,fontWeight:'700'},
+  inputRow:{flexDirection:'row',alignItems:'center',backgroundColor:C.card,borderRadius:16,borderWidth:1,marginBottom:12,overflow:'hidden'},
+  inputBox:{flex:1,alignItems:'center',paddingVertical:16,paddingHorizontal:8},
+  inputLbl:{fontSize:10,fontWeight:'700',letterSpacing:1,marginBottom:6},
+  numInput:{fontSize:36,fontWeight:'900',textAlign:'center',borderBottomWidth:2,paddingBottom:4,minWidth:80},
+  inputDivider:{width:1,height:72,alignSelf:'center'},
   actionBtn:{backgroundColor:C.card,borderRadius:14,paddingVertical:14,alignItems:'center',borderWidth:1,marginBottom:10},
   actionBtnTxt:{fontSize:15,fontWeight:'800'},
   logSec:{marginTop:8},

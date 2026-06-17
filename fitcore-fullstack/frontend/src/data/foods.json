@@ -223,5 +223,510 @@
     "servings_per_day":3,"best_time":["breakfast","post_workout"],
     "tip":"Zero fat protein. 11g protein for only 52 calories!",
     "loss_plan":{"servings":3,"total_cal":156,"reason":"Maximum protein per calorie ratio — best cutting food"}
+  },
+  {
+    "id":"f26","name":"Roti / Chapati","brand":"Whole Wheat","category":"carbs",
+    "goal":["weight_gain","muscle_gain"],
+    "serving_size_g":120,"calories":300,"protein_g":8,"carbs_g":60,"fat_g":4,
+    "image":"https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=400&q=80",
+    "servings_per_day":3,"best_time":["lunch","dinner","breakfast"],
+    "tip":"Pakistani staple — 2 rotis = 300 kcal. Best with dal or chicken for complete amino acids.",
+    "gain_plan":{"servings":3,"total_cal":900,"reason":"High carb base at every meal drives the calorie surplus needed for muscle growth"}
+  },
+  {
+    "id":"f27","name":"Pasta (Cooked)","brand":"Whole Wheat","category":"carbs",
+    "goal":["weight_gain","muscle_gain"],
+    "serving_size_g":200,"calories":260,"protein_g":9,"carbs_g":52,"fat_g":1,
+    "image":"https://images.unsplash.com/photo-1473093295043-cdd812d0e601?w=400&q=80",
+    "servings_per_day":2,"best_time":["lunch","dinner","pre_workout"],
+    "tip":"Top with chicken and olive oil for the perfect bulk meal.",
+    "gain_plan":{"servings":2,"total_cal":520,"reason":"High-carb meal fuels long workouts and replenishes glycogen for next-day recovery"}
+  },
+  {
+    "id":"f28","name":"Beef Mince (Qeema)","brand":"Lean, Cooked","category":"protein",
+    "goal":["weight_gain","muscle_gain"],
+    "serving_size_g":150,"calories":310,"protein_g":38,"carbs_g":0,"fat_g":17,
+    "image":"https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?w=400&q=80",
+    "servings_per_day":2,"best_time":["lunch","dinner"],
+    "tip":"Pakistani favourite. Rich in zinc and natural creatine for strength gains.",
+    "gain_plan":{"servings":2,"total_cal":620,"reason":"Natural creatine in red meat directly boosts muscle phosphocreatine stores for power output"}
+  },
+  {
+    "id":"f29","name":"Dates (Khajoor)","brand":"Medjool","category":"fruits",
+    "goal":["weight_gain","muscle_gain"],
+    "serving_size_g":100,"calories":277,"protein_g":2,"carbs_g":75,"fat_g":0,
+    "image":"https://images.unsplash.com/photo-1558642452-9d2a7deb7f62?w=400&q=80",
+    "servings_per_day":2,"best_time":["pre_workout","breakfast","snack"],
+    "tip":"5 dates before workout = explosive energy. Fastest natural carb source.",
+    "gain_plan":{"servings":2,"total_cal":554,"reason":"High GI natural sugar spikes insulin pre-workout, driving amino acids into muscles"}
+  },
+  {
+    "id":"f30","name":"Cashews (Kaju)","brand":"Raw, Unsalted","category":"nuts",
+    "goal":["weight_gain","muscle_gain"],
+    "serving_size_g":50,"calories":275,"protein_g":9,"carbs_g":15,"fat_g":22,
+    "image":"https://images.unsplash.com/photo-1543218024-57a70143c369?w=400&q=80",
+    "servings_per_day":2,"best_time":["snack","breakfast","pre_workout"],
+    "tip":"Calorie-dense snack — easy to eat between meals without feeling stuffed.",
+    "gain_plan":{"servings":2,"total_cal":550,"reason":"Magnesium in cashews improves sleep quality, boosting overnight muscle recovery"}
+  },
+  {
+    "id":"f31","name":"Cheddar Cheese","brand":"Aged","category":"dairy",
+    "goal":["weight_gain","muscle_gain"],
+    "serving_size_g":50,"calories":200,"protein_g":12,"carbs_g":0,"fat_g":17,
+    "image":"https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?w=400&q=80",
+    "servings_per_day":3,"best_time":["breakfast","snack","lunch"],
+    "tip":"Add to eggs, roti or sandwiches. Easy 200 kcal booster with no extra cooking.",
+    "gain_plan":{"servings":3,"total_cal":600,"reason":"High calorie dairy that stacks easily on any meal with zero prep time"}
+  },
+  {
+    "id":"f32","name":"Turkey Breast","brand":"Roasted","category":"protein",
+    "goal":["weight_gain","muscle_gain"],
+    "serving_size_g":150,"calories":195,"protein_g":44,"carbs_g":0,"fat_g":1,
+    "image":"https://images.unsplash.com/photo-1574672280600-4accfa5b6f98?w=400&q=80",
+    "servings_per_day":2,"best_time":["lunch","dinner","post_workout"],
+    "tip":"Leanest meat with highest protein. Pair with basmati rice for clean bulk.",
+    "gain_plan":{"servings":2,"total_cal":390,"reason":"Highest protein-to-calorie ratio of all meats — maximises muscle protein synthesis per meal"}
+  },
+  {
+    "id":"f33","name":"Chia Seeds","brand":"Organic","category":"supplements",
+    "goal":["weight_gain","muscle_gain"],
+    "serving_size_g":30,"calories":146,"protein_g":5,"carbs_g":12,"fat_g":9,
+    "image":"https://images.unsplash.com/photo-1514735616524-d3c9b2b1f1e0?w=400&q=80",
+    "servings_per_day":2,"best_time":["breakfast","snack"],
+    "tip":"Mix into yogurt or shake. Absorbs 10x its weight in water — great for hydration.",
+    "gain_plan":{"servings":2,"total_cal":292,"reason":"Omega-3 and fiber combo reduces muscle inflammation for faster next-day recovery"}
+  },
+  {
+    "id":"f34","name":"Paneer","brand":"Fresh","category":"dairy",
+    "goal":["weight_gain","muscle_gain"],
+    "serving_size_g":100,"calories":265,"protein_g":18,"carbs_g":4,"fat_g":20,
+    "image":"https://images.unsplash.com/photo-1631292784640-848c5e9a0e3c?w=400&q=80",
+    "servings_per_day":2,"best_time":["lunch","dinner","post_workout"],
+    "tip":"South Asian protein powerhouse. Grill or add to sabzi. Best vegetarian choice.",
+    "gain_plan":{"servings":2,"total_cal":530,"reason":"Casein-rich dairy delivers slow-release protein overnight for sustained muscle synthesis"}
+  },
+  {
+    "id":"f35","name":"Mutton / Gosht","brand":"Bone-in, Cooked","category":"protein",
+    "goal":["weight_gain","muscle_gain"],
+    "serving_size_g":150,"calories":370,"protein_g":38,"carbs_g":0,"fat_g":23,
+    "image":"https://images.unsplash.com/photo-1558030006-450675393462?w=400&q=80",
+    "servings_per_day":1,"best_time":["lunch","dinner"],
+    "tip":"Traditional Sunday meal — one of the highest calorie + protein foods available.",
+    "gain_plan":{"servings":1,"total_cal":370,"reason":"Single highest-calorie meat — one serving covers 15-18% of daily bulk calorie target"}
+  },
+  {
+    "id":"f36","name":"Dark Chocolate 85%","brand":"Lindt / Any 85%+","category":"fats",
+    "goal":["weight_gain","muscle_gain"],
+    "serving_size_g":40,"calories":220,"protein_g":3,"carbs_g":16,"fat_g":18,
+    "image":"https://images.unsplash.com/photo-1481391032119-d89fee407e44?w=400&q=80",
+    "servings_per_day":1,"best_time":["snack","post_workout"],
+    "tip":"Antioxidants reduce cortisol after training. Magnesium supports sleep quality.",
+    "gain_plan":{"servings":1,"total_cal":220,"reason":"Flavonoids improve blood flow to muscles, enhancing pump and nutrient delivery"}
+  },
+  {
+    "id":"f37","name":"Mango (Aam)","brand":"Fresh, Ripe","category":"fruits",
+    "goal":["weight_gain","muscle_gain"],
+    "serving_size_g":200,"calories":130,"protein_g":2,"carbs_g":33,"fat_g":0,
+    "image":"https://images.unsplash.com/photo-1553279768-865429fa0078?w=400&q=80",
+    "servings_per_day":2,"best_time":["breakfast","pre_workout","snack"],
+    "tip":"King of fruits for bulking. Natural sugars + vitamins boost recovery.",
+    "gain_plan":{"servings":2,"total_cal":260,"reason":"High GI fruit spikes insulin post-workout, shuttling nutrients into muscle cells faster"}
+  },
+  {
+    "id":"f38","name":"Sardines (Canned)","brand":"In Olive Oil","category":"protein",
+    "goal":["weight_gain","weight_loss","muscle_gain"],
+    "serving_size_g":100,"calories":208,"protein_g":25,"carbs_g":0,"fat_g":11,
+    "image":"https://images.unsplash.com/photo-1615141982883-c7ad0e69fd62?w=400&q=80",
+    "servings_per_day":2,"best_time":["lunch","snack"],
+    "tip":"Cheapest omega-3 source. No cooking needed. Eat straight from the tin.",
+    "gain_plan":{"servings":2,"total_cal":416,"reason":"Omega-3 from sardines is better absorbed than fish oil supplements"},
+    "loss_plan":{"servings":1,"total_cal":208,"reason":"25g protein per 100g keeps you full for 4+ hours during a calorie deficit"}
+  },
+  {
+    "id":"f39","name":"Granola","brand":"Honey Oat","category":"carbs",
+    "goal":["weight_gain","muscle_gain"],
+    "serving_size_g":100,"calories":471,"protein_g":10,"carbs_g":64,"fat_g":20,
+    "image":"https://images.unsplash.com/photo-1517093602195-b40af9084822?w=400&q=80",
+    "servings_per_day":1,"best_time":["breakfast","snack"],
+    "tip":"Most calorie-dense breakfast. Add to milk or Greek yogurt for a 700 kcal bowl.",
+    "gain_plan":{"servings":1,"total_cal":471,"reason":"Energy-dense blend of oats, nuts and honey — best morning calorie-loading option"}
+  },
+  {
+    "id":"f40","name":"Basmati Rice","brand":"White, Cooked","category":"carbs",
+    "goal":["weight_gain","muscle_gain"],
+    "serving_size_g":200,"calories":260,"protein_g":5,"carbs_g":57,"fat_g":0,
+    "image":"https://images.unsplash.com/photo-1536304993881-ff86e0c9b23b?w=400&q=80",
+    "servings_per_day":3,"best_time":["lunch","dinner","post_workout"],
+    "tip":"Best post-workout carb for Pakistanis. Replenishes glycogen stores fast.",
+    "gain_plan":{"servings":3,"total_cal":780,"reason":"High GI white rice rapidly restores muscle glycogen post-workout for next-day gains"}
+  },
+  {
+    "id":"f41","name":"Dal Mash (White Lentil)","brand":"Cooked","category":"protein",
+    "goal":["weight_gain","muscle_gain"],
+    "serving_size_g":250,"calories":290,"protein_g":20,"carbs_g":50,"fat_g":2,
+    "image":"https://images.unsplash.com/photo-1547592180-85f173990554?w=400&q=80",
+    "servings_per_day":2,"best_time":["lunch","dinner"],
+    "tip":"Pakistani powerhouse. High protein + carbs with roti = complete muscle meal.",
+    "gain_plan":{"servings":2,"total_cal":580,"reason":"Complete amino acid profile when combined with roti makes it equal to meat for muscle growth"}
+  },
+  {
+    "id":"f42","name":"Peanuts (Moong Phali)","brand":"Roasted, Unsalted","category":"nuts",
+    "goal":["weight_gain","muscle_gain"],
+    "serving_size_g":50,"calories":285,"protein_g":13,"carbs_g":10,"fat_g":24,
+    "image":"https://images.unsplash.com/photo-1508061253366-f7da158b6d46?w=400&q=80",
+    "servings_per_day":2,"best_time":["snack","pre_workout","breakfast"],
+    "tip":"Cheapest high-protein snack. Better macros than most protein bars.",
+    "gain_plan":{"servings":2,"total_cal":570,"reason":"Arginine in peanuts boosts nitric oxide for better muscle pumps during training"}
+  },
+  {
+    "id":"f43","name":"White Bread","brand":"Enriched","category":"carbs",
+    "goal":["weight_gain"],
+    "serving_size_g":90,"calories":240,"protein_g":8,"carbs_g":46,"fat_g":3,
+    "image":"https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400&q=80",
+    "servings_per_day":3,"best_time":["breakfast","snack","pre_workout"],
+    "tip":"Fast carbs — perfect before a workout when you need quick fuel.",
+    "gain_plan":{"servings":3,"total_cal":720,"reason":"High GI carbs provide instant blood sugar spike for powering intense training sessions"}
+  },
+  {
+    "id":"f44","name":"Cucumber (Kheera)","brand":"Fresh","category":"vegetables",
+    "goal":["weight_loss"],
+    "serving_size_g":200,"calories":30,"protein_g":1,"carbs_g":7,"fat_g":0,
+    "image":"https://images.unsplash.com/photo-1449300079323-02e209d9d3a6?w=400&q=80",
+    "servings_per_day":4,"best_time":["lunch","dinner","snack"],
+    "tip":"96% water content — fills your stomach with almost zero calories.",
+    "loss_plan":{"servings":4,"total_cal":120,"reason":"Volume eating hack — eat a lot for very few calories to beat hunger naturally"}
+  },
+  {
+    "id":"f45","name":"Watermelon (Tarbooz)","brand":"Fresh","category":"fruits",
+    "goal":["weight_loss"],
+    "serving_size_g":300,"calories":90,"protein_g":2,"carbs_g":23,"fat_g":0,
+    "image":"https://images.unsplash.com/photo-1563114773-84221bd62daa?w=400&q=80",
+    "servings_per_day":2,"best_time":["snack","breakfast"],
+    "tip":"Summer fat-loss staple. 92% water, naturally sweet, ultra-low calorie.",
+    "loss_plan":{"servings":2,"total_cal":180,"reason":"High water and fiber content kills sweet cravings with only 30 kcal per 100g"}
+  },
+  {
+    "id":"f46","name":"Grilled Fish (Tilapia)","brand":"Grilled, No Oil","category":"protein",
+    "goal":["weight_loss","muscle_gain"],
+    "serving_size_g":150,"calories":145,"protein_g":30,"carbs_g":0,"fat_g":3,
+    "image":"https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=400&q=80",
+    "servings_per_day":2,"best_time":["lunch","dinner"],
+    "tip":"Lowest calorie fish. 30g protein for only 145 kcal — impossible to beat.",
+    "loss_plan":{"servings":2,"total_cal":290,"reason":"Best protein-to-calorie ratio of any animal food — preserves muscle while cutting"}
+  },
+  {
+    "id":"f47","name":"Chickpeas (Chana)","brand":"Boiled","category":"protein",
+    "goal":["weight_loss","muscle_gain"],
+    "serving_size_g":150,"calories":230,"protein_g":12,"carbs_g":38,"fat_g":4,
+    "image":"https://images.unsplash.com/photo-1515543904379-3d757afe72e4?w=400&q=80",
+    "servings_per_day":2,"best_time":["lunch","dinner","snack"],
+    "tip":"Pakistani chaat favourite. High fiber keeps you full for 4-5 hours.",
+    "loss_plan":{"servings":2,"total_cal":460,"reason":"Resistant starch in chickpeas reduces calorie absorption and stabilises blood sugar"}
+  },
+  {
+    "id":"f48","name":"Low Fat Dahi","brand":"Plain Yogurt","category":"dairy",
+    "goal":["weight_loss","muscle_gain"],
+    "serving_size_g":200,"calories":110,"protein_g":11,"carbs_g":13,"fat_g":2,
+    "image":"https://images.unsplash.com/photo-1488477181946-6428a0291777?w=400&q=80",
+    "servings_per_day":2,"best_time":["breakfast","lunch","snack"],
+    "tip":"Pakistani kitchen essential. Probiotics boost gut health for better fat loss.",
+    "loss_plan":{"servings":2,"total_cal":220,"reason":"Gut bacteria improved by probiotics increases fat oxidation and reduces inflammation"}
+  },
+  {
+    "id":"f49","name":"Chicken Soup","brand":"Homemade, Low Sodium","category":"meals",
+    "goal":["weight_loss"],
+    "serving_size_g":400,"calories":120,"protein_g":14,"carbs_g":8,"fat_g":3,
+    "image":"https://images.unsplash.com/photo-1547592180-85f173990554?w=400&q=80",
+    "servings_per_day":2,"best_time":["lunch","dinner"],
+    "tip":"Studies show soup eaters consume 20% fewer calories at their next meal.",
+    "loss_plan":{"servings":2,"total_cal":240,"reason":"Liquid volume suppresses ghrelin hunger hormone for 2-3 hours after eating"}
+  },
+  {
+    "id":"f50","name":"Strawberries","brand":"Fresh","category":"fruits",
+    "goal":["weight_loss"],
+    "serving_size_g":150,"calories":48,"protein_g":1,"carbs_g":11,"fat_g":0,
+    "image":"https://images.unsplash.com/photo-1464965911861-746a04b4bca6?w=400&q=80",
+    "servings_per_day":2,"best_time":["breakfast","snack"],
+    "tip":"Lowest sugar berry. Vitamin C boosts fat burning during cardio sessions.",
+    "loss_plan":{"servings":2,"total_cal":96,"reason":"Anthocyanins in strawberries activate the AMPK fat-burning pathway triggered by exercise"}
+  },
+  {
+    "id":"f51","name":"Carrot (Gajar)","brand":"Raw","category":"vegetables",
+    "goal":["weight_loss"],
+    "serving_size_g":150,"calories":63,"protein_g":1,"carbs_g":15,"fat_g":0,
+    "image":"https://images.unsplash.com/photo-1447175008436-054170c2e979?w=400&q=80",
+    "servings_per_day":3,"best_time":["snack","lunch","dinner"],
+    "tip":"Crunchy snack that satisfies without the calories. Great with low-fat dahi.",
+    "loss_plan":{"servings":3,"total_cal":189,"reason":"Beta-carotene and fiber keep energy stable on a calorie deficit — no afternoon crashes"}
+  },
+  {
+    "id":"f52","name":"Cauliflower (Phool Gobhi)","brand":"Steamed","category":"vegetables",
+    "goal":["weight_loss"],
+    "serving_size_g":200,"calories":50,"protein_g":4,"carbs_g":10,"fat_g":1,
+    "image":"https://images.unsplash.com/photo-1568625365131-079e026a927d?w=400&q=80",
+    "servings_per_day":3,"best_time":["lunch","dinner"],
+    "tip":"Replace rice with cauliflower rice and save 180 kcal per meal instantly.",
+    "loss_plan":{"servings":3,"total_cal":150,"reason":"Cruciferous vegetables boost liver detox enzymes that break down stored body fat"}
+  },
+  {
+    "id":"f53","name":"Brown Bread","brand":"Whole Grain","category":"carbs",
+    "goal":["weight_loss"],
+    "serving_size_g":60,"calories":140,"protein_g":5,"carbs_g":28,"fat_g":2,
+    "image":"https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400&q=80",
+    "servings_per_day":2,"best_time":["breakfast","snack"],
+    "tip":"Fiber slows digestion. Keeps blood sugar stable — no energy crashes or cravings.",
+    "loss_plan":{"servings":2,"total_cal":280,"reason":"Whole grain fiber prevents blood sugar spikes that trigger insulin fat-storage response"}
+  },
+  {
+    "id":"f54","name":"Black Coffee","brand":"Brewed, No Sugar","category":"drinks",
+    "goal":["weight_loss"],
+    "serving_size_g":240,"calories":5,"protein_g":0,"carbs_g":0,"fat_g":0,
+    "image":"https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=400&q=80",
+    "servings_per_day":2,"best_time":["morning","pre_workout"],
+    "tip":"Take 30 min before workout — burns 10-15% more fat during the session.",
+    "loss_plan":{"servings":2,"total_cal":10,"reason":"Caffeine increases metabolic rate by 3-11% and mobilises fatty acids from fat tissue for fuel"}
+  },
+  {
+    "id":"f55","name":"Protein Bar","brand":"Quest / Any High-Protein","category":"supplements",
+    "goal":["weight_loss","muscle_gain"],
+    "serving_size_g":60,"calories":200,"protein_g":21,"carbs_g":22,"fat_g":8,
+    "image":"https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=400&q=80",
+    "servings_per_day":1,"best_time":["snack","post_workout"],
+    "tip":"Beats junk food cravings instantly. 21g protein in one controlled snack.",
+    "loss_plan":{"servings":1,"total_cal":200,"reason":"High protein eliminates junk food cravings during fat loss without blowing daily macros"}
+  },
+  {
+    "id":"f56","name":"Chicken Tikka (Grilled)","brand":"Homemade, No Oil","category":"protein",
+    "goal":["weight_loss","muscle_gain"],
+    "serving_size_g":150,"calories":220,"protein_g":38,"carbs_g":4,"fat_g":6,
+    "image":"https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?w=400&q=80",
+    "servings_per_day":2,"best_time":["lunch","dinner"],
+    "tip":"Pakistani favourite that is actually diet-friendly when grilled without oil.",
+    "loss_plan":{"servings":2,"total_cal":440,"reason":"38g lean protein per serving preserves muscle mass during calorie deficit cutting phase"}
+  },
+  {
+    "id":"f57","name":"Garden Salad","brand":"Mixed Greens + Lemon","category":"vegetables",
+    "goal":["weight_loss"],
+    "serving_size_g":250,"calories":40,"protein_g":3,"carbs_g":8,"fat_g":0,
+    "image":"https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&q=80",
+    "servings_per_day":2,"best_time":["lunch","dinner"],
+    "tip":"Eat salad BEFORE your main meal — reduces total calorie intake by 12%.",
+    "loss_plan":{"servings":2,"total_cal":80,"reason":"Eating salad first stretches the stomach, triggering satiety hormones before the main course"}
+  },
+  {
+    "id":"f58","name":"Skim Milk","brand":"Fat Free","category":"dairy",
+    "goal":["weight_loss"],
+    "serving_size_g":250,"calories":85,"protein_g":8,"carbs_g":12,"fat_g":0,
+    "image":"https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400&q=80",
+    "servings_per_day":2,"best_time":["breakfast","post_workout"],
+    "tip":"All the protein and calcium of whole milk at half the calories.",
+    "loss_plan":{"servings":2,"total_cal":170,"reason":"Calcium binds dietary fat molecules in the gut during digestion, reducing net absorption"}
+  },
+  {
+    "id":"f59","name":"Celery","brand":"Fresh","category":"vegetables",
+    "goal":["weight_loss"],
+    "serving_size_g":150,"calories":22,"protein_g":1,"carbs_g":4,"fat_g":0,
+    "image":"https://images.unsplash.com/photo-1590005354167-6da97870c757?w=400&q=80",
+    "servings_per_day":3,"best_time":["snack","lunch"],
+    "tip":"Near-zero calorie food. High crunch factor kills the urge to snack on junk.",
+    "loss_plan":{"servings":3,"total_cal":66,"reason":"Takes more energy to chew and digest than it provides — a true negative-calorie food"}
+  },
+  {
+    "id":"f60","name":"Masoor Dal (Red Lentils)","brand":"Cooked","category":"protein",
+    "goal":["weight_loss","muscle_gain"],
+    "serving_size_g":200,"calories":198,"protein_g":14,"carbs_g":36,"fat_g":1,
+    "image":"https://images.unsplash.com/photo-1547592180-85f173990554?w=400&q=80",
+    "servings_per_day":2,"best_time":["lunch","dinner"],
+    "tip":"Budget-friendly superfood. More protein per rupee than almost any meat.",
+    "loss_plan":{"servings":2,"total_cal":396,"reason":"Soluble fiber slows digestion and prevents overeating at the next meal"}
+  },
+  {
+    "id":"f61","name":"Orange (Narangi)","brand":"Fresh","category":"fruits",
+    "goal":["weight_loss"],
+    "serving_size_g":130,"calories":62,"protein_g":1,"carbs_g":15,"fat_g":0,
+    "image":"https://images.unsplash.com/photo-1547514701-42782101795e?w=400&q=80",
+    "servings_per_day":2,"best_time":["morning","breakfast","snack"],
+    "tip":"Vitamin C with breakfast doubles iron absorption from food.",
+    "loss_plan":{"servings":2,"total_cal":124,"reason":"Vitamin C is required to synthesise carnitine — the molecule that transports fat into mitochondria for burning"}
+  },
+  {
+    "id":"f62","name":"Air Popped Popcorn","brand":"Plain, No Butter","category":"carbs",
+    "goal":["weight_loss"],
+    "serving_size_g":30,"calories":93,"protein_g":3,"carbs_g":19,"fat_g":1,
+    "image":"https://images.unsplash.com/photo-1517093602195-b40af9084822?w=400&q=80",
+    "servings_per_day":1,"best_time":["snack"],
+    "tip":"3 cups for under 100 kcal. Perfect high-volume craving killer.",
+    "loss_plan":{"servings":1,"total_cal":93,"reason":"Whole grain popcorn is the highest volume snack for calorie-conscious eating — you eat more, feel more full"}
+  },
+  {
+    "id":"f63","name":"Lemon Water","brand":"Fresh Squeezed","category":"drinks",
+    "goal":["weight_loss"],
+    "serving_size_g":300,"calories":8,"protein_g":0,"carbs_g":2,"fat_g":0,
+    "image":"https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=400&q=80",
+    "servings_per_day":3,"best_time":["morning","lunch","dinner"],
+    "tip":"Drink on empty stomach first thing in the morning. Kickstarts digestion.",
+    "loss_plan":{"servings":3,"total_cal":24,"reason":"Polyphenols in lemon suppress fat accumulation and improve insulin sensitivity significantly"}
+  },
+  {
+    "id":"f64","name":"Boiled Eggs (2 pcs)","brand":"Whole, Hard Boiled","category":"protein",
+    "goal":["weight_loss"],
+    "serving_size_g":100,"calories":155,"protein_g":13,"carbs_g":1,"fat_g":11,
+    "image":"https://images.unsplash.com/photo-1482049016688-2d3e1b311543?w=400&q=80",
+    "servings_per_day":2,"best_time":["breakfast","snack"],
+    "tip":"Eating eggs for breakfast reduces calorie intake at lunch by up to 400 kcal.",
+    "loss_plan":{"servings":2,"total_cal":310,"reason":"Eggs trigger CCK and PYY satiety hormones — the most powerful natural appetite suppressants"}
+  },
+  {
+    "id":"f65","name":"Mung Bean Sprouts","brand":"Fresh, Raw","category":"vegetables",
+    "goal":["weight_loss"],
+    "serving_size_g":100,"calories":30,"protein_g":3,"carbs_g":6,"fat_g":0,
+    "image":"https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=400&q=80",
+    "servings_per_day":2,"best_time":["lunch","dinner"],
+    "tip":"Living food with active enzymes that help digest fat from other foods.",
+    "loss_plan":{"servings":2,"total_cal":60,"reason":"Enzyme-rich sprouts enhance fat digestion efficiency and provide 3g protein per 30 kcal"}
+  },
+  {
+    "id":"f66","name":"Peanut Butter Banana Shake","brand":"Homemade Bulk","category":"shakes",
+    "goal":["weight_gain","muscle_gain"],
+    "serving_size_g":450,"calories":570,"protein_g":36,"carbs_g":55,"fat_g":18,
+    "image":"https://images.unsplash.com/photo-1553530666-ba11a7da3888?w=400&q=80",
+    "servings_per_day":2,"best_time":["breakfast","post_workout","pre_workout"],
+    "tip":"Blend 1 banana + 2 tbsp PB + 1 scoop whey + 1 cup whole milk. 570 kcal in 2 min.",
+    "gain_plan":{"servings":2,"total_cal":1140,"reason":"Fastest homemade calorie bomb — hits protein + carb + fat macros in one glass"}
+  },
+  {
+    "id":"f67","name":"Chocolate Mass Shake","brand":"Homemade Bulk","category":"shakes",
+    "goal":["weight_gain","muscle_gain"],
+    "serving_size_g":450,"calories":540,"protein_g":38,"carbs_g":50,"fat_g":16,
+    "image":"https://images.unsplash.com/photo-1484723091739-30a097e8f929?w=400&q=80",
+    "servings_per_day":2,"best_time":["post_workout","breakfast"],
+    "tip":"1 scoop chocolate whey + 50g oats + 1 tbsp PB + 1 cup whole milk. Blend.",
+    "gain_plan":{"servings":2,"total_cal":1080,"reason":"Post-workout protein + fast + slow carb combo maximises muscle protein synthesis window"}
+  },
+  {
+    "id":"f68","name":"Mango Lassi (Bulk)","brand":"Pakistani Classic","category":"shakes",
+    "goal":["weight_gain","muscle_gain"],
+    "serving_size_g":600,"calories":470,"protein_g":14,"carbs_g":66,"fat_g":12,
+    "image":"https://images.unsplash.com/photo-1553530666-ba11a7da3888?w=400&q=80",
+    "servings_per_day":2,"best_time":["breakfast","snack","post_workout"],
+    "tip":"Full fat dahi + fresh mango + whole milk. Pakistani favourite for mass building.",
+    "gain_plan":{"servings":2,"total_cal":940,"reason":"Natural sugars spike insulin post-workout while dahi provides casein for overnight recovery"}
+  },
+  {
+    "id":"f69","name":"Khajoor Shake (Date Milk)","brand":"Pakistani Classic","category":"shakes",
+    "goal":["weight_gain","muscle_gain"],
+    "serving_size_g":400,"calories":430,"protein_g":10,"carbs_g":80,"fat_g":8,
+    "image":"https://images.unsplash.com/photo-1484723091739-30a097e8f929?w=400&q=80",
+    "servings_per_day":2,"best_time":["pre_workout","breakfast","snack"],
+    "tip":"Blend 8-10 dates with 1.5 cups whole milk. Pure energy for hard training.",
+    "gain_plan":{"servings":2,"total_cal":860,"reason":"Dates are nature's fastest carb — ideal pre-workout insulin spike for maximum muscle pumps"}
+  },
+  {
+    "id":"f70","name":"Avocado Banana Shake","brand":"Clean Bulk","category":"shakes",
+    "goal":["weight_gain","muscle_gain"],
+    "serving_size_g":450,"calories":490,"protein_g":9,"carbs_g":45,"fat_g":26,
+    "image":"https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=400&q=80",
+    "servings_per_day":2,"best_time":["breakfast","snack"],
+    "tip":"Half avocado + 1 banana + 1 cup whole milk. Healthy fats for hormone production.",
+    "gain_plan":{"servings":2,"total_cal":980,"reason":"Monounsaturated fats from avocado directly boost testosterone production for strength gains"}
+  },
+  {
+    "id":"f71","name":"Egg + Milk Power Shake","brand":"Classic Bulk","category":"shakes",
+    "goal":["weight_gain","muscle_gain"],
+    "serving_size_g":400,"calories":480,"protein_g":28,"carbs_g":36,"fat_g":22,
+    "image":"https://images.unsplash.com/photo-1553530666-ba11a7da3888?w=400&q=80",
+    "servings_per_day":1,"best_time":["breakfast","pre_workout"],
+    "tip":"3 pasteurised eggs + 1.5 cups whole milk + 1 tbsp honey. Old school bodybuilder shake.",
+    "gain_plan":{"servings":1,"total_cal":480,"reason":"Complete protein from eggs combined with milk casein provides all-day amino acid release"}
+  },
+  {
+    "id":"f72","name":"Oats + Whey Shake","brand":"Breakfast Bulk","category":"shakes",
+    "goal":["weight_gain","muscle_gain"],
+    "serving_size_g":420,"calories":530,"protein_g":36,"carbs_g":68,"fat_g":8,
+    "image":"https://images.unsplash.com/photo-1484723091739-30a097e8f929?w=400&q=80",
+    "servings_per_day":2,"best_time":["breakfast","pre_workout"],
+    "tip":"Blend 50g rolled oats + 1 scoop whey + 1 cup milk + 1 tbsp honey until smooth.",
+    "gain_plan":{"servings":2,"total_cal":1060,"reason":"Slow oat carbs + fast whey protein = perfect pre-workout fuel + anti-catabolic combo"}
+  },
+  {
+    "id":"f73","name":"Sweet Lassi","brand":"Pakistani Traditional","category":"shakes",
+    "goal":["weight_gain","muscle_gain"],
+    "serving_size_g":400,"calories":340,"protein_g":10,"carbs_g":42,"fat_g":16,
+    "image":"https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=400&q=80",
+    "servings_per_day":2,"best_time":["lunch","snack","breakfast"],
+    "tip":"Full fat dahi + sugar + water + rose water. Classic Pakistani summer bulk drink.",
+    "gain_plan":{"servings":2,"total_cal":680,"reason":"Full fat dairy calories stack easily at every meal — a traditional calorie surplus food"}
+  },
+  {
+    "id":"f74","name":"Green Protein Shake","brand":"Weight Loss","category":"shakes",
+    "goal":["weight_loss"],
+    "serving_size_g":350,"calories":155,"protein_g":25,"carbs_g":8,"fat_g":3,
+    "image":"https://images.unsplash.com/photo-1610970881699-44a5587cabec?w=400&q=80",
+    "servings_per_day":1,"best_time":["breakfast","snack"],
+    "tip":"1 scoop whey + 1 cup spinach + 250ml almond milk + ice. Tastes better than it looks.",
+    "loss_plan":{"servings":1,"total_cal":155,"reason":"25g protein for only 155 kcal — kills hunger for 3-4 hours with almost no calories"}
+  },
+  {
+    "id":"f75","name":"Strawberry Protein Shake","brand":"Weight Loss","category":"shakes",
+    "goal":["weight_loss"],
+    "serving_size_g":400,"calories":245,"protein_g":29,"carbs_g":22,"fat_g":2,
+    "image":"https://images.unsplash.com/photo-1553530666-ba11a7da3888?w=400&q=80",
+    "servings_per_day":1,"best_time":["breakfast","post_workout","snack"],
+    "tip":"1 scoop strawberry whey + 100g strawberries + 250ml skim milk. Sweet and filling.",
+    "loss_plan":{"servings":1,"total_cal":245,"reason":"Vitamin C from strawberries boosts carnitine synthesis for enhanced fat burning post-workout"}
+  },
+  {
+    "id":"f76","name":"Chocolate Cutting Shake","brand":"Zero Calorie Mix","category":"shakes",
+    "goal":["weight_loss"],
+    "serving_size_g":300,"calories":130,"protein_g":24,"carbs_g":6,"fat_g":2,
+    "image":"https://images.unsplash.com/photo-1484723091739-30a097e8f929?w=400&q=80",
+    "servings_per_day":2,"best_time":["snack","post_workout"],
+    "tip":"1 scoop chocolate whey + water + ice + 1 tsp cocoa. Kills chocolate cravings for 3 hours.",
+    "loss_plan":{"servings":2,"total_cal":260,"reason":"Lowest calorie way to get 24g protein — water-based shake has no dairy fat calories"}
+  },
+  {
+    "id":"f77","name":"Dahi Berry Smoothie","brand":"Low Fat","category":"shakes",
+    "goal":["weight_loss"],
+    "serving_size_g":350,"calories":170,"protein_g":12,"carbs_g":24,"fat_g":2,
+    "image":"https://images.unsplash.com/photo-1610970881699-44a5587cabec?w=400&q=80",
+    "servings_per_day":1,"best_time":["breakfast","snack"],
+    "tip":"Low fat dahi + mixed berries + stevia. Probiotics + antioxidants in one glass.",
+    "loss_plan":{"servings":1,"total_cal":170,"reason":"Probiotic bacteria improve gut microbiome diversity which directly reduces fat storage tendency"}
+  },
+  {
+    "id":"f78","name":"Cucumber Detox Shake","brand":"Zero Calorie","category":"shakes",
+    "goal":["weight_loss"],
+    "serving_size_g":400,"calories":35,"protein_g":1,"carbs_g":8,"fat_g":0,
+    "image":"https://images.unsplash.com/photo-1610970881699-44a5587cabec?w=400&q=80",
+    "servings_per_day":2,"best_time":["morning","lunch","dinner"],
+    "tip":"Blend cucumber + mint + lemon + water + ice. Drink 30 min before meals.",
+    "loss_plan":{"servings":2,"total_cal":70,"reason":"Fills stomach before meals, reducing calorie intake at main meal by up to 15%"}
+  },
+  {
+    "id":"f79","name":"Watermelon Mint Cooler","brand":"Summer Fat Loss","category":"shakes",
+    "goal":["weight_loss"],
+    "serving_size_g":450,"calories":92,"protein_g":2,"carbs_g":24,"fat_g":0,
+    "image":"https://images.unsplash.com/photo-1563114773-84221bd62daa?w=400&q=80",
+    "servings_per_day":2,"best_time":["snack","morning"],
+    "tip":"Blend 300g watermelon + mint + lime juice + ice. Natural electrolyte drink.",
+    "loss_plan":{"servings":2,"total_cal":184,"reason":"L-citrulline in watermelon reduces muscle soreness so you exercise harder and burn more"}
+  },
+  {
+    "id":"f80","name":"Iced Mocha Protein","brand":"Cutting Shake","category":"shakes",
+    "goal":["weight_loss"],
+    "serving_size_g":400,"calories":210,"protein_g":27,"carbs_g":14,"fat_g":3,
+    "image":"https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=400&q=80",
+    "servings_per_day":1,"best_time":["morning","pre_workout"],
+    "tip":"1 scoop chocolate whey + 100ml black coffee + 200ml skim milk + ice. Energising.",
+    "loss_plan":{"servings":1,"total_cal":210,"reason":"Caffeine + protein combination pre-workout maximises fat oxidation and muscle preservation simultaneously"}
+  },
+  {
+    "id":"f81","name":"Meal Replacement Shake","brand":"Herbalife / Lean","category":"shakes",
+    "goal":["weight_loss"],
+    "serving_size_g":300,"calories":200,"protein_g":18,"carbs_g":24,"fat_g":4,
+    "image":"https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=400&q=80",
+    "servings_per_day":1,"best_time":["breakfast","lunch"],
+    "tip":"Replace one full meal with this. Saves 300-500 kcal without losing nutrition.",
+    "loss_plan":{"servings":1,"total_cal":200,"reason":"Controlled portion with complete micronutrients prevents the nutrient deficiencies common in strict dieting"}
   }
 ]

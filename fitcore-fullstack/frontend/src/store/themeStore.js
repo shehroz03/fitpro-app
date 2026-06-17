@@ -9,8 +9,14 @@ export const useThemeStore = create((set) => ({
   hydrate: async () => {
     try {
       const v = await AsyncStorage.getItem(KEY);
-      if (v !== null) set({ isDark: v !== 'light' });
+      // Default is always dark — only switch to light if user explicitly saved 'light'
+      set({ isDark: v !== 'light' });
     } catch {}
+  },
+
+  setDark: (dark) => {
+    AsyncStorage.setItem(KEY, dark ? 'dark' : 'light').catch(() => {});
+    set({ isDark: dark });
   },
 
   toggle: () => {

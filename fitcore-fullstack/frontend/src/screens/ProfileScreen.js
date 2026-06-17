@@ -1,24 +1,46 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import {
-  View, Text, ScrollView, TouchableOpacity, Modal,
-  StyleSheet, Alert, ActivityIndicator, TextInput, RefreshControl, Image, Switch,
-} from 'react-native';
+import React, { useState, useMemo, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Image } from 'expo-image';
+import { View, Text, ScrollView, TouchableOpacity, Modal,
+  StyleSheet, Alert, ActivityIndicator, TextInput, RefreshControl, Switch, Dimensions } from 'react-native';
 import { authAPI } from '../api/services';
 import { useAuthStore } from '../store/authStore';
 import { progressAPI } from '../api/services';
-import { useC } from '../utils/theme';
+import { useC, DARK, LIGHT } from '../utils/theme';
 import { useThemeStore } from '../store/themeStore';
 import { AVATARS, avatarSource } from '../utils/avatars';
+import { ProfileFrame, FrameSelector } from '../components/ProfileFrame';
+import { useFrameStore } from '../store/frameStore';
+import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { triggerThemeTransition } from '../utils/themeTransition';
+
+const { width: SW, height: SH } = Dimensions.get('window');
 
 
 export default function ProfileScreen({ navigation }) {
   const C = useC();
   const s = useMemo(() => makeStyles(C), [C]);
-  const { user, logout, setUser } = useAuthStore();
+  const { user, logout, patchUser } = useAuthStore();
   const { isDark, toggle: toggleTheme } = useThemeStore();
-  const [stats,       setStats]       = useState(null);
+  const toggleRowRef = useRef(null);
+
+  const handleThemeToggle = () => {
+    const nextBg = isDark ? LIGHT.bg : DARK.bg;
+    // measureInWindow works correctly inside ScrollViews (unlike measure)
+    if (toggleRowRef.current?.measureInWindow) {
+      toggleRowRef.current.measureInWindow((x, y, w, h) => {
+        const rippleX = x + w * 0.88;  // near the switch on the right
+        const rippleY = y + h / 2;
+        triggerThemeTransition(rippleX, rippleY, nextBg, toggleTheme);
+      });
+    } else {
+      triggerThemeTransition(SW / 2, SH * 0.6, nextBg, toggleTheme);
+    }
+  };
+  const { frameId, setFrame } = useFrameStore();
+  const [showFrame,   setShowFrame]   = useState(false);
   const [loading,     setLoading]     = useState(false);
-  const [refresh,     setRefresh]     = useState(false);
   const [showEdit,    setShowEdit]    = useState(false);
   const [showMetrics, setShowMetrics] = useState(false);
   const [saving,      setSaving]      = useState(false);
@@ -35,15 +57,10 @@ export default function ProfileScreen({ navigation }) {
     fitness_level: user?.fitness_level || 'beginner',
   });
 
-  const load = useCallback(async () => {
-    try {
-      const res = await progressAPI.getDashboard();
-      setStats(res.data.data);
-    } catch {}
-    finally { setRefresh(false); }
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
+  const { data: stats, isRefetching: refresh, refetch } = useQuery({
+    queryKey: ['dashboard'],
+    queryFn: () => progressAPI.getDashboard().then(r => r.data.data),
+  });
 
   const handleLogout = () =>
     Alert.alert('Log Out', 'Are you sure?', [
@@ -59,9 +76,9 @@ export default function ProfileScreen({ navigation }) {
     setSaving(true);
     try {
       const res = await authAPI.updateProfile(editForm);
-      await setUser({ ...user, ...res.data.data });
+      patchUser(res.data.data);
       setShowEdit(false);
-      Alert.alert('✅', 'Profile updated!');
+      Alert.alert('Saved', 'Profile updated.');
     } catch (e) {
       Alert.alert('Error', e.response?.data?.message || 'Could not update');
     } finally { setSaving(false); }
@@ -71,14 +88,14 @@ export default function ProfileScreen({ navigation }) {
     setSaving(true);
     try {
       const payload = {};
-      if (metricsForm.height_cm)   payload.height_cm      = +metricsForm.height_cm;
-      if (metricsForm.weight_kg)   payload.weight_kg      = +metricsForm.weight_kg;
+      if (metricsForm.height_cm)    payload.height_cm      = +metricsForm.height_cm;
+      if (metricsForm.weight_kg)    payload.weight_kg      = +metricsForm.weight_kg;
       if (metricsForm.body_fat_pct) payload.body_fat_pct   = +metricsForm.body_fat_pct;
       if (metricsForm.fitness_level) payload.fitness_level = metricsForm.fitness_level;
       const res = await authAPI.updateProfile(payload);
-      await setUser({ ...user, ...res.data.data });
+      patchUser(res.data.data);
       setShowMetrics(false);
-      Alert.alert('✅', 'Metrics updated!');
+      Alert.alert('Saved', 'Metrics updated.');
     } catch (e) {
       Alert.alert('Error', e.response?.data?.message || 'Could not update');
     } finally { setSaving(false); }
@@ -97,10 +114,10 @@ export default function ProfileScreen({ navigation }) {
   const SRow = ({ iconBg, icon, label, sub, onPress, isRed, right }) => (
     <TouchableOpacity style={s.sRow} onPress={onPress || (() => {})}>
       <View style={[s.sIcon, { backgroundColor: iconBg }]}>
-        <Text style={{ fontSize: 16 }}>{icon}</Text>
+        {icon}
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={[s.sLabel, isRed && { color: C.red }]}>{label}</Text>
+        <Text style={[s.sLabel, isRed && { color: C.muted }]}>{label}</Text>
         {sub && <Text style={s.sSub}>{sub}</Text>}
       </View>
       {right || <Text style={s.chevron}>›</Text>}
@@ -122,23 +139,27 @@ export default function ProfileScreen({ navigation }) {
   );
 
   return (
+    <SafeAreaView style={s.root} edges={['top']}>
     <ScrollView
-      style={s.root}
-      refreshControl={<RefreshControl refreshing={refresh} onRefresh={() => { setRefresh(true); load(); }} tintColor={C.accent} />}
+      style={{ flex: 1 }}
+      refreshControl={<RefreshControl refreshing={refresh} onRefresh={() => refetch()} tintColor={C.accent} />}
       showsVerticalScrollIndicator={false}
     >
       {/* ── HERO ─────────────────────────────────────── */}
       <View style={s.hero}>
         <View style={s.avatarWrap}>
-          {avatarSource(user?.avatar_url) ? (
-            <Image source={avatarSource(user.avatar_url)} style={s.avatar} />
-          ) : (
-            <View style={s.avatar}>
-              <Text style={s.avatarTxt}>{initials}</Text>
-            </View>
-          )}
+          <ProfileFrame frameId={frameId} avatarSize={82}>
+            {avatarSource(user?.avatar_url) ? (
+              <Image source={avatarSource(user.avatar_url)}
+                style={[s.avatar, frameId !== 'none' && { borderWidth: 0 }]} />
+            ) : (
+              <View style={[s.avatar, frameId !== 'none' && { borderWidth: 0 }]}>
+                <Text style={s.avatarTxt}>{initials}</Text>
+              </View>
+            )}
+          </ProfileFrame>
           <TouchableOpacity style={s.editAvatarBtn} onPress={() => setShowEdit(true)}>
-            <Text style={{ fontSize: 12 }}>✏️</Text>
+            <Ionicons name="pencil" size={11} color={C.text} />
           </TouchableOpacity>
         </View>
         <Text style={s.name}>{user?.full_name || 'User'}</Text>
@@ -146,14 +167,21 @@ export default function ProfileScreen({ navigation }) {
         {user?.bio && <Text style={s.bio}>{user.bio}</Text>}
         <View style={s.tagRow}>
           {user?.fitness_level && (
-            <View style={s.tag}><Text style={s.tagTxt}>💪 {user.fitness_level}</Text></View>
+            <View style={s.tag}>
+              <Ionicons name="fitness-outline" size={11} color={C.muted} />
+              <Text style={s.tagTxt}>{user.fitness_level}</Text>
+            </View>
           )}
           {user?.unit_system && (
-            <View style={s.tag}><Text style={s.tagTxt}>📏 {user.unit_system}</Text></View>
+            <View style={s.tag}>
+              <Ionicons name="resize-outline" size={11} color={C.muted} />
+              <Text style={s.tagTxt}>{user.unit_system}</Text>
+            </View>
           )}
           {user?.is_premium && (
             <View style={[s.tag, { backgroundColor:C.accentDim, borderColor:C.accent }]}>
-              <Text style={[s.tagTxt, { color:C.accent }]}>⭐ PRO</Text>
+              <Ionicons name="star" size={11} color={C.accent} />
+              <Text style={[s.tagTxt, { color:C.accent }]}>PRO</Text>
             </View>
           )}
         </View>
@@ -165,9 +193,9 @@ export default function ProfileScreen({ navigation }) {
         <Text style={s.secTitle}>LIFETIME STATS</Text>
         <View style={s.statsRow}>
           <StatBox val={ws?.total_workouts}              label="Workouts"    color={C.accent} />
-          <StatBox val={ws?.total_minutes ? `${Math.round(ws.total_minutes/60)}h` : '—'} label="Hours" color={C.blue} />
-          <StatBox val={ws?.total_calories ? `${Math.round(ws.total_calories/1000)}k` : '—'} label="Calories" color={C.orange} />
-          <StatBox val={stats?.streak?.longest_streak}  label="Best Streak" color={C.red} />
+          <StatBox val={ws?.total_minutes ? `${Math.round(ws.total_minutes/60)}h` : '—'} label="Hours" color={C.accent} />
+          <StatBox val={ws?.total_calories ? `${Math.round(ws.total_calories/1000)}k` : '—'} label="Calories" color={C.accent} />
+          <StatBox val={stats?.streak?.longest_streak}  label="Best Streak" color={C.accent} />
         </View>
 
         {/* ── BODY METRICS ───────────────────────────── */}
@@ -196,48 +224,68 @@ export default function ProfileScreen({ navigation }) {
         {/* ── GOALS SHORTCUT ─────────────────────────── */}
         <Text style={s.secTitle}>MY GOALS</Text>
         <View style={s.settingsCard}>
-          <SRow iconBg="rgba(255,107,107,0.2)" icon="🎯" label="View & Manage Goals"
+          <SRow iconBg={C.accentDim}
+            icon={<Ionicons name="trophy-outline" size={18} color={C.accent} />}
+            label="View & Manage Goals"
             sub="Track your fitness targets" onPress={() => navigation.navigate('Goals')} />
         </View>
 
         {/* ── SETTINGS ───────────────────────────────── */}
         <Text style={s.secTitle}>SETTINGS</Text>
         <View style={s.settingsCard}>
-          <SRow iconBg={isDark ? '#1A1A2E' : '#E8EDF5'} icon={isDark ? '🌙' : '☀️'}
-            label="Appearance"
-            sub={isDark ? 'Dark Mode' : 'Light Mode'}
-            right={
-              <Switch
-                value={isDark}
-                onValueChange={toggleTheme}
-                trackColor={{ false: C.border, true: C.accent }}
-                thumbColor={isDark ? '#0A0A0F' : '#FFFFFF'}
-              />
-            }
-          />
-          <SRow iconBg="#FF9F0A" icon="🔔" label="Notifications" sub="Workout & meal reminders"
+          <View ref={toggleRowRef} collapsable={false}>
+            <SRow
+              iconBg={C.accentDim}
+              icon={<Ionicons name={isDark ? 'moon' : 'sunny'} size={18} color={C.accent} />}
+              label="Appearance"
+              sub={isDark ? 'Dark Mode' : 'Light Mode'}
+              right={
+                <Switch
+                  value={isDark}
+                  onValueChange={handleThemeToggle}
+                  trackColor={{ false: C.border, true: C.accent }}
+                  thumbColor={isDark ? C.accentText : '#FFFFFF'}
+                />
+              }
+            />
+          </View>
+          <SRow iconBg={C.accentDim}
+            icon={<Ionicons name="notifications-outline" size={18} color={C.accent} />}
+            label="Notifications" sub="Workout & meal reminders"
             onPress={() => Alert.alert('Notifications', 'Feature coming soon!')} />
-          <SRow iconBg="linear-gradient(#0A84FF,#5E5CE6)" icon="💳" label="Premium Plan"
-            sub={user?.is_premium ? 'FitCore Pro • Active ✅' : 'Upgrade to unlock all features'}
+          <SRow iconBg={C.accentDim}
+            icon={<Ionicons name="star-outline" size={18} color={C.accent} />}
+            label="Premium Plan"
+            sub={user?.is_premium ? 'FitCore Pro — Active' : 'Upgrade to unlock all features'}
             onPress={() => Alert.alert('Premium', 'Feature coming soon!')} />
-          <SRow iconBg="#30D158" icon="✏️" label="Edit Profile"
-            sub="Name, bio, preferences"
+          <SRow iconBg={C.accentDim}
+            icon={<Ionicons name="create-outline" size={18} color={C.accent} />}
+            label="Edit Profile" sub="Name, bio, preferences"
             onPress={() => setShowEdit(true)} />
-          <SRow iconBg="#636366" icon="📏" label="Body Metrics"
-            sub="Height, weight, body fat"
+          <SRow iconBg={C.accentDim}
+            icon={<Ionicons name="image-outline" size={18} color={C.accent} />}
+            label="Profile Frame"
+            sub={frameId === 'none' ? 'No frame selected' : `Active: ${frameId.replace(/_/g,' ')}`}
+            onPress={() => setShowFrame(true)} />
+          <SRow iconBg={C.accentDim}
+            icon={<Ionicons name="body-outline" size={18} color={C.muted} />}
+            label="Body Metrics" sub="Height, weight, body fat"
             onPress={() => setShowMetrics(true)} />
-          <SRow iconBg="#2FCFA0" icon="📊" label="Data & Privacy"
-            sub="Manage your data"
+          <SRow iconBg={C.accentDim}
+            icon={<Ionicons name="shield-checkmark-outline" size={18} color={C.accent} />}
+            label="Data & Privacy" sub="Manage your data"
             onPress={() => Alert.alert('Privacy', 'Feature coming soon!')} />
         </View>
 
         {/* ── SIGN OUT ───────────────────────────────── */}
         <View style={[s.settingsCard, { marginBottom:30 }]}>
-          <SRow iconBg="rgba(255,69,58,0.2)" icon="🚪" label="Sign Out" isRed
+          <SRow iconBg={C.border}
+            icon={<Ionicons name="log-out-outline" size={18} color={C.muted} />}
+            label="Sign Out" isRed
             onPress={handleLogout}
             right={loading
-              ? <ActivityIndicator size="small" color={C.red} />
-              : <Text style={[s.chevron, { color:C.red }]}>›</Text>
+              ? <ActivityIndicator size="small" color={C.muted} />
+              : <Text style={[s.chevron, { color:C.muted }]}>›</Text>
             }
           />
         </View>
@@ -248,8 +296,8 @@ export default function ProfileScreen({ navigation }) {
       {/* ── EDIT PROFILE MODAL ─────────────────────── */}
       <Modal visible={showEdit} animationType="slide" transparent>
         <View style={s.modalBg}>
-          <View style={s.modalCard}>
-            <Text style={s.modalTitle}>Edit Profile ✏️</Text>
+          <ScrollView style={s.modalCard} contentContainerStyle={{ paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
+            <Text style={s.modalTitle}>Edit Profile</Text>
             <InputField label="Full Name" value={editForm.full_name}
               onChange={v => setEditForm(p => ({ ...p, full_name:v }))} />
             <InputField label="Bio" value={editForm.bio}
@@ -265,6 +313,11 @@ export default function ProfileScreen({ navigation }) {
               ))}
             </ScrollView>
 
+            <Text style={[s.inputLabel, { marginTop: 8 }]}>Profile Frame</Text>
+            <View style={{ maxHeight: 280 }}>
+              <FrameSelector currentId={frameId} onSelect={setFrame} C={C} />
+            </View>
+
             <Text style={s.inputLabel}>Units</Text>
             <View style={s.unitToggle}>
               {['metric','imperial'].map(u => (
@@ -272,7 +325,7 @@ export default function ProfileScreen({ navigation }) {
                   style={[s.unitBtn, editForm.unit_system===u && s.unitBtnOn]}
                   onPress={() => setEditForm(p => ({ ...p, unit_system:u }))}>
                   <Text style={[s.unitBtnTxt, editForm.unit_system===u && { color:'#000' }]}>
-                    {u === 'metric' ? '📏 Metric' : '🇺🇸 Imperial'}
+                    {u === 'metric' ? 'Metric' : 'Imperial'}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -288,6 +341,25 @@ export default function ProfileScreen({ navigation }) {
                 }
               </TouchableOpacity>
             </View>
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* ── FRAME SELECTOR MODAL ──────────────────── */}
+      <Modal visible={showFrame} animationType="slide" transparent>
+        <View style={s.modalBg}>
+          <View style={[s.modalCard, { maxHeight: '80%' }]}>
+            <View style={{ flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
+              <Text style={s.modalTitle}>Choose Frame</Text>
+              <TouchableOpacity onPress={() => setShowFrame(false)}>
+                <Ionicons name="close" size={20} color={C.muted} />
+              </TouchableOpacity>
+            </View>
+            <FrameSelector
+              currentId={frameId}
+              onSelect={(id) => { setFrame(id); setShowFrame(false); }}
+              C={C}
+            />
           </View>
         </View>
       </Modal>
@@ -297,7 +369,7 @@ export default function ProfileScreen({ navigation }) {
         <View style={s.modalBg}>
           <ScrollView>
             <View style={s.modalCard}>
-              <Text style={s.modalTitle}>Body Metrics 📊</Text>
+              <Text style={s.modalTitle}>Body Metrics</Text>
               <InputField label="Height (cm)" value={metricsForm.height_cm}
                 onChange={v => setMetricsForm(p => ({ ...p, height_cm:v }))}
                 keyboardType="numeric" placeholder="e.g. 175" />
@@ -310,13 +382,12 @@ export default function ProfileScreen({ navigation }) {
               <Text style={s.inputLabel}>Fitness Level</Text>
               <View style={s.levelRow}>
                 {['beginner','intermediate','advanced'].map(lvl => {
-                  const COLORS = { beginner:C.teal, intermediate:C.blue, advanced:C.red };
                   const on = metricsForm.fitness_level === lvl;
                   return (
                     <TouchableOpacity key={lvl}
-                      style={[s.levelBtn, on && { borderColor:COLORS[lvl], backgroundColor:`${COLORS[lvl]}20` }]}
+                      style={[s.levelBtn, on && { borderColor:C.accent, backgroundColor:C.accentDim }]}
                       onPress={() => setMetricsForm(p => ({ ...p, fitness_level:lvl }))}>
-                      <Text style={[s.levelBtnTxt, on && { color:COLORS[lvl] }]}>{lvl}</Text>
+                      <Text style={[s.levelBtnTxt, on && { color:C.accent }]}>{lvl}</Text>
                     </TouchableOpacity>
                   );
                 })}
@@ -337,18 +408,19 @@ export default function ProfileScreen({ navigation }) {
         </View>
       </Modal>
     </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const makeStyles = (C) => StyleSheet.create({
   root:         { flex:1, backgroundColor:C.bg },
-  hero:         { backgroundColor:C.accentDim, paddingTop:30, paddingBottom:24,
+  hero:         { backgroundColor:C.accentDim, paddingTop:20, paddingBottom:24,
                   alignItems:'center', borderBottomWidth:1, borderColor:C.border },
   avatarWrap:   { position:'relative', marginBottom:12 },
   avatar:       { width:82, height:82, borderRadius:41, backgroundColor:C.accent,
                   alignItems:'center', justifyContent:'center',
                   borderWidth:3, borderColor:`${C.accent}60` },
-  avatarTxt:    { fontSize:28, fontWeight:'900', color:'#0A0A0F' },
+  avatarTxt:    { fontSize:28, fontWeight:'900', color:C.accentText },
   editAvatarBtn:{ position:'absolute', bottom:0, right:-2, backgroundColor:C.card2,
                   borderRadius:12, width:24, height:24, alignItems:'center',
                   justifyContent:'center', borderWidth:1, borderColor:C.border },
@@ -356,8 +428,9 @@ const makeStyles = (C) => StyleSheet.create({
   email:        { color:C.muted, fontSize:13, marginBottom:6 },
   bio:          { color:C.muted, fontSize:13, textAlign:'center', paddingHorizontal:24, marginBottom:8 },
   tagRow:       { flexDirection:'row', gap:8, flexWrap:'wrap', justifyContent:'center' },
-  tag:          { backgroundColor:C.card, borderRadius:10, paddingHorizontal:12,
-                  paddingVertical:4, borderWidth:1, borderColor:C.border },
+  tag:          { flexDirection:'row', alignItems:'center', gap:5, backgroundColor:C.card,
+                  borderRadius:10, paddingHorizontal:12, paddingVertical:4,
+                  borderWidth:1, borderColor:C.border },
   tagTxt:       { color:C.muted, fontSize:12, fontWeight:'600', textTransform:'capitalize' },
   body:         { padding:16 },
   row:          { flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom:8 },
@@ -386,7 +459,7 @@ const makeStyles = (C) => StyleSheet.create({
   version:      { color:C.dim, fontSize:12, textAlign:'center', marginBottom:16 },
   modalBg:      { flex:1, backgroundColor:'rgba(0,0,0,0.75)', justifyContent:'flex-end' },
   modalCard:    { backgroundColor:C.card2, borderTopLeftRadius:24, borderTopRightRadius:24,
-                  padding:24, borderTopWidth:1, borderColor:C.border },
+                  padding:24, borderTopWidth:1, borderColor:C.border, maxHeight:'85%' },
   modalTitle:   { color:C.text, fontSize:18, fontWeight:'800', marginBottom:18 },
   inputLabel:   { color:C.muted, fontSize:11, fontWeight:'700', letterSpacing:0.5,
                   marginBottom:6, textTransform:'uppercase' },

@@ -144,6 +144,6 @@ Deno.serve(async (req) => {
 
     return json({ data: result, message: "AI analysis complete" });
   } catch (e) {
-    return json({ error: String(e?.message || e) }, 500);
+    return json({ error: String((e as Error)?.message || e) }, 500);
   }
 });

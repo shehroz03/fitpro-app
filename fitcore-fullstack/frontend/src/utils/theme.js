@@ -1,40 +1,75 @@
 import { useThemeStore } from '../store/themeStore';
 
+// ── Design tokens ──────────────────────────────────────────────
+// DARK: deep green-black base, lime accent stays identical in both modes
 export const DARK = {
-  bg:        '#0A0A0F',
-  card:      '#111118',
-  card2:     '#16161F',
-  border:    '#1E1E2A',
-  accent:    '#C8F135',
-  accentDim: 'rgba(200,241,53,0.15)',
-  text:      '#FFFFFF',
-  muted:     '#8A8A9A',
-  dim:       '#55556A',
-  red:       '#FF453A',
-  blue:      '#4D8DFF',
-  purple:    '#9B6DFF',
-  orange:    '#FF8C42',
-  teal:      '#2FCFA0',
+  bg:          '#0B0D0A',
+  surface:     '#161914',
+  surfaceAlt:  '#1F231C',
+  textPrimary: '#F4F5F3',
+  textMuted:   '#8A8F86',
+  dim:         '#55556A',
+  border:      '#262A22',
+  accent:      '#C8F135',
+  accentText:  '#0E1117',
+  accentDim:   'rgba(200,241,53,0.15)',
+
+  // Backward-compat aliases — old names still resolve
+  card:   '#161914',
+  card2:  '#1F231C',
+  text:   '#F4F5F3',
+  muted:  '#8A8F86',
+
+  // Removed semantic palette — mapped to accent/neutral
+  blue:   '#C8F135',
+  orange: '#C8F135',
+  purple: '#C8F135',
+  teal:   '#C8F135',
+  red:    '#8A8F86',
 };
 
+// LIGHT: warm off-white base, same lime accent
 export const LIGHT = {
-  bg:        '#F2F4F8',
-  card:      '#FFFFFF',
-  card2:     '#F0F3F8',
-  border:    '#DEE3ED',
-  accent:    '#5E7800',
-  accentDim: 'rgba(94,120,0,0.12)',
-  text:      '#0D0D14',
-  muted:     '#52526A',
-  dim:       '#8888A0',
-  red:       '#D42B28',
-  blue:      '#1F5FD4',
-  purple:    '#6425E5',
-  orange:    '#C45000',
-  teal:      '#0A7A59',
+  bg:          '#F4F5F3',
+  surface:     '#FFFFFF',
+  surfaceAlt:  '#ECEEE9',
+  textPrimary: '#0E1117',
+  textMuted:   '#6B7280',
+  dim:         '#8888A0',
+  border:      '#E3E5E0',
+  accent:      '#C8F135',
+  accentText:  '#0E1117',
+  accentDim:   'rgba(200,241,53,0.15)',
+
+  // Backward-compat aliases
+  card:  '#FFFFFF',
+  card2: '#ECEEE9',
+  text:  '#0E1117',
+  muted: '#6B7280',
+
+  // Removed semantic palette — mapped to accent/neutral
+  blue:   '#C8F135',
+  orange: '#C8F135',
+  purple: '#C8F135',
+  teal:   '#C8F135',
+  red:    '#6B7280',
 };
 
-// Static dark reference for backward compat (module-level StyleSheets that haven't been migrated)
+// ── Typography scale ───────────────────────────────────────────
+export const TYPE = {
+  display: { fontSize: 34, fontWeight: '800' },
+  h1:      { fontSize: 24, fontWeight: '700' },
+  body:    { fontSize: 15, fontWeight: '500' },
+  label:   { fontSize: 11, fontWeight: '600', letterSpacing: 0.5, textTransform: 'uppercase' },
+};
+
+// ── Spacing — 4/8/12/16/24/32 only ────────────────────────────
+export const SPACE = { xs: 4, sm: 8, md: 12, base: 16, lg: 24, xl: 32 };
+
+// ── Radius ────────────────────────────────────────────────────
+export const RADIUS = { card: 20, pill: 999, button: 14 };
+
+// Static dark reference for module-level StyleSheets
 export const C = DARK;
 
 export function useC() {
