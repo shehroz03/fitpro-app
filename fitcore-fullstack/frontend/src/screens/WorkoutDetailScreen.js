@@ -1,14 +1,117 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet,
+  View, Text, ScrollView, TouchableOpacity, StyleSheet, Image,
   Animated, Easing, Alert, Modal, SafeAreaView, TextInput, ActivityIndicator,
 } from 'react-native';
 import { workoutAPI } from '../api/services';
+import { speakAsAgent, stopAgent, buildWorkoutLine } from '../api/ttsService';
+import { VoiceCoach } from '../components/VoiceCoach';
 import { useC } from '../utils/theme';
 import { useAuthStore } from '../store/authStore';
 import { Video, ResizeMode } from 'expo-av';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import EXERCISES_JSON from '../data/exercises.json';
+import * as FileSystem from 'expo-file-system';
+
+const DL_DIR = FileSystem.documentDirectory + 'fitcore_videos/';
+const SB_VID = 'https://nlzuqzkxtmqabmwkggpy.supabase.co/storage/v1/object/public/exercise-videos';
+
+const HERO_IMG_MALE = {
+  strength:    'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&q=80',
+  cardio:      'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&q=80',
+  hiit:        'https://images.unsplash.com/photo-1549060279-7e168fcee0c2?w=400&q=80',
+  flexibility: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400&q=80',
+  core:        'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400&q=80',
+  recovery:    'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=400&q=80',
+  yoga:        'https://images.unsplash.com/photo-1510894347713-fc3dc6166ef5?w=400&q=80',
+  // extended pool for unique-per-workout fallback
+  _pool: [
+    'https://images.unsplash.com/photo-1581009137042-c552e485697a?w=400&q=80',
+    'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=400&q=80',
+    'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=400&q=80',
+    'https://images.unsplash.com/photo-1599058945522-28d584b6f0ff?w=400&q=80',
+  ],
+};
+const HERO_IMG_FEMALE = {
+  strength:    require('../../assets/images/female/female_banner_strength.png'),
+  cardio:      require('../../assets/images/female/female_banner_cardio.png'),
+  hiit:        require('../../assets/images/female/female_banner_hiit.png'),
+  flexibility: require('../../assets/images/female/female_banner_flexibility.png'),
+  core:        require('../../assets/images/female/female_banner_core.png'),
+  recovery:    require('../../assets/images/female/female_banner_recovery.png'),
+  yoga:        require('../../assets/images/female/female_banner_yoga.png'),
+};
+
+const imgSrc = (val) => (typeof val === 'string') ? { uri: val } : val;
+
+const _strHash = (s = '') => {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+};
+
+const getHeroImg = (plan, isFemale) => {
+  const map  = isFemale ? HERO_IMG_FEMALE : HERO_IMG_MALE;
+  const name = plan?.name || '';
+  // category-specific image if it exists, else pick from pool by name hash
+  const cat  = plan?.category;
+  if (map[cat]) return map[cat];
+  const pool = isFemale
+    ? [map.strength, map.cardio, map.core, map.flexibility, map.recovery, map.yoga]
+    : (map._pool || [map.strength, map.cardio, map.core]);
+  return pool[_strHash(name) % pool.length] || map.strength;
+};
+
+const EXERCISE_VIDEO = {
+  male: {
+    'Running':           'Man_running_in_place_202606110121.mp4',
+    'Barbell Squat':     'Man_performing_barbell_squat_202606172035.mp4',
+    'Bench Press':       'Man_performs_barbell_bench_press_202606172041.mp4',
+    'Pull-ups':          'Man_performs_one_pull-up_202606110121.mp4',
+    'Deadlift':          'Man_performing_barbell_deadlift_202606110121.mp4',
+    'Shoulder Press':    'Man_performing_shoulder_press_202606110121.mp4',
+    'Lunges':            'Man_performing_forward_lunge_202606110121.mp4',
+    'Burpees':           'Man_performs_one_burpee_202606110121.mp4',
+    'Push-ups':          'Man_performs_one_push-up_202606110121.mp4',
+    'Russian Twists':    'Man_performing_Russian_twists_202606110121.mp4',
+    'Mountain Climbers': 'Man_performs_mountain_climbers_202606110121.mp4',
+    'Jump Rope':         'Man_skipping_jump_rope_202606110121.mp4',
+    'Plank':             'Man_holding_forearm_plank_202606110121.mp4',
+    'Downward Dog':      'Man_holding_downward_dog_pose_202606110121.mp4',
+    'Foam Rolling':      'Man_foam-rolling_thighs_202606110121.mp4',
+    'Jumping Jacks':     'Man_performing_jumping_jacks_202606110121.mp4',
+    'High Knees':        'Man_performing_high_knees_202606110121.mp4',
+    'Box Jump':          'Man_performing_box_jump_202606172359.mp4',
+    'Tricep Dip':        'Man_performing_tricep_dip_202606110121.mp4',
+    'Dumbbell Curl':     'Man_performing_dumbbell_curl_202606110121.mp4',
+    'Hip Thrust':        'Man_performing_barbell_hip_thrust_202606110121.mp4',
+    'Leg Raises':        'Man_holding_forearm_plank_202606110121.mp4',
+  },
+  female: {
+    'Running':           'Woman_running_in_place_202606110124.mp4',
+    'Barbell Squat':     'Woman_performing_bodyweight_squat_202606110124.mp4',
+    'Bench Press':       'Woman_performing_dumbbell_press_202606110124.mp4',
+    'Pull-ups':          'Woman_performs_one_pull-up_202606110124.mp4',
+    'Deadlift':          'Woman_performing_barbell_deadlift_202606110124.mp4',
+    'Shoulder Press':    'Woman_performing_face_pulls_202606172358.mp4',
+    'Lunges':            'Woman_performs_forward_lunge_202606110124.mp4',
+    'Burpees':           'Woman_performs_one_burpee_202606110124.mp4',
+    'Push-ups':          'Woman_performing_push-up_202606110124.mp4',
+    'Russian Twists':    'Woman_performing_Russian_twists_202606110124.mp4',
+    'Mountain Climbers': 'Woman_performing_mountain_climbers_202606110124.mp4',
+    'Jump Rope':         'Woman_skipping_jump_rope_202606110124.mp4',
+    'Plank':             'Woman_performing_plank_on_mat_202606172357.mp4',
+    'Downward Dog':      'Woman_holding_downward_dog_pose_202606110124.mp4',
+    'Foam Rolling':      'Woman_foam-rolling_thighs_202606110124.mp4',
+    'Jumping Jacks':     'Woman_performing_jumping_jacks_202606110124.mp4',
+    'High Knees':        'Woman_performing_high_knees_202606110124.mp4',
+    'Box Jump':          'Woman_performs_box_jump_202606110124.mp4',
+    'Tricep Dip':        'Woman_performing_tricep_dip_202606110124.mp4',
+    'Dumbbell Curl':     'Woman_performing_dumbbell_curl_202606110124.mp4',
+    'Hip Thrust':        'Woman_performing_barbell_hip_thrust_202606110124.mp4',
+    'Leg Raises':        'Woman_holding_forearm_plank_202606110124.mp4',
+  },
+};
 
 const EXERCISE_DATA = {
   'Running': { sets:1, reps:0, rest:0, move:'run', muscle:'Full Body · Cardio',
@@ -101,51 +204,55 @@ const EXERCISE_DATA = {
 };
 const DEF = { sets:3, reps:12, rest:60, move:'squat', muscle:'Full Body', tips:['Form first','Control movement','Breathe properly','Stay consistent'] };
 
+// ─── Supabase Storage — exercise videos (keeps APK size small) ───────────────
+const SB = 'https://nlzuqzkxtmqabmwkggpy.supabase.co/storage/v1/object/public/exercise-videos';
+const v = (path) => ({ uri: `${SB}/${path}` });
+
 const VIDEOS = {
   male: {
-    run:         require('../../assets/videos/Man_running_in_place_202606110121.mp4'),
-    squat:       require('../../assets/videos/Man_performing_bodyweight_squat_202606110121.mp4'),
-    press:       require('../../assets/videos/Man_performing_shoulder_press_202606110121.mp4'),
-    pullup:      require('../../assets/videos/Man_performs_one_pull-up_202606110121.mp4'),
-    lunge:       require('../../assets/videos/Man_performing_forward_lunge_202606110121.mp4'),
-    burpee:      require('../../assets/videos/Man_performs_one_burpee_202606110121.mp4'),
-    twist:       require('../../assets/videos/Man_performing_Russian_twists_202606110121.mp4'),
-    pushup:      require('../../assets/videos/Man_performs_one_push-up_202606110121.mp4'),
-    deadlift:    require('../../assets/videos/Man_performing_barbell_deadlift_202606110121.mp4'),
-    climb:       require('../../assets/videos/Man_performs_mountain_climbers_202606110121.mp4'),
-    jumprope:    require('../../assets/videos/Man_skipping_jump_rope_202606110121.mp4'),
-    plank:       require('../../assets/videos/Man_holding_forearm_plank_202606110121.mp4'),
-    downwarddog: require('../../assets/videos/Man_holding_downward_dog_pose_202606110121.mp4'),
-    foamroll:    require('../../assets/videos/Man_foam-rolling_thighs_202606110121.mp4'),
-    curl:        require('../../assets/videos/Man_performing_dumbbell_curl_202606110121.mp4'),
-    hipthrust:   require('../../assets/videos/Man_performing_barbell_hip_thrust_202606110121.mp4'),
-    tricdip:     require('../../assets/videos/Man_performing_tricep_dip_202606110121.mp4'),
-    boxjump:     require('../../assets/videos/Man_performs_box_jump_202606110121.mp4'),
-    jumpjack:    require('../../assets/videos/Man_performing_jumping_jacks_202606110121.mp4'),
-    highknees:   require('../../assets/videos/Man_performing_high_knees_202606110121.mp4'),
+    run:         v('male/Man_running_in_place_202606110121.mp4'),
+    squat:       v('male/Man_performing_bodyweight_squat_202606110121.mp4'),
+    press:       v('male/Man_performing_shoulder_press_202606110121.mp4'),
+    pullup:      v('male/Man_performs_one_pull-up_202606110121.mp4'),
+    lunge:       v('male/Man_performing_forward_lunge_202606110121.mp4'),
+    burpee:      v('male/Man_performs_one_burpee_202606110121.mp4'),
+    twist:       v('male/Man_performing_Russian_twists_202606110121.mp4'),
+    pushup:      v('male/Man_performs_one_push-up_202606110121.mp4'),
+    deadlift:    v('male/Man_performing_barbell_deadlift_202606110121.mp4'),
+    climb:       v('male/Man_performs_mountain_climbers_202606110121.mp4'),
+    jumprope:    v('male/Man_skipping_jump_rope_202606110121.mp4'),
+    plank:       v('male/Man_holding_forearm_plank_202606110121.mp4'),
+    downwarddog: v('male/Man_holding_downward_dog_pose_202606110121.mp4'),
+    foamroll:    v('male/Man_foam-rolling_thighs_202606110121.mp4'),
+    curl:        v('male/Man_performing_dumbbell_curl_202606110121.mp4'),
+    hipthrust:   v('male/Man_performing_barbell_hip_thrust_202606110121.mp4'),
+    tricdip:     v('male/Man_performing_tricep_dip_202606110121.mp4'),
+    boxjump:     v('male/Man_performs_box_jump_202606110121.mp4'),
+    jumpjack:    v('male/Man_performing_jumping_jacks_202606110121.mp4'),
+    highknees:   v('male/Man_performing_high_knees_202606110121.mp4'),
   },
   female: {
-    run:         require('../../assets/videos/Woman_running_in_place_202606110124.mp4'),
-    squat:       require('../../assets/videos/Woman_performing_bodyweight_squat_202606110124.mp4'),
-    press:       require('../../assets/videos/Woman_performing_dumbbell_press_202606110124.mp4'),
-    pullup:      require('../../assets/videos/Woman_performs_one_pull-up_202606110124.mp4'),
-    lunge:       require('../../assets/videos/Woman_performs_forward_lunge_202606110124.mp4'),
-    burpee:      require('../../assets/videos/Woman_performs_one_burpee_202606110124.mp4'),
-    twist:       require('../../assets/videos/Woman_performing_Russian_twists_202606110124.mp4'),
-    pushup:      require('../../assets/videos/Woman_performing_push-up_202606110124.mp4'),
-    deadlift:    require('../../assets/videos/Woman_performing_barbell_deadlift_202606110124.mp4'),
-    climb:       require('../../assets/videos/Woman_performing_mountain_climbers_202606110124.mp4'),
-    jumprope:    require('../../assets/videos/Woman_skipping_jump_rope_202606110124.mp4'),
-    plank:       require('../../assets/videos/Woman_holding_forearm_plank_202606110124.mp4'),
-    downwarddog: require('../../assets/videos/Woman_holding_downward_dog_pose_202606110124.mp4'),
-    foamroll:    require('../../assets/videos/Woman_foam-rolling_thighs_202606110124.mp4'),
-    curl:        require('../../assets/videos/Woman_performing_dumbbell_curl_202606110124.mp4'),
-    hipthrust:   require('../../assets/videos/Woman_performing_barbell_hip_thrust_202606110124.mp4'),
-    tricdip:     require('../../assets/videos/Woman_performing_tricep_dip_202606110124.mp4'),
-    boxjump:     require('../../assets/videos/Woman_performs_box_jump_202606110124.mp4'),
-    jumpjack:    require('../../assets/videos/Woman_performing_jumping_jacks_202606110124.mp4'),
-    highknees:   require('../../assets/videos/Woman_performing_high_knees_202606110124.mp4'),
-  }
+    run:         v('female/Woman_running_in_place_202606110124.mp4'),
+    squat:       v('female/Woman_performing_bodyweight_squat_202606110124.mp4'),
+    press:       v('female/Woman_performing_dumbbell_press_202606110124.mp4'),
+    pullup:      v('female/Woman_performs_one_pull-up_202606110124.mp4'),
+    lunge:       v('female/Woman_performs_forward_lunge_202606110124.mp4'),
+    burpee:      v('female/Woman_performs_one_burpee_202606110124.mp4'),
+    twist:       v('female/Woman_performing_Russian_twists_202606110124.mp4'),
+    pushup:      v('female/Woman_performing_push-up_202606110124.mp4'),
+    deadlift:    v('female/Woman_performing_barbell_deadlift_202606110124.mp4'),
+    climb:       v('female/Woman_performing_mountain_climbers_202606110124.mp4'),
+    jumprope:    v('female/Woman_skipping_jump_rope_202606110124.mp4'),
+    plank:       v('female/Woman_holding_forearm_plank_202606110124.mp4'),
+    downwarddog: v('female/Woman_holding_downward_dog_pose_202606110124.mp4'),
+    foamroll:    v('female/Woman_foam-rolling_thighs_202606110124.mp4'),
+    curl:        v('female/Woman_performing_dumbbell_curl_202606110124.mp4'),
+    hipthrust:   v('female/Woman_performing_barbell_hip_thrust_202606110124.mp4'),
+    tricdip:     v('female/Woman_performing_tricep_dip_202606110124.mp4'),
+    boxjump:     v('female/Woman_performs_box_jump_202606110124.mp4'),
+    jumpjack:    v('female/Woman_performing_jumping_jacks_202606110124.mp4'),
+    highknees:   v('female/Woman_performing_high_knees_202606110124.mp4'),
+  },
 };
 
 // ── Exercise move → icon/color map ────────────────────────────
@@ -173,18 +280,39 @@ const MOVE_INFO = {
   boxjump:     { icon:'flash-outline',   color:'#C8F135' },
 };
 
-// ── Small icon card for exercise list ─────────────────────────
-function ExThumb({ move, accentColor }) {
+// ── Paused video thumbnail for exercise list ──────────────────
+function ExThumb({ move, gender, accentColor, localUri }) {
   const info = MOVE_INFO[move] || { icon:'barbell-outline', color: accentColor };
-  return (
-    <View style={{ width:80, height:90, borderRadius:14, overflow:'hidden',
-      backgroundColor:`${info.color}15`, borderWidth:1, borderColor:`${info.color}30`,
-      alignItems:'center', justifyContent:'center', gap:6 }}>
-      <View style={{ width:44, height:44, borderRadius:22,
-        backgroundColor:`${info.color}25`, alignItems:'center', justifyContent:'center' }}>
-        <Ionicons name={info.icon} size={22} color={info.color} />
+  const src  = localUri ? { uri: localUri } : (VIDEOS[gender]?.[move] || VIDEOS['male']?.[move]);
+
+  if (!src) {
+    return (
+      <View style={{ width:80, height:90, borderRadius:14, overflow:'hidden',
+        backgroundColor:`${info.color}18`, borderWidth:1, borderColor:`${info.color}35`,
+        alignItems:'center', justifyContent:'center' }}>
+        <Ionicons name={info.icon} size={26} color={info.color} />
       </View>
-      <View style={{ width:32, height:3, borderRadius:2, backgroundColor:`${info.color}55` }} />
+    );
+  }
+  return (
+    <View style={{ width:80, height:90, borderRadius:14, overflow:'hidden', backgroundColor:'#111' }}>
+      <Video
+        source={src}
+        style={{ width:'100%', height:'100%' }}
+        resizeMode={ResizeMode.COVER}
+        shouldPlay={false}
+        isMuted
+        isLooping={false}
+        positionMillis={300}
+      />
+      {/* gender pill */}
+      <View style={{ position:'absolute', bottom:5, left:5,
+        backgroundColor: gender==='female'?'rgba(255,107,157,0.85)':'rgba(200,241,53,0.85)',
+        borderRadius:6, paddingHorizontal:4, paddingVertical:1 }}>
+        <Text style={{ color:'#000', fontSize:8, fontWeight:'900' }}>
+          {gender==='female'?'♀':'♂'}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -262,8 +390,8 @@ export default function WorkoutDetailScreen({ route, navigation }) {
   const s = useMemo(() => makeS(C), [C]);
   const { plan } = route.params;
   const userGender = useAuthStore(st => st.user?.gender);
-  const [gender,setGender]=useState(userGender === 'female' ? 'female' : 'male');
-  const genderSlideAnim=useRef(new Animated.Value(0)).current;
+  // Gender is read-only from profile — no toggle, no cross-gender content
+  const gender = (userGender || '').toLowerCase() === 'female' ? 'female' : 'male';
   const [phase,setPhase]=useState('overview');
   const [exIdx,setExIdx]=useState(0);
   const [setNum,setSetNum]=useState(1);
@@ -279,6 +407,14 @@ export default function WorkoutDetailScreen({ route, navigation }) {
   const [suggestion,setSuggestion]=useState(null);
   const timerRef=useRef(null);
   const progressAnim=useRef(new Animated.Value(0)).current;
+  const [voiceSpeaking,setVoiceSpeaking]=useState(false);
+  const [voiceMsg,setVoiceMsg]=useState('');
+  const [voiceEnabled,setVoiceEnabled]=useState(true);
+  const voiceEnabledRef=useRef(true);
+  useEffect(()=>{voiceEnabledRef.current=voiceEnabled;},[voiceEnabled]);
+  // gender is a const derived from profile — keep ref in sync for closures
+  const genderRef=useRef(gender);
+  genderRef.current=gender;
 
   const exList=(plan.exercises||[]).map((e)=>{
     if(typeof e==='string'){const found=EXERCISES_JSON.find(x=>x.id===e);return found||{id:e,name:e};}
@@ -290,7 +426,74 @@ export default function WorkoutDetailScreen({ route, navigation }) {
   const doneSets=setsDone.length;
   const accentColor=gender==='female'?'#FF6B9D':C.accent;
 
-  useEffect(()=>{Animated.spring(genderSlideAnim,{toValue:gender==='female'?1:0,useNativeDriver:false,tension:80,friction:8}).start();},[gender]);
+  // ── Download for offline ────────────────────────────────────────────────
+  const [dlStatus,setDlStatus]=useState({});   // exName -> 'idle'|'downloading'|'done'|'error'
+  // Returns local URI if downloaded, else Supabase URI
+  const getVideoSrc = (move, exName) => {
+    const fn = EXERCISE_VIDEO[gender]?.[exName];
+    if (fn && dlStatus[exName] === 'done') return { uri: DL_DIR + fn };
+    return VIDEOS[gender]?.[move] || VIDEOS['male']?.[move];
+  };
+  const [dlProgress,setDlProgress]=useState({}); // exName -> 0..1
+  const [isDownloading,setIsDownloading]=useState(false);
+  const dlGlow=useRef(new Animated.Value(0)).current;
+
+  useEffect(()=>{
+    (async()=>{
+      try{
+        await FileSystem.makeDirectoryAsync(DL_DIR,{intermediates:true});
+        const map={};
+        for(const ex of exercises){
+          const fn=EXERCISE_VIDEO[gender]?.[ex.name];
+          if(!fn)continue;
+          const info=await FileSystem.getInfoAsync(DL_DIR+fn);
+          map[ex.name]=info.exists?'done':'idle';
+        }
+        setDlStatus(map);
+      }catch(_){}
+    })();
+  },[]);
+
+  useEffect(()=>{
+    const downloadable=exercises.filter(ex=>EXERCISE_VIDEO[gender]?.[ex.name]);
+    const allDone=downloadable.length>0&&downloadable.every(ex=>dlStatus[ex.name]==='done');
+    if(isDownloading||allDone||downloadable.length===0)return;
+    const loop=Animated.loop(Animated.sequence([
+      Animated.timing(dlGlow,{toValue:1,duration:950,useNativeDriver:false}),
+      Animated.timing(dlGlow,{toValue:0,duration:950,useNativeDriver:false}),
+    ]));
+    loop.start();
+    return()=>loop.stop();
+  },[isDownloading,dlStatus]);
+
+  const downloadWorkout=async()=>{
+    if(isDownloading)return;
+    setIsDownloading(true);
+    const pending=exercises.filter(ex=>{
+      const fn=EXERCISE_VIDEO[gender]?.[ex.name];
+      return fn&&dlStatus[ex.name]!=='done';
+    });
+    for(const ex of pending){
+      const fn=EXERCISE_VIDEO[gender][ex.name];
+      const url=`${SB_VID}/${gender}/${fn}`;
+      const dest=DL_DIR+fn;
+      setDlStatus(p=>({...p,[ex.name]:'downloading'}));
+      setDlProgress(p=>({...p,[ex.name]:0}));
+      try{
+        const dl=FileSystem.createDownloadResumable(url,dest,{},(prog)=>{
+          const pct=prog.totalBytesExpectedToWrite>0?prog.totalBytesWritten/prog.totalBytesExpectedToWrite:0;
+          setDlProgress(p=>({...p,[ex.name]:pct}));
+        });
+        await dl.downloadAsync();
+        setDlStatus(p=>({...p,[ex.name]:'done'}));
+      }catch(_){
+        setDlStatus(p=>({...p,[ex.name]:'error'}));
+      }
+    }
+    setIsDownloading(false);
+  };
+  // ────────────────────────────────────────────────────────────────────────
+
   useEffect(()=>{if(phase!=='workout')return;timerRef.current=setInterval(()=>setTotalTime(p=>p+1),1000);return()=>clearInterval(timerRef.current);},[phase]);
   useEffect(()=>{Animated.timing(progressAnim,{toValue:totalSets>0?doneSets/totalSets:0,duration:400,useNativeDriver:false}).start();},[doneSets]);
 
@@ -303,6 +506,30 @@ export default function WorkoutDetailScreen({ route, navigation }) {
       .catch(()=>{});
     return()=>{alive=false;};
   },[curEx.id,phase]);
+
+  // Speak exercise intro whenever we move to a new exercise during workout
+  useEffect(()=>{
+    if(phase!=='workout')return;
+    if(!voiceEnabledRef.current)return;
+    const text=buildWorkoutLine('exercise_intro',{
+      exerciseName:curEx.name,muscle:curEx.muscle,gender:genderRef.current,
+    });
+    if(!text)return;
+    // slight delay so UI settles first
+    const t=setTimeout(()=>{
+      setVoiceMsg(text);
+      speakAsAgent(text,genderRef.current,{
+        onStart:()=>setVoiceSpeaking(true),
+        onEnd:()=>setVoiceSpeaking(false),
+      });
+    },400);
+    return()=>clearTimeout(t);
+  },[exIdx,phase]);
+
+  // Stop audio when leaving screen or workout ends
+  useEffect(()=>{
+    if(phase==='complete'||phase==='overview') stopAgent();
+  },[phase]);
 
   const fmtTime=s=>`${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
   const fmtSuggestion=(sg)=>{
@@ -326,6 +553,12 @@ export default function WorkoutDetailScreen({ route, navigation }) {
     if(existing){setCurReps(existing.reps);setCurWeight(existing.weight);}
     else{const prev=setData[`${curEx.id}_${setNum-1}`];setCurReps(String(curEx.reps||0));setCurWeight(prev?.weight||'');}
     setIsActive(true);
+    if(voiceEnabledRef.current){
+      const isLast=setNum>=curEx.sets;
+      const ev=isLast?'last_set':'set_start';
+      const text=buildWorkoutLine(ev,{exerciseName:curEx.name,setNum,totalSets:curEx.sets,gender:genderRef.current});
+      if(text){setVoiceMsg(text);speakAsAgent(text,genderRef.current,{onStart:()=>setVoiceSpeaking(true),onEnd:()=>setVoiceSpeaking(false)});}
+    }
   };
   const handleCompleteSet=()=>{
     const reps=parseFloat(curReps);
@@ -337,8 +570,35 @@ export default function WorkoutDetailScreen({ route, navigation }) {
     setSetsDone(p=>[...p,{exIdx,exName:curEx.name,set:setNum,reps:Math.round(reps),weight:w}]);
     setIsActive(false);
     setIsResting(true);
+    if(voiceEnabledRef.current){
+      const text=buildWorkoutLine('set_done',{exerciseName:curEx.name,setNum,totalSets:curEx.sets,gender:genderRef.current});
+      if(text){setVoiceMsg(text);speakAsAgent(text,genderRef.current,{onStart:()=>setVoiceSpeaking(true),onEnd:()=>setVoiceSpeaking(false)});}
+    }
   };
-  const handleRestDone=()=>{setIsResting(false);const n=setNum+1;if(n>curEx.sets){const nx=exIdx+1;if(nx>=exercises.length){setPhase('complete');}else{setExIdx(nx);setSetNum(1);}}else{setSetNum(n);}};
+  const handleRestDone=()=>{
+    setIsResting(false);
+    const n=setNum+1;
+    if(n>curEx.sets){
+      const nx=exIdx+1;
+      if(nx>=exercises.length){
+        setPhase('complete');
+        if(voiceEnabledRef.current){
+          const text=buildWorkoutLine('workout_done',{planName:plan.name,doneSets:setsDone.length+1,totalTime,gender:genderRef.current});
+          if(text){setVoiceMsg(text);speakAsAgent(text,genderRef.current,{onStart:()=>setVoiceSpeaking(true),onEnd:()=>setVoiceSpeaking(false)});}
+        }
+      }else{
+        setExIdx(nx);
+        setSetNum(1);
+        // exercise_intro spoken by the useEffect on exIdx
+      }
+    }else{
+      setSetNum(n);
+      if(voiceEnabledRef.current){
+        const text=buildWorkoutLine('rest_end',{gender:genderRef.current});
+        if(text){setVoiceMsg(text);speakAsAgent(text,genderRef.current,{onStart:()=>setVoiceSpeaking(true),onEnd:()=>setVoiceSpeaking(false)});}
+      }
+    }
+  };
   const handleSave=async()=>{
     setLogging(true);
     try{
@@ -374,24 +634,21 @@ export default function WorkoutDetailScreen({ route, navigation }) {
 
   if(phase==='overview') return (
     <SafeAreaView style={s.root}>
+      {/* back button */}
+      <TouchableOpacity onPress={()=>navigation.goBack()} style={s.overviewBack} activeOpacity={0.7}>
+        <Ionicons name="chevron-back" size={22} color={C.text} />
+      </TouchableOpacity>
       <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={s.genderRow}>
-          <View style={s.genderContainer}>
-            <Animated.View style={[s.genderSlider,{
-              backgroundColor:genderSlideAnim.interpolate({inputRange:[0,1],outputRange:[C.accent,'#FF6B9D']}),
-              left:genderSlideAnim.interpolate({inputRange:[0,1],outputRange:['2%','50%']}),
-            }]}/>
-            {[['male','male','Male',C.accent],['female','female','Female','#FF6B9D']].map(([g,ion,lbl,col])=>(
-              <TouchableOpacity key={g} style={s.genderOption} onPress={()=>setGender(g)} activeOpacity={0.8}>
-                <Ionicons name={ion} size={18} color={gender===g?'#000':col} />
-                <Text style={[s.genderOptionLbl,gender===g&&{color:'#000'}]}>{lbl}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
         <View style={s.hero}>
           <View style={s.heroIcon}>
-            <MaterialCommunityIcons name="dumbbell" size={40} color={accentColor} />
+            <Image
+              source={imgSrc(getHeroImg(plan, gender==='female'))}
+              style={{ width:'100%', height:'100%', borderRadius:22 }}
+              resizeMode="cover"
+            />
+            <View style={{ position:'absolute', bottom:4, right:4, backgroundColor: gender==='female'?'rgba(255,107,157,0.92)':'rgba(200,241,53,0.92)', borderRadius:6, paddingHorizontal:5, paddingVertical:2 }}>
+              <Text style={{ color:'#000', fontSize:9, fontWeight:'900' }}>{gender==='female'?'♀':'♂'}</Text>
+            </View>
           </View>
           <Text style={s.heroTitle}>{plan.name}</Text>
           <View style={s.heroMeta}>
@@ -403,24 +660,106 @@ export default function WorkoutDetailScreen({ route, navigation }) {
             ))}
           </View>
         </View>
+        {/* ── Download for offline section ── */}
+        {(()=>{
+          const downloadable=exercises.filter(ex=>EXERCISE_VIDEO[gender]?.[ex.name]);
+          if(downloadable.length===0)return null;
+          const doneCount=downloadable.filter(ex=>dlStatus[ex.name]==='done').length;
+          const allDone=doneCount===downloadable.length;
+          const glowBorder=dlGlow.interpolate({inputRange:[0,1],outputRange:['rgba(200,241,53,0.25)','rgba(200,241,53,1)']});
+          return(
+            <View style={[s.section,{paddingBottom:4}]}>
+              <Text style={s.secLabel}>OFFLINE DOWNLOAD</Text>
+              <View style={{backgroundColor:C.card,borderRadius:16,borderWidth:1,borderColor:C.border,padding:14}}>
+                <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+                  <View>
+                    <Text style={{color:C.text,fontSize:14,fontWeight:'800'}}>{allDone?'Available Offline':'Download for Offline'}</Text>
+                    <Text style={{color:C.muted,fontSize:11,marginTop:2}}>{doneCount}/{downloadable.length} videos ready</Text>
+                  </View>
+                  {allDone&&(
+                    <View style={{backgroundColor:`${accentColor}22`,borderRadius:8,paddingHorizontal:10,paddingVertical:4,borderWidth:1,borderColor:`${accentColor}44`}}>
+                      <Text style={{color:accentColor,fontSize:10,fontWeight:'800'}}>OFFLINE READY</Text>
+                    </View>
+                  )}
+                </View>
+                {/* progress bar */}
+                {doneCount>0&&(
+                  <View style={{height:4,backgroundColor:C.border,borderRadius:2,marginBottom:10,overflow:'hidden'}}>
+                    <View style={{height:'100%',width:`${(doneCount/downloadable.length)*100}%`,backgroundColor:accentColor,borderRadius:2}}/>
+                  </View>
+                )}
+                {/* per-exercise rows */}
+                {downloadable.map(ex=>(
+                  <View key={ex.name} style={{flexDirection:'row',alignItems:'center',paddingVertical:7,borderBottomWidth:0.5,borderColor:C.border}}>
+                    <Text style={{flex:1,color:C.text,fontSize:12,fontWeight:'600'}}>{ex.name}</Text>
+                    {dlStatus[ex.name]==='done'?(
+                      <Ionicons name="checkmark-circle" size={18} color={accentColor}/>
+                    ):dlStatus[ex.name]==='downloading'?(
+                      <View style={{flexDirection:'row',alignItems:'center',gap:6}}>
+                        <Text style={{color:accentColor,fontSize:10,fontWeight:'700'}}>{Math.round((dlProgress[ex.name]||0)*100)}%</Text>
+                        <ActivityIndicator size="small" color={accentColor}/>
+                      </View>
+                    ):dlStatus[ex.name]==='error'?(
+                      <Ionicons name="alert-circle-outline" size={18} color="#FF5555"/>
+                    ):(
+                      <Ionicons name="cloud-download-outline" size={18} color={C.muted}/>
+                    )}
+                  </View>
+                ))}
+                {/* glow download button */}
+                {!allDone&&(
+                  <Animated.View style={{marginTop:14,borderRadius:12,borderWidth:1.5,borderColor:glowBorder}}>
+                    <TouchableOpacity
+                      style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:8,paddingVertical:13}}
+                      onPress={downloadWorkout}
+                      disabled={isDownloading}
+                      activeOpacity={0.75}
+                    >
+                      {isDownloading?(
+                        <>
+                          <ActivityIndicator size="small" color={accentColor}/>
+                          <Text style={{color:accentColor,fontSize:13,fontWeight:'800'}}>DOWNLOADING...</Text>
+                        </>
+                      ):(
+                        <>
+                          <Ionicons name="download-outline" size={17} color={accentColor}/>
+                          <Text style={{color:accentColor,fontSize:13,fontWeight:'800'}}>DOWNLOAD WORKOUT</Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                  </Animated.View>
+                )}
+              </View>
+            </View>
+          );
+        })()}
+        {/* ── end download section ── */}
         <View style={s.section}>
           <Text style={s.secLabel}>EXERCISES</Text>
           {exercises.map((ex,i)=>(
             <TouchableOpacity key={ex.id} style={s.exRow} onPress={() => { setExIdx(i); setSetNum(1); setPhase('workout'); }} activeOpacity={0.7}>
               <View style={s.exNum}><Text style={s.exNumTxt}>{i+1}</Text></View>
-              <ExThumb move={ex.move||'squat'} accentColor={accentColor} />
+              <ExThumb
+                move={ex.move||'squat'}
+                gender={gender}
+                accentColor={accentColor}
+                localUri={dlStatus[ex.name]==='done' && EXERCISE_VIDEO[gender]?.[ex.name] ? DL_DIR+EXERCISE_VIDEO[gender][ex.name] : null}
+              />
               <View style={{flex:1}}>
                 <Text style={s.exName}>{ex.name}</Text>
                 <Text style={s.exMeta}>{ex.sets||3} sets × {ex.reps||12} reps</Text>
                 <Text style={s.exMuscle}>{ex.muscle||'Full Body'}</Text>
               </View>
+              {dlStatus[ex.name]==='done'&&(
+                <Ionicons name="checkmark-circle" size={16} color={accentColor} style={{marginLeft:4}}/>
+              )}
             </TouchableOpacity>
           ))}
         </View>
         <View style={{height:100}}/>
       </ScrollView>
       <View style={s.startWrap}>
-        <TouchableOpacity style={[s.bigBtn,{backgroundColor:accentColor,flexDirection:'row',justifyContent:'center',alignItems:'center',gap:8}]} onPress={()=>setPhase('workout')}>
+        <TouchableOpacity style={[s.bigBtn,{backgroundColor:accentColor,flexDirection:'row',justifyContent:'center',alignItems:'center',gap:8}]} onPress={()=>{setPhase('workout');if(voiceEnabledRef.current){const t=buildWorkoutLine('workout_start',{planName:plan.name,gender:genderRef.current});if(t){setVoiceMsg(t);speakAsAgent(t,genderRef.current,{onStart:()=>setVoiceSpeaking(true),onEnd:()=>setVoiceSpeaking(false)});}}}}>
           <Ionicons name="play" size={16} color="#000" />
           <Text style={[s.bigBtnTxt,{color:'#000'}]}>START WORKOUT</Text>
         </TouchableOpacity>
@@ -460,7 +799,11 @@ export default function WorkoutDetailScreen({ route, navigation }) {
           <Text style={s.progTxt}>{doneSets} / {totalSets} sets</Text>
         </View>
         <View style={s.timerBox}><Text style={[s.timerTxt,{color:accentColor}]}>{fmtTime(totalTime)}</Text></View>
+        <TouchableOpacity onPress={()=>setVoiceEnabled(v=>{voiceEnabledRef.current=!v;if(!voiceEnabledRef.current)stopAgent();return!v;})} style={[s.voiceToggle,{backgroundColor:voiceEnabled?`${accentColor}22`:C.border}]}>
+          <Ionicons name={voiceEnabled?'volume-high':'volume-mute'} size={17} color={voiceEnabled?accentColor:C.muted}/>
+        </TouchableOpacity>
       </View>
+      {voiceEnabled&&<VoiceCoach gender={gender} speaking={voiceSpeaking} message={voiceMsg} C={C}/>}
       <ScrollView style={{flex:1}} contentContainerStyle={{padding:16,paddingBottom:100}} showsVerticalScrollIndicator={false}>
         <View style={s.exHeader}>
           <View style={{flex:1}}>
@@ -477,7 +820,7 @@ export default function WorkoutDetailScreen({ route, navigation }) {
         <View style={[s.figPanel,{borderColor:`${accentColor}35`}]}>
           <View style={[s.figStage,{backgroundColor:'#0A0A0F'}]}>
             <View style={s.setBadge}><Text style={s.setBadgeTxt}>{curEx.sets}×{curEx.reps===0?'∞':curEx.reps}</Text></View>
-            <ExerciseVideo src={VIDEOS[gender]?.[curEx.move||'squat']} active={isActive} accentColor={accentColor} />
+            <ExerciseVideo src={getVideoSrc(curEx.move||'squat', curEx.name)} active={isActive} accentColor={accentColor} />
           </View>
           <View style={s.setDots}>
             {Array.from({length:curEx.sets||3}).map((_,i)=>{const done=i<setNum-1,curr=i===setNum-1;return <View key={i} style={[s.dot,done&&{backgroundColor:C.teal,borderColor:C.teal},curr&&{backgroundColor:accentColor,borderColor:accentColor}]}>{done&&<Ionicons name="checkmark" size={8} color="#000" />}{curr&&<Text style={{fontSize:8,color:'#000',fontWeight:'900'}}>{setNum}</Text>}</View>;})}
@@ -546,7 +889,7 @@ export default function WorkoutDetailScreen({ route, navigation }) {
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{paddingBottom:8}}>
               {/* Video */}
               <View style={[s.tipsModalFig,{backgroundColor:'#0A0A0F'}]}>
-                <ExerciseVideo src={VIDEOS[gender]?.[curEx.move||'squat']} active={true} accentColor={accentColor} />
+                <ExerciseVideo src={getVideoSrc(curEx.move||'squat', curEx.name)} active={true} accentColor={accentColor} />
               </View>
 
               {/* Title + muscle */}
@@ -606,14 +949,10 @@ export default function WorkoutDetailScreen({ route, navigation }) {
 
 const makeS=(C)=>StyleSheet.create({
   root:{flex:1,backgroundColor:C.bg},
-  genderRow:{padding:16,paddingBottom:8},
-  genderContainer:{flexDirection:'row',backgroundColor:C.card,borderRadius:16,borderWidth:1,borderColor:C.border,padding:4,height:54,position:'relative'},
-  genderSlider:{position:'absolute',top:4,bottom:4,width:'48%',borderRadius:12,zIndex:0},
-  genderOption:{flex:1,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6,zIndex:1},
-  genderOptionIcon:{fontSize:20,color:C.muted,fontWeight:'700'},
-  genderOptionLbl:{color:C.muted,fontSize:15,fontWeight:'800'},
+  voiceToggle:{width:36,height:36,borderRadius:18,alignItems:'center',justifyContent:'center'},
+  overviewBack:{width:40,height:40,borderRadius:20,alignItems:'center',justifyContent:'center',marginLeft:12,marginTop:8},
   hero:{alignItems:'center',paddingVertical:18,borderBottomWidth:1,borderColor:C.border},
-  heroIcon:{width:82,height:82,borderRadius:22,backgroundColor:C.accentDim,alignItems:'center',justifyContent:'center',marginBottom:10},
+  heroIcon:{width:82,height:82,borderRadius:22,backgroundColor:C.accentDim,alignItems:'center',justifyContent:'center',marginBottom:10,overflow:'hidden'},
   heroTitle:{color:C.text,fontSize:22,fontWeight:'900',marginBottom:10},
   heroMeta:{flexDirection:'row',flexWrap:'wrap',gap:8,justifyContent:'center'},
   metaPill:{flexDirection:'row',alignItems:'center',gap:5,backgroundColor:C.card,borderRadius:12,paddingHorizontal:12,paddingVertical:6,borderWidth:1,borderColor:C.border},

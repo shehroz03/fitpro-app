@@ -1,107 +1,92 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing } from 'react-native';
-import {
-  useSharedValue, useAnimatedStyle,
-  withTiming, withSpring, withRepeat, withSequence,
-  withDelay, Easing as RnEasing,
-} from 'react-native-reanimated';
 
 // ── Staggered entrance: fade in + slide up ─────────────────────
-// index controls the delay (60ms per section).
-// Returns an Animated.View style object (useNativeDriver-safe).
+// Returns an Animated style object for use with Animated.View.
+// index controls the delay (80ms per section).
 export function useEntrance(index = 0, baseDelay = 80) {
-  const opacity   = useSharedValue(0);
-  const translateY = useSharedValue(18);
+  const opacity    = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(18)).current;
 
   useEffect(() => {
     const delay = index * baseDelay;
-    opacity.value    = withDelay(delay, withTiming(1,  { duration: 260, easing: RnEasing.out(RnEasing.quad) }));
-    translateY.value = withDelay(delay, withTiming(0,  { duration: 300, easing: RnEasing.out(RnEasing.cubic) }));
+    Animated.parallel([
+      Animated.timing(opacity,    { toValue: 1, duration: 280, delay, easing: Easing.out(Easing.quad),  useNativeDriver: true }),
+      Animated.timing(translateY, { toValue: 0, duration: 320, delay, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+    ]).start();
   }, []);
 
-  return useAnimatedStyle(() => ({
-    opacity:   opacity.value,
-    transform: [{ translateY: translateY.value }],
-  }));
+  return { opacity, transform: [{ translateY }] };
 }
 
 // ── Spring press scale ─────────────────────────────────────────
-// Returns { animStyle, onPressIn, onPressOut } to spread on a button.
+// Returns { animStyle, onPressIn, onPressOut }.
 export function useSpringPress(scaleDown = 0.93) {
-  const scale = useSharedValue(1);
+  const scale = useRef(new Animated.Value(1)).current;
 
-  const animStyle  = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-  const onPressIn  = () => { scale.value = withSpring(scaleDown, { mass: 0.4, damping: 12, stiffness: 200 }); };
-  const onPressOut = () => { scale.value = withSpring(1.0,       { mass: 0.4, damping: 12, stiffness: 200 }); };
+  const onPressIn  = () => Animated.spring(scale, { toValue: scaleDown, useNativeDriver: true, speed: 30, bounciness: 0 }).start();
+  const onPressOut = () => Animated.spring(scale, { toValue: 1,         useNativeDriver: true, speed: 30, bounciness: 2 }).start();
 
-  return { animStyle, onPressIn, onPressOut };
+  return { animStyle: { transform: [{ scale }] }, onPressIn, onPressOut };
 }
 
 // ── Idle pulse (for play/primary buttons) ─────────────────────
-// Returns an animStyle with a subtle scale oscillation.
+// Returns an Animated style with a subtle scale oscillation.
 export function usePulse(enabled = true, min = 0.97, max = 1.0, duration = 1400) {
-  const scale = useSharedValue(1);
+  const scale = useRef(new Animated.Value(1)).current;
+  const loop  = useRef(null);
 
   useEffect(() => {
     if (!enabled) return;
-    scale.value = withRepeat(
-      withSequence(
-        withTiming(min, { duration: duration / 2, easing: RnEasing.inOut(RnEasing.sine) }),
-        withTiming(max, { duration: duration / 2, easing: RnEasing.inOut(RnEasing.sine) }),
-      ),
-      -1,
-      false,
+    loop.current = Animated.loop(
+      Animated.sequence([
+        Animated.timing(scale, { toValue: min, duration: duration / 2, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(scale, { toValue: max, duration: duration / 2, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      ])
     );
-    return () => { scale.value = 1; };
+    loop.current.start();
+    return () => { loop.current?.stop(); scale.setValue(1); };
   }, [enabled]);
 
-  return useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  return { transform: [{ scale }] };
 }
 
 // ── Checkmark spring (set complete, goal done) ─────────────────
 // Returns { animStyle, trigger } — call trigger() to fire once.
 export function useCheckSpring() {
-  const scale = useSharedValue(0);
+  const scale = useRef(new Animated.Value(0)).current;
 
-  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-  const trigger   = () => {
-    scale.value = withSpring(1, { mass: 0.5, damping: 8, stiffness: 300 });
-  };
+  const animStyle = { transform: [{ scale }] };
+  const trigger   = () => Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 14 }).start();
 
   return { animStyle, trigger };
 }
 
 // ── Count-up number ───────────────────────────────────────────
-// Returns the current displayed integer, counting from 0 to `target`
-// over `duration` ms. Fires once when `enabled` becomes true.
+// Returns the displayed integer, counting from 0 to `target`.
 export function useCountUp(target = 0, duration = 900, enabled = true) {
   const [display, setDisplay] = useState(0);
-  const ref = useRef(null);
+  const raf = useRef(null);
 
   useEffect(() => {
-    if (!enabled || !target) return;
-    const start     = Date.now();
-    const startVal  = 0;
-    const diff      = target - startVal;
-
-    const tick = () => {
-      const elapsed = Date.now() - start;
+    if (!enabled || !target) { setDisplay(target); return; }
+    const start = Date.now();
+    const tick  = () => {
+      const elapsed  = Date.now() - start;
       const progress = Math.min(elapsed / duration, 1);
-      // ease-out cubic
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setDisplay(Math.round(startVal + diff * eased));
-      if (progress < 1) ref.current = requestAnimationFrame(tick);
+      const eased    = 1 - Math.pow(1 - progress, 3);
+      setDisplay(Math.round(target * eased));
+      if (progress < 1) raf.current = requestAnimationFrame(tick);
     };
-    ref.current = requestAnimationFrame(tick);
-    return () => { if (ref.current) cancelAnimationFrame(ref.current); };
+    raf.current = requestAnimationFrame(tick);
+    return () => { if (raf.current) cancelAnimationFrame(raf.current); };
   }, [enabled, target]);
 
   return display;
 }
 
 // ── Dark-mode accent glow ─────────────────────────────────────
-// Returns shadow style only when isDark is true.
-// Spread onto View style: <View style={[s.card, glowStyle(isDark, C.accent)]} />
+// Returns shadow style only in dark mode — call on any View.
 export function glowStyle(isDark, accent = '#C8F135', radius = 12, opacity = 0.22) {
   if (!isDark) return {};
   return {
@@ -115,16 +100,15 @@ export function glowStyle(isDark, accent = '#C8F135', radius = 12, opacity = 0.2
 
 // ── Animated bar fill (progress bars, macro bars) ─────────────
 // Returns an RN Animated.Value (0→1) that fills on mount.
-// Use with Animated.View width: anim.interpolate({ inputRange:[0,1], outputRange:['0%','100%'] })
 export function useBarFill(pct = 0, delay = 0, duration = 600) {
   const anim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.timing(anim, {
-      toValue:        Math.min(Math.max(pct / 100, 0), 1),
+      toValue:         Math.min(Math.max(pct / 100, 0), 1),
       duration,
       delay,
-      easing:         Easing.out(Easing.cubic),
+      easing:          Easing.out(Easing.cubic),
       useNativeDriver: false,
     }).start();
   }, [pct]);

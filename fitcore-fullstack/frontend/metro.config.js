@@ -15,6 +15,16 @@ module.exports = (() => {
     ...resolver,
     assetExts: resolver.assetExts.filter(ext => ext !== 'svg'),
     sourceExts: [...resolver.sourceExts, 'svg'],
+    resolveRequest: (context, moduleName, platform) => {
+      // react-native-worklets uses import.meta which breaks web — mock it
+      if (platform === 'web' && (
+        moduleName === 'react-native-worklets' ||
+        moduleName === 'react-native-worklets-core'
+      )) {
+        return { type: 'empty' };
+      }
+      return context.resolveRequest(context, moduleName, platform);
+    },
   };
 
   return config;

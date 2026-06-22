@@ -1,16 +1,22 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
-  View, Text, ScrollView, TouchableOpacity, TextInput,
+  View, Text, ScrollView, TouchableOpacity, TextInput, Image,
   StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform,
   RefreshControl,
 } from 'react-native';
+import AiMessage from '../components/AiMessage';
+import { SpeakBtn } from '../components/VoiceCoach';
+import { speakAsAgent, stopAgent } from '../api/ttsService';
 import { nutritionAPI, progressAPI, sleepAPI, goalsAPI, aiCoachAPI } from '../api/services';
 import { useAuthStore } from '../store/authStore';
 import { useC } from '../utils/theme';
 import { rf, rs, rw, SCREEN_W } from '../utils/responsive';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const AGENT_FEMALE = { name:'Nova', avatar: require('../../assets/avatars/fav1.jpg'),  color:'#C084FC' };
+const AGENT_MALE   = { name:'Max',  avatar: require('../../assets/avatars/mav2.jpg'),  color:'#4ECDC4' };
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 const scoreColor = (score, C) =>
@@ -89,15 +95,30 @@ export default function AICoachScreen({ navigation }) {
   const [reportLoad, setReportLoad] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const [messages,   setMessages]   = useState([]);
-  const [input,      setInput]      = useState('');
-  const [chatLoad,   setChatLoad]   = useState(false);
+  const [messages,       setMessages]       = useState([]);
+  const [input,          setInput]          = useState('');
+  const [chatLoad,       setChatLoad]       = useState(false);
+  const [speakingMsgId,  setSpeakingMsgId]  = useState(null);
 
   const scrollRef     = useRef(null);
   const msgId         = useRef(0);
   const inFlight      = useRef(false);   // guard against concurrent AI calls
   const hasLoadedRef  = useRef(false);   // ensure loadReport fires only once on mount
   const nextId        = () => ++msgId.current;
+
+  const agentGender = user?.gender === 'female' ? 'female' : 'male';
+  const agent       = agentGender === 'female' ? AGENT_FEMALE : AGENT_MALE;
+
+  const speakMsg = useCallback((id, text) => {
+    if (speakingMsgId === id) { stopAgent(); setSpeakingMsgId(null); return; }
+    setSpeakingMsgId(id);
+    speakAsAgent(text, agentGender, {
+      onEnd: () => setSpeakingMsgId(null),
+    });
+  }, [speakingMsgId, agentGender]);
+
+  // Stop agent when leaving screen
+  useEffect(() => () => stopAgent(), []);
 
   // Max messages kept in chat — prevents unbounded memory growth in long sessions
   const MAX_MSGS = 40;
@@ -341,34 +362,62 @@ export default function AICoachScreen({ navigation }) {
       >
         {messages.length === 0 && (
           <View style={s.chatEmpty}>
-            <MaterialCommunityIcons name="robot-outline" size={44} color={C.purple} style={{ marginBottom: 12 }} />
-            <Text style={s.chatEmptyTitle}>Ask Me Anything</Text>
-            <Text style={s.chatEmptyTxt}>I have your complete fitness data. Ask about your diet, workouts, sleep, goals, or request a personalized plan.</Text>
-          </View>
-        )}
-        {messages.map(msg => (
-          <View key={msg.id} style={[s.msgRow, msg.role === 'user' && s.msgRowUser]}>
-            {msg.role === 'ai' && (
-              <View style={s.botAvatarSmall}>
-                <MaterialCommunityIcons name="robot-outline" size={13} color={C.purple} />
-              </View>
-            )}
-            <View style={[s.bubble, msg.role === 'user' ? s.bubbleUser : s.bubbleBot]}>
-              <Text style={[s.bubbleTxt, msg.role === 'user' ? s.bubbleTxtUser : s.bubbleTxtBot]}>
-                {msg.text}
+            <View style={[s.emptyAgentRing, { borderColor: agent.color, shadowColor: agent.color }]}>
+              <Image source={agent.avatar} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+            </View>
+            <Text style={[s.chatEmptyTitle, { marginTop: rs(14) }]}>Hi! I'm {agent.name}</Text>
+            <Text style={s.chatEmptyTxt}>Your personal AI coach. I have your complete fitness data — ask about your diet, workouts, sleep, goals, or request a personalized plan.</Text>
+            <View style={[s.agentBadge, { backgroundColor: agent.color + '22', borderColor: agent.color + '55', marginTop: rs(10) }]}>
+              <Text style={[s.agentBadgeTxt, { color: agent.color, fontSize: rf(11) }]}>
+                {agentGender === 'female' ? 'Nova · Female Coach · Nova Voice' : 'Max · Male Coach · Onyx Voice'}
               </Text>
             </View>
           </View>
+        )}
+        {messages.map(msg => (
+          msg.role === 'user' ? (
+            /* ── USER bubble — right-aligned, lime ── */
+            <View key={msg.id} style={s.msgRowUser}>
+              <View style={s.bubbleUser}>
+                <Text style={s.bubbleTxtUser}>{msg.text}</Text>
+              </View>
+            </View>
+          ) : (
+            /* ── AI bubble — full-width card with agent avatar ── */
+            <View key={msg.id} style={s.msgRowAi}>
+              <View style={s.aiHeader}>
+                <View style={[s.botAvatarSmall, { borderColor: agent.color, borderWidth: 1.5, overflow: 'hidden' }]}>
+                  <Image source={agent.avatar} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                </View>
+                <Text style={[s.aiLabel, { color: agent.color }]}>{agent.name}</Text>
+                <View style={[s.agentBadge, { backgroundColor: agent.color + '1A', borderColor: agent.color + '44' }]}>
+                  <Text style={[s.agentBadgeTxt, { color: agent.color }]}>AI COACH</Text>
+                </View>
+                <SpeakBtn
+                  onPress={() => speakMsg(msg.id, msg.text)}
+                  speaking={speakingMsgId === msg.id}
+                  gender={agentGender}
+                  C={C}
+                />
+              </View>
+              <View style={s.bubbleBot}>
+                <AiMessage text={msg.text} C={C} />
+              </View>
+            </View>
+          )
         ))}
         {chatLoad && (
-          <View style={s.msgRow}>
-            <View style={s.botAvatarSmall}>
-              <MaterialCommunityIcons name="robot-outline" size={13} color={C.purple} />
+          <View style={s.msgRowAi}>
+            <View style={s.aiHeader}>
+              <View style={[s.botAvatarSmall, { borderColor: agent.color, borderWidth: 1.5, overflow: 'hidden' }]}>
+                <Image source={agent.avatar} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+              </View>
+              <Text style={[s.aiLabel, { color: agent.color }]}>{agent.name}</Text>
             </View>
-            <View style={[s.bubble, s.bubbleBot, { paddingVertical: 14, paddingHorizontal: 16 }]}>
-              <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
+            <View style={[s.bubbleBot, { paddingVertical: rs(14) }]}>
+              <View style={{ flexDirection: 'row', gap: 5, alignItems: 'center' }}>
                 {[0, 1, 2].map(i => (
-                  <View key={i} style={[s.typingDot, { opacity: 0.4 + i * 0.3 }]} />
+                  <View key={i} style={[s.typingDot, { opacity: 0.35 + i * 0.28 }]} />
                 ))}
               </View>
             </View>
@@ -418,18 +467,18 @@ export default function AICoachScreen({ navigation }) {
         <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
           <Text style={s.backTxt}>‹</Text>
         </TouchableOpacity>
-        <View style={s.headerAiIcon}>
-          <MaterialCommunityIcons name="robot-outline" size={20} color={C.purple} />
+        <View style={[s.headerAiIcon, { borderColor: agent.color + '55', backgroundColor: agent.color + '18', overflow: 'hidden' }]}>
+          <Image source={agent.avatar} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={s.headerTitle}>AI Coach</Text>
+          <Text style={s.headerTitle}>{agent.name} — AI Coach</Text>
           <View style={s.onlineRow}>
-            <View style={s.onlineDot} />
-            <Text style={s.onlineTxt}>GPT-4o • Personal Trainer AI</Text>
+            <View style={[s.onlineDot, { backgroundColor: agent.color }]} />
+            <Text style={s.onlineTxt}>GPT-4o • {agentGender === 'female' ? 'Nova Voice' : 'Onyx Voice'} • Personal Trainer</Text>
           </View>
         </View>
-        <View style={s.modelBadge}>
-          <Text style={s.modelBadgeTxt}>AI</Text>
+        <View style={[s.modelBadge, { backgroundColor: agent.color + '22', borderColor: agent.color + '44' }]}>
+          <Text style={[s.modelBadgeTxt, { color: agent.color }]}>AI</Text>
         </View>
       </View>
 
@@ -555,16 +604,27 @@ const makeStyles = (C) => StyleSheet.create({
   chatEmpty:       { alignItems: 'center', paddingTop: rs(40), paddingHorizontal: rs(20) },
   chatEmptyTitle:  { color: C.text, fontSize: rf(19), fontWeight: '800', marginBottom: rs(8) },
   chatEmptyTxt:    { color: C.muted, fontSize: rf(13), textAlign: 'center', lineHeight: rf(20) },
-  msgRow:          { flexDirection: 'row', alignItems: 'flex-end', marginBottom: rs(12), gap: rs(8) },
-  msgRowUser:      { flexDirection: 'row-reverse' },
+
+  // User message — right aligned
+  msgRowUser:      { alignItems: 'flex-end', marginBottom: rs(14) },
+  bubbleUser:      { maxWidth: '80%', backgroundColor: C.accent, borderRadius: rw(18),
+                     borderBottomRightRadius: 4, paddingHorizontal: rs(14), paddingVertical: rs(11) },
+  bubbleTxtUser:   { color: '#0A0A0F', fontWeight: '600', fontSize: rf(14), lineHeight: rf(22) },
+
+  // AI message — full width card
+  msgRowAi:        { marginBottom: rs(16) },
+  aiHeader:        { flexDirection: 'row', alignItems: 'center', gap: rs(8), marginBottom: rs(8), flexWrap: 'wrap' },
   botAvatarSmall:  { width: rw(28), height: rw(28), borderRadius: rw(14),
-                     backgroundColor: `${C.purple}22`, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  bubble:          { maxWidth: '82%', borderRadius: rw(18), paddingHorizontal: rs(14), paddingVertical: rs(10) },
-  bubbleBot:       { backgroundColor: C.card, borderWidth: 1, borderColor: C.border, borderBottomLeftRadius: 4 },
-  bubbleUser:      { backgroundColor: C.accent, borderBottomRightRadius: 4 },
-  bubbleTxt:       { fontSize: rf(14), lineHeight: rf(21) },
-  bubbleTxtBot:    { color: C.text },
-  bubbleTxtUser:   { color: '#0A0A0F', fontWeight: '500' },
+                     backgroundColor: `${C.purple}22`, alignItems: 'center', justifyContent: 'center' },
+  aiLabel:         { color: C.purple, fontSize: rf(11), fontWeight: '800', letterSpacing: 0.5, textTransform: 'uppercase' },
+  agentBadge:      { borderRadius: 6, paddingHorizontal: rs(6), paddingVertical: rs(2), borderWidth: 1 },
+  agentBadgeTxt:   { fontSize: rf(9), fontWeight: '800', letterSpacing: 0.4 },
+  emptyAgentRing:  { width: rw(90), height: rw(90), borderRadius: rw(45), borderWidth: 3,
+                     overflow: 'hidden', shadowOpacity: 0.35, shadowRadius: 12, elevation: 6 },
+  bubbleBot:       { backgroundColor: C.card2 || C.card, borderRadius: rw(16),
+                     borderWidth: 1, borderColor: C.border,
+                     borderTopLeftRadius: 4, padding: rs(16),
+                     borderLeftWidth: 3, borderLeftColor: `${C.purple}60` },
   typingDot:       { width: rw(8), height: rw(8), borderRadius: rw(4), backgroundColor: C.purple },
   chipScroll:      { maxHeight: rw(48), borderTopWidth: 0.5, borderColor: C.border },
   chip:            { backgroundColor: C.card2, borderRadius: rw(20), borderWidth: 1,

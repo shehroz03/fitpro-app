@@ -24,7 +24,7 @@ const SLEEP_TIPS = [
   { ion:'dumbbell',               tip:'Avoid intense exercise within 3 hours of sleep' },
 ];
 
-export default function SleepScreen({ navigation }) {
+export default function SleepScreen({ navigation, route }) {
   const C = useC();
   const insets = useSafeAreaInsets();
   const s = useMemo(() => makeStyles(C), [C]);
@@ -125,7 +125,10 @@ export default function SleepScreen({ navigation }) {
     <View style={s.root}>
       {/* Header */}
       <View style={[s.header, { paddingTop: insets.top + 12 }]}>
-        <View>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} activeOpacity={0.7}>
+          <Ionicons name="chevron-back" size={22} color={C.text} />
+        </TouchableOpacity>
+        <View style={{ flex: 1 }}>
           <Text style={s.secLabel}>TRACK</Text>
           <Text style={s.title}>Sleep</Text>
         </View>
@@ -482,6 +485,7 @@ export default function SleepScreen({ navigation }) {
 
 const makeStyles = (C) => StyleSheet.create({
   root:          { flex:1, backgroundColor:C.bg },
+  backBtn:       { width:36, height:36, borderRadius:18, alignItems:'center', justifyContent:'center', marginRight:8, marginBottom:2 },
   header:        { flexDirection:'row', justifyContent:'space-between', alignItems:'flex-end',
                    paddingHorizontal:16, paddingTop:16, marginBottom:10 },
   secLabel:      { color:C.muted, fontSize:10, fontWeight:'700', letterSpacing:1.2 },

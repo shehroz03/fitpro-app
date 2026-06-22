@@ -5,10 +5,9 @@ import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, RefreshControl, ActivityIndicator, Dimensions, Animated,
 } from 'react-native';
-import { Video, ResizeMode } from 'expo-av';
+import { Video, ResizeMode, Audio } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle as SvgCircle } from 'react-native-svg';
-import Reanimated from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { progressAPI, nutritionAPI, goalsAPI, workoutAPI } from '../api/services';
 import { useAuthStore } from '../store/authStore';
@@ -25,7 +24,7 @@ import { useEntrance, useSpringPress, usePulse, useCountUp, glowStyle, useBarFil
 
 const { width: SW } = Dimensions.get('window');
 
-// ── Gender-aware body image map ────────────────────────────────
+// â"€â"€ Gender-aware body image map â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 const BODY_IMGS = {
   male: {
     weight_gain: { before: require('../../assets/shapes/male_skinny.png'), after: require('../../assets/shapes/male_toned.png') },
@@ -45,23 +44,149 @@ const getBodyImgs = (gender, goalType) => {
   return t;
 };
 
-// ── Gender-aware workout videos ────────────────────────────────
+// ── Female Workout Banners (For Today's Workout Card) ─────────────────────────
+const FEMALE_BANNER = {
+  strength:    require('../../assets/images/female/female_banner_strength.png'),
+  cardio:      require('../../assets/images/female/female_banner_cardio.png'),
+  hiit:        require('../../assets/images/female/female_banner_hiit.png'),
+  core:        require('../../assets/images/female/female_banner_core.png'),
+  flexibility: require('../../assets/images/female/female_banner_flexibility.png'),
+  recovery:    require('../../assets/images/female/female_banner_recovery.png'),
+  yoga:        require('../../assets/images/female/female_banner_yoga.png'),
+};
+
+const getWorkoutImg = (plan, gender) => {
+  if (!plan) return null;
+  if (gender === 'female') {
+    const cat = (plan?.category || '').toLowerCase();
+    return FEMALE_BANNER[cat] || FEMALE_BANNER.strength; // default to strength if not found
+  }
+  // No local male banners set yet, so return null to fallback to gradient
+  return null;
+};
+
+// ── Supabase Storage base URL ─────────────────────────────────────────────────
+const SB_VID = 'https://nlzuqzkxtmqabmwkggpy.supabase.co/storage/v1/object/public/exercise-videos';
+const mv = (file) => ({ uri: `${SB_VID}/male/${file}` });
+const fv = (file) => ({ uri: `${SB_VID}/female/${file}` });
+
+// ── Gender-aware workout videos ───────────────────────────────────────────────
 const VIDEOS_MALE = [
-  { src: require('../../assets/videos/Man_performing_barbell_deadlift_202606110121.mp4'),  label: 'Barbell Deadlift',  tag: 'STRENGTH' },
-  { src: require('../../assets/videos/Man_performing_barbell_hip_thrust_202606110121.mp4'), label: 'Hip Thrust',        tag: 'GLUTES'   },
-  { src: require('../../assets/videos/Man_performs_one_pull-up_202606110121.mp4'),          label: 'Pull-Up',           tag: 'BACK'     },
-  { src: require('../../assets/videos/Man_performing_dumbbell_curl_202606110121.mp4'),      label: 'Dumbbell Curl',     tag: 'ARMS'     },
-  { src: require('../../assets/videos/Man_performing_shoulder_press_202606110121.mp4'),     label: 'Shoulder Press',    tag: 'SHOULDERS'},
-];
-const VIDEOS_FEMALE = [
-  { src: require('../../assets/videos/Woman_performing_barbell_deadlift_202606110124.mp4'),   label: 'Barbell Deadlift', tag: 'STRENGTH' },
-  { src: require('../../assets/videos/Woman_performing_barbell_hip_thrust_202606110124.mp4'), label: 'Hip Thrust',       tag: 'GLUTES'   },
-  { src: require('../../assets/videos/Woman_performs_one_pull-up_202606110124.mp4'),          label: 'Pull-Up',          tag: 'BACK'     },
-  { src: require('../../assets/videos/Woman_performing_dumbbell_curl_202606110124.mp4'),      label: 'Dumbbell Curl',    tag: 'ARMS'     },
-  { src: require('../../assets/videos/Woman_performing_dumbbell_press_202606110124.mp4'),     label: 'Dumbbell Press',   tag: 'CHEST'    },
+  { src: mv('Man_performing_barbell_deadlift_202606110121.mp4'),        label: 'Barbell Deadlift',   tag: 'STRENGTH'   },
+  { src: mv('Man_performs_barbell_bench_press_202606172041.mp4'),        label: 'Bench Press',        tag: 'STRENGTH'   },
+  { src: mv('Man_performing_barbell_squat_202606172035.mp4'),            label: 'Barbell Squat',      tag: 'STRENGTH'   },
+  { src: mv('Man_performing_bent-over_row_202606180000.mp4'),            label: 'Bent-Over Row',      tag: 'STRENGTH'   },
+  { src: mv('Man_performing_barbell_press_202606180000.mp4'),            label: 'Overhead Press',     tag: 'STRENGTH'   },
+  { src: mv('Man_performing_Romanian_deadlift_202606172359.mp4'),        label: 'Romanian Deadlift',  tag: 'STRENGTH'   },
+  { src: mv('Man_performing_incline_dumbbell_press_202606180000.mp4'),   label: 'Incline DB Press',   tag: 'CHEST'      },
+  { src: mv('Man_performing_chest_dips_202606172358.mp4'),               label: 'Chest Dips',         tag: 'CHEST'      },
+  { src: mv('Man_performing_dumbbell_flys_202606172358.mp4'),            label: 'Dumbbell Flys',      tag: 'CHEST'      },
+  { src: mv('Man_performs_one_push-up_202606110121.mp4'),                label: 'Push-Up',            tag: 'CHEST'      },
+  { src: mv('Man_performs_one_pull-up_202606110121.mp4'),                label: 'Pull-Up',            tag: 'BACK'       },
+  { src: mv('Man_performing_lat_pulldown_202606172359.mp4'),             label: 'Lat Pulldown',       tag: 'BACK'       },
+  { src: mv('Man_performing_shoulder_press_202606110121.mp4'),           label: 'Shoulder Press',     tag: 'SHOULDERS'  },
+  { src: mv('Man_performing_face_pulls_202606172358.mp4'),               label: 'Face Pulls',         tag: 'SHOULDERS'  },
+  { src: mv('Man_performing_dumbbell_curl_202606110121.mp4'),            label: 'Dumbbell Curl',      tag: 'ARMS'       },
+  { src: mv('Man_performing_hammer_curls_202606172359.mp4'),             label: 'Hammer Curls',       tag: 'ARMS'       },
+  { src: mv('Man_performing_cable_pushdown_202606180000.mp4'),           label: 'Tricep Pushdown',    tag: 'ARMS'       },
+  { src: mv('Man_performing_tricep_dip_202606110121.mp4'),               label: 'Tricep Dip',         tag: 'ARMS'       },
+  { src: mv('Man_performing_barbell_hip_thrust_202606110121.mp4'),       label: 'Hip Thrust',         tag: 'GLUTES'     },
+  { src: mv('Man_performing_leg_press_202606172359.mp4'),                label: 'Leg Press',          tag: 'LEGS'       },
+  { src: mv('Man_performing_bodyweight_squat_202606110121.mp4'),         label: 'Bodyweight Squat',   tag: 'LEGS'       },
+  { src: mv('Man_performing_forward_lunge_202606110121.mp4'),            label: 'Forward Lunge',      tag: 'LEGS'       },
+  { src: mv('Man_holding_forearm_plank_202606110121.mp4'),               label: 'Forearm Plank',      tag: 'CORE'       },
+  { src: mv('Man_performing_Russian_twists_202606110121.mp4'),           label: 'Russian Twists',     tag: 'CORE'       },
+  { src: mv('Man_performing_box_jump_202606172359.mp4'),                 label: 'Box Jump',           tag: 'CARDIO'     },
+  { src: mv('Man_performing_battle_ropes_202606172359.mp4'),             label: 'Battle Ropes',       tag: 'CARDIO'     },
+  { src: mv('Man_performing_kettlebell_swings_202606172359.mp4'),        label: 'Kettlebell Swings',  tag: 'HIIT'       },
+  { src: mv('Man_performs_one_burpee_202606110121.mp4'),                 label: 'Burpee',             tag: 'HIIT'       },
+  { src: mv('Man_performing_high_knees_202606110121.mp4'),               label: 'High Knees',         tag: 'CARDIO'     },
+  { src: mv('Man_performing_jumping_jacks_202606110121.mp4'),            label: 'Jumping Jacks',      tag: 'CARDIO'     },
+  { src: mv('Man_performs_mountain_climbers_202606110121.mp4'),          label: 'Mountain Climbers',  tag: 'CARDIO'     },
+  { src: mv('Man_running_in_place_202606110121.mp4'),                    label: 'Running in Place',   tag: 'CARDIO'     },
+  { src: mv('Man_skipping_jump_rope_202606110121.mp4'),                  label: 'Jump Rope',          tag: 'CARDIO'     },
+  { src: mv('Man_foam-rolling_thighs_202606110121.mp4'),                 label: 'Foam Rolling',       tag: 'RECOVERY'   },
+  { src: mv('Man_holding_downward_dog_pose_202606110121.mp4'),           label: 'Downward Dog',       tag: 'FLEXIBILITY'},
 ];
 
-// ── Macro progress ring (animated fill on mount) ───────────────
+const VIDEOS_FEMALE = [
+  { src: fv('Woman_performing_barbell_hip_thrust_202606110124.mp4'),     label: 'Hip Thrust',          tag: 'GLUTES'     },
+  { src: fv('Woman_performing_glute_bridge_202606172356.mp4'),           label: 'Glute Bridge',        tag: 'GLUTES'     },
+  { src: fv('Woman_performing_cable_glute_kickback_202606172356.mp4'),   label: 'Cable Kickback',      tag: 'GLUTES'     },
+  { src: fv('Woman_performing_donkey_kicks_202606172356.mp4'),           label: 'Donkey Kicks',        tag: 'GLUTES'     },
+  { src: fv('Woman_performing_fire_hydrant_exercise_202606172357.mp4'),  label: 'Fire Hydrant',        tag: 'GLUTES'     },
+  { src: fv('Woman_performing_hip_abduction_exercise_202606172358.mp4'), label: 'Hip Abduction',       tag: 'GLUTES'     },
+  { src: fv('Woman_performing_barbell_deadlift_202606110124.mp4'),       label: 'Barbell Deadlift',    tag: 'STRENGTH'   },
+  { src: fv('Woman_performing_Romanian_deadlift_202606172357.mp4'),      label: 'Romanian Deadlift',   tag: 'LEGS'       },
+  { src: fv('Woman_performing_Bulgarian_split_squat_202606172356.mp4'),  label: 'Bulgarian Split Squat', tag: 'LEGS'    },
+  { src: fv('Woman_performing_sumo_squat_dumbbell_202606172356.mp4'),    label: 'Sumo Squat',          tag: 'LEGS'       },
+  { src: fv('Woman_performing_banded_squat_202606172357.mp4'),           label: 'Banded Squat',        tag: 'LEGS'       },
+  { src: fv('Woman_performing_bodyweight_squat_202606110124.mp4'),       label: 'Bodyweight Squat',    tag: 'LEGS'       },
+  { src: fv('Woman_performing_leg_extension_machine_202606172357.mp4'),  label: 'Leg Extension',       tag: 'LEGS'       },
+  { src: fv('Woman_performing_lying_leg_curl_202606172357.mp4'),         label: 'Lying Leg Curl',      tag: 'LEGS'       },
+  { src: fv('Woman_performing_lateral_band_walks_202606172357.mp4'),     label: 'Lateral Band Walk',   tag: 'LEGS'       },
+  { src: fv('Woman_performing_dumbbell_step-ups_202606172358.mp4'),      label: 'Dumbbell Step-Ups',   tag: 'LEGS'       },
+  { src: fv('Woman_performs_forward_lunge_202606110124.mp4'),            label: 'Forward Lunge',       tag: 'LEGS'       },
+  { src: fv('Woman_performs_one_pull-up_202606110124.mp4'),              label: 'Pull-Up',             tag: 'BACK'       },
+  { src: fv('Woman_performing_lat_pulldown_202606172357.mp4'),           label: 'Lat Pulldown',        tag: 'BACK'       },
+  { src: fv('Woman_performing_seated_cable_row_202606172357.mp4'),       label: 'Seated Cable Row',    tag: 'BACK'       },
+  { src: fv('Woman_performing_dumbbell_press_202606110124.mp4'),         label: 'Dumbbell Press',      tag: 'CHEST'      },
+  { src: fv('Woman_performing_incline_push-ups_202606172358.mp4'),       label: 'Incline Push-Up',     tag: 'CHEST'      },
+  { src: fv('Woman_performing_push-up_202606110124.mp4'),                label: 'Push-Up',             tag: 'CHEST'      },
+  { src: fv('Woman_performing_face_pulls_202606172358.mp4'),             label: 'Face Pulls',          tag: 'SHOULDERS'  },
+  { src: fv('Woman_performing_dumbbell_curl_202606110124.mp4'),          label: 'Dumbbell Curl',       tag: 'ARMS'       },
+  { src: fv('Woman_performing_dumbbell_extension_202606172358.mp4'),     label: 'Tricep Extension',    tag: 'ARMS'       },
+  { src: fv('Woman_performing_tricep_dip_202606110124.mp4'),             label: 'Tricep Dip',          tag: 'ARMS'       },
+  { src: fv('Woman_holding_forearm_plank_202606110124.mp4'),             label: 'Forearm Plank',       tag: 'CORE'       },
+  { src: fv('Woman_performing_plank_on_mat_202606172357.mp4'),           label: 'Plank',               tag: 'CORE'       },
+  { src: fv('Woman_performing_Russian_twists_202606110124.mp4'),         label: 'Russian Twists',      tag: 'CORE'       },
+  { src: fv('Woman_performs_box_jump_202606110124.mp4'),                 label: 'Box Jump',            tag: 'CARDIO'     },
+  { src: fv('Woman_performing_high_knees_202606110124.mp4'),             label: 'High Knees',          tag: 'CARDIO'     },
+  { src: fv('Woman_performing_jumping_jacks_202606110124.mp4'),          label: 'Jumping Jacks',       tag: 'CARDIO'     },
+  { src: fv('Woman_performing_mountain_climbers_202606110124.mp4'),      label: 'Mountain Climbers',   tag: 'CARDIO'     },
+  { src: fv('Woman_running_in_place_202606110124.mp4'),                  label: 'Running in Place',    tag: 'CARDIO'     },
+  { src: fv('Woman_skipping_jump_rope_202606110124.mp4'),                label: 'Jump Rope',           tag: 'CARDIO'     },
+  { src: fv('Woman_performs_one_burpee_202606110124.mp4'),               label: 'Burpee',              tag: 'HIIT'       },
+  { src: fv('Woman_foam-rolling_thighs_202606110124.mp4'),               label: 'Foam Rolling',        tag: 'RECOVERY'   },
+  { src: fv('Woman_holding_downward_dog_pose_202606110124.mp4'),
+    label: 'Downward Dog',    tag: 'FLEXIBILITY', dur: '8 min',  reps: '3 sets × 30 sec',
+    benefits: ['Full Body Stretch', 'Core Activation', 'Spine Relief'] },
+  { src: fv('Woman_doing_Cobra_Pose_202606182200.mp4'),
+    label: 'Cobra Pose',      tag: 'FLEXIBILITY', dur: '8 min',  reps: '3 sets × 30 sec',
+    benefits: ['Spine Flexibility', 'Chest Opening', 'Stress Relief'] },
+  { src: fv('Woman_doing_deep_backbend_202606182201.mp4'),
+    label: 'Deep Backbend',   tag: 'FLEXIBILITY', dur: '6 min',  reps: '3 sets × 20 sec',
+    benefits: ['Spine Stretch', 'Hip Flexors', 'Better Posture'] },
+  { src: fv('Woman_doing_Happy_Baby_Pose_202606182201.mp4'),
+    label: 'Happy Baby',      tag: 'FLEXIBILITY', dur: '8 min',  reps: '2 sets × 45 sec',
+    benefits: ['Hip Opening', 'Lower Back Relief', 'Calming'] },
+  { src: fv('Woman_doing_supine_twist_202606182201.mp4'),
+    label: 'Supine Twist',    tag: 'FLEXIBILITY', dur: '10 min', reps: '2 sets × 30 sec/side',
+    benefits: ['Spinal Detox', 'Digestion', 'Back Pain Relief'] },
+  { src: fv('Woman_doing_V-shape_exercise_202606182201.mp4'),
+    label: 'V-Shape Stretch', tag: 'FLEXIBILITY', dur: '6 min',  reps: '3 sets × 30 sec',
+    benefits: ['Hamstrings', 'Inner Thighs', 'Core Strength'] },
+  { src: fv('Woman_doing_yoga_poses_202606182200.mp4'),
+    label: 'Yoga Flow',       tag: 'FLEXIBILITY', dur: '15 min', reps: '2 rounds',
+    benefits: ['Full Body', 'Mindfulness', 'Balance'] },
+  { src: fv("Woman_in_Child%27s_Pose_202606182200.mp4"),
+    label: "Child's Pose",    tag: 'FLEXIBILITY', dur: '8 min',  reps: '3 sets × 45 sec',
+    benefits: ['Hip Relief', 'Back Stretch', 'Deep Relaxation'] },
+  { src: fv('Woman_in_Tree_Pose_202606182200.mp4'),
+    label: 'Tree Pose',       tag: 'FLEXIBILITY', dur: '10 min', reps: '3 sets × 30 sec/side',
+    benefits: ['Balance', 'Focus', 'Leg Strength'] },
+  { src: fv('Woman_performing_Pigeon_Pose_202606182200.mp4'),
+    label: 'Pigeon Pose',     tag: 'FLEXIBILITY', dur: '12 min', reps: '2 sets × 60 sec/side',
+    benefits: ['Deep Hip Opener', 'Sciatic Relief', 'Flexibility'] },
+  { src: fv('Woman_performing_Warrior_II_pose_202606182159.mp4'),
+    label: 'Warrior II',      tag: 'FLEXIBILITY', dur: '10 min', reps: '3 sets × 30 sec/side',
+    benefits: ['Leg Strength', 'Hip Opening', 'Stamina'] },
+  { src: fv('Woman_performs_Triangle_Pose_202606182200.mp4'),
+    label: 'Triangle Pose',   tag: 'FLEXIBILITY', dur: '10 min', reps: '3 sets × 30 sec/side',
+    benefits: ['Lateral Stretch', 'Balance', 'Core'] },
+];
+
+// â"€â"€ Macro progress ring (animated fill on mount) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 function MacroRing({ value, max, color, size = 56, stroke = 6, label, unit, C, isDark }) {
   const r    = (size - stroke) / 2;
   const circ = 2 * Math.PI * r;
@@ -84,7 +209,7 @@ function MacroRing({ value, max, color, size = 56, stroke = 6, label, unit, C, i
         <Svg width={size} height={size} style={{ position: 'absolute' }}>
           <SvgCircle cx={size/2} cy={size/2} r={r} fill="none"
             stroke={`${color}28`} strokeWidth={stroke} />
-          {/* static ring at target — invisible, just for sizing */}
+          {/* static ring at target â€" invisible, just for sizing */}
           <SvgCircle cx={size/2} cy={size/2} r={r} fill="none"
             stroke={color} strokeWidth={stroke}
             strokeDasharray={`${fill} ${circ}`} strokeLinecap="round"
@@ -113,7 +238,35 @@ function MacroRing({ value, max, color, size = 56, stroke = 6, label, unit, C, i
 // Animated SVG circle (stroke-dasharray must be animatable)
 const AnimatedCircle = Animated.createAnimatedComponent(SvgCircle);
 
-// ── Featured workout video card ────────────────────────────────
+// â"€â"€ Featured workout video card â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+const YOGA_MUSIC_URI = 'https://archive.org/download/yoga-music/A%20Song%20of%20Rain%2C%20Calming%20Yoga%20Music.mp3';
+
+function MusicBars({ active }) {
+  const b = [useRef(new Animated.Value(0.3)).current,
+             useRef(new Animated.Value(0.7)).current,
+             useRef(new Animated.Value(0.5)).current];
+  useEffect(() => {
+    if (!active) { b.forEach(v => v.setValue(0.3)); return; }
+    const durs = [380, 260, 500];
+    const anims = b.map((v, i) => Animated.loop(Animated.sequence([
+      Animated.timing(v, { toValue: 1.0, duration: durs[i], useNativeDriver: true }),
+      Animated.timing(v, { toValue: 0.15, duration: durs[i], useNativeDriver: true }),
+    ])));
+    anims.forEach(a => a.start());
+    return () => anims.forEach(a => a.stop());
+  }, [active]);
+  return (
+    <View style={{ flexDirection:'row', alignItems:'flex-end', gap:2, height:13 }}>
+      {b.map((v, i) => (
+        <Animated.View key={i} style={{
+          width:3, height:13, borderRadius:2, backgroundColor:'#C8F135',
+          transform:[{ scaleY: v }],
+        }} />
+      ))}
+    </View>
+  );
+}
+
 function WorkoutVideoCard({ gender, navigation, C, s }) {
   const pool    = gender === 'female' ? VIDEOS_FEMALE : VIDEOS_MALE;
   const idx     = useMemo(() => Math.floor(Math.random() * pool.length), []);
@@ -123,6 +276,51 @@ function WorkoutVideoCard({ gender, navigation, C, s }) {
   const readyRef = useRef(false);
   const onReady  = () => { if (readyRef.current) return; readyRef.current = true; setReady(true); };
   const pulseStyle = usePulse(true, 0.94, 1.0, 1600);
+  const [secs, setSecs] = useState(0);
+  const dotAnim = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    if (!ready) return;
+    const id = setInterval(() => setSecs(s => s + 1), 1000);
+    Animated.loop(Animated.sequence([
+      Animated.timing(dotAnim, { toValue: 0.2, duration: 600, useNativeDriver: true }),
+      Animated.timing(dotAnim, { toValue: 1,   duration: 600, useNativeDriver: true }),
+    ])).start();
+    return () => clearInterval(id);
+  }, [ready]);
+  const timerStr = `${String(Math.floor(secs / 60)).padStart(2,'0')}:${String(secs % 60).padStart(2,'0')}`;
+
+  const [musicOn, setMusicOn] = useState(false);
+  const [musicLoading, setMusicLoading] = useState(false);
+  const soundRef = useRef(null);
+
+  useEffect(() => {
+    Audio.setAudioModeAsync({ playsInSilentModeIOS: true, staysActiveInBackground: false });
+    return () => { soundRef.current?.unloadAsync().catch(() => {}); };
+  }, []);
+
+  const toggleMusic = async () => {
+    if (musicLoading) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setMusicLoading(true);
+    try {
+      if (musicOn) {
+        await soundRef.current?.pauseAsync();
+        setMusicOn(false);
+      } else {
+        if (!soundRef.current) {
+          const { sound } = await Audio.Sound.createAsync(
+            { uri: YOGA_MUSIC_URI },
+            { shouldPlay: true, isLooping: true, volume: 0.65 }
+          );
+          soundRef.current = sound;
+        } else {
+          await soundRef.current.playAsync();
+        }
+        setMusicOn(true);
+      }
+    } catch (e) { console.warn('Yoga music:', e); }
+    setMusicLoading(false);
+  };
 
   return (
     <TouchableOpacity activeOpacity={0.9}
@@ -143,24 +341,297 @@ function WorkoutVideoCard({ gender, navigation, C, s }) {
       <View style={s.videoOverlay} pointerEvents="none">
         <View style={s.videoTag}><Text style={s.videoTagTxt}>{video.tag}</Text></View>
         <Text style={s.videoLabel}>{video.label}</Text>
-        <View style={{ flexDirection:'row', alignItems:'center', gap:6 }}>
-          <Reanimated.View style={[s.playBtn, pulseStyle]}>
-            <Ionicons name="play" size={10} color="#0A0A0F" />
-          </Reanimated.View>
-          <Text style={s.videoSub}>Tap to explore workouts</Text>
-        </View>
+        {video.tag === 'FLEXIBILITY' && video.dur ? (
+          <>
+            {/* Duration + reps row */}
+            <View style={{ flexDirection:'row', alignItems:'center', gap:10, marginTop:4 }}>
+              <View style={{ flexDirection:'row', alignItems:'center', gap:4 }}>
+                <Ionicons name="time-outline" size={12} color="#C8F135" />
+                <Text style={{ color:'#C8F135', fontSize:12, fontWeight:'700' }}>{video.dur}</Text>
+              </View>
+              <View style={{ width:1, height:10, backgroundColor:'rgba(255,255,255,0.25)' }} />
+              <View style={{ flexDirection:'row', alignItems:'center', gap:4 }}>
+                <Ionicons name="refresh-outline" size={12} color="rgba(255,255,255,0.7)" />
+                <Text style={{ color:'rgba(255,255,255,0.85)', fontSize:12, fontWeight:'600' }}>{video.reps}</Text>
+              </View>
+            </View>
+            {/* Benefits pills */}
+            <View style={{ flexDirection:'row', flexWrap:'wrap', gap:5, marginTop:6 }}>
+              {video.benefits.map((b, i) => (
+                <View key={i} style={{
+                  backgroundColor:'rgba(200,241,53,0.13)',
+                  borderRadius:20, paddingHorizontal:8, paddingVertical:3,
+                  borderWidth:1, borderColor:'rgba(200,241,53,0.3)',
+                }}>
+                  <Text style={{ color:'#C8F135', fontSize:10, fontWeight:'600' }}>✦ {b}</Text>
+                </View>
+              ))}
+            </View>
+          </>
+        ) : (
+          <View style={{ flexDirection:'row', alignItems:'center', gap:6 }}>
+            <Animated.View style={[s.playBtn, pulseStyle]}>
+              <Ionicons name="play" size={10} color="#0A0A0F" />
+            </Animated.View>
+            <Text style={s.videoSub}>Tap to explore workouts</Text>
+          </View>
+        )}
+      </View>
+      {/* Music toggle — top-right, only for FLEXIBILITY videos */}
+      {video.tag === 'FLEXIBILITY' && (
+        <TouchableOpacity
+          onPress={toggleMusic}
+          activeOpacity={0.85}
+          style={{
+            position:'absolute', top:12, right:12,
+            flexDirection:'row', alignItems:'center', gap:6,
+            backgroundColor: musicOn ? 'rgba(200,241,53,0.18)' : 'rgba(0,0,0,0.52)',
+            borderRadius:22, paddingHorizontal:11, paddingVertical:7,
+            borderWidth:1,
+            borderColor: musicOn ? 'rgba(200,241,53,0.55)' : 'rgba(255,255,255,0.18)',
+          }}>
+          {musicOn
+            ? <><MusicBars active={true} /><Ionicons name="musical-notes" size={14} color="#C8F135" /></>
+            : <><Ionicons name="musical-notes-outline" size={14} color="rgba(255,255,255,0.65)" />
+                <Text style={{ color:'rgba(255,255,255,0.65)', fontSize:11, fontWeight:'600', letterSpacing:0.3 }}>
+                  {musicLoading ? 'Loading…' : 'Music'}
+                </Text></>
+          }
+        </TouchableOpacity>
+      )}
+      {/* Timer badge — bottom-right, covers watermark */}
+      <View pointerEvents="none" style={{
+        position:'absolute', bottom:14, right:14,
+        flexDirection:'row', alignItems:'center', gap:5,
+        backgroundColor:'rgba(0,0,0,0.52)',
+        borderRadius:10, paddingHorizontal:9, paddingVertical:5,
+        borderWidth:1, borderColor:'rgba(200,241,53,0.25)',
+      }}>
+        <Animated.View style={{
+          width:6, height:6, borderRadius:3,
+          backgroundColor:'#C8F135', opacity: ready ? dotAnim : 0,
+        }} />
+        <Text style={{
+          color:'#C8F135', fontSize:13, fontWeight:'700',
+          letterSpacing:1.5, fontVariant:['tabular-nums'],
+        }}>{timerStr}</Text>
       </View>
     </TouchableOpacity>
   );
 }
 
-// ── Today's Workout card with spring play button + pulse ───────
-function WorkoutCardAnimated({ plan, planName, planMins, planCals, planExs, navigation, C, s, isDark }) {
+// ── Female category strip ──────────────────────────────────────────────────────
+const FEMALE_CATS = [
+  { id:'glutes',  label:'Glutes',  emoji:'🍑', color:'#FF6B9D' },
+  { id:'legs',    label:'Legs',    emoji:'🦵', color:'#F59E0B' },
+  { id:'yoga',    label:'Yoga',    emoji:'🧘', color:'#A78BFA' },
+  { id:'core',    label:'Core',    emoji:'🔥', color:'#FF6B6B' },
+  { id:'cardio',  label:'Cardio',  emoji:'❤️', color:'#EC4899' },
+  { id:'arms',    label:'Arms',    emoji:'💪', color:'#4ECDC4' },
+  { id:'flex',    label:'Stretch', emoji:'🌿', color:'#6EE7B7' },
+  { id:'hiit',    label:'HIIT',    emoji:'⚡', color:'#C8F135' },
+];
+
+function FemaleCategoryStrip({ C, isDark, navigation }) {
+  const [active, setActive] = useState('glutes');
+  return (
+    <View style={{ marginBottom: 6 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8, gap: 8 }}>
+        {FEMALE_CATS.map(cat => {
+          const on = active === cat.id;
+          return (
+            <TouchableOpacity key={cat.id}
+              onPress={() => { Haptics.selectionAsync(); setActive(cat.id); cat.id === 'yoga' && navigation.navigate('Yoga'); }}
+              style={{
+                flexDirection: 'row', alignItems: 'center', gap: 5,
+                backgroundColor: on ? cat.color : (isDark ? '#18182A' : '#F0F0F8'),
+                borderRadius: 22, paddingHorizontal: 14, paddingVertical: 9,
+                borderWidth: 1.5, borderColor: on ? cat.color : 'transparent',
+                shadowColor: on ? cat.color : 'transparent',
+                shadowOpacity: on ? 0.45 : 0, shadowRadius: 8, elevation: on ? 4 : 0,
+              }}>
+              <Text style={{ fontSize: 15 }}>{cat.emoji}</Text>
+              <Text style={{ color: on ? '#0A0A0F' : C.dim, fontWeight: '800', fontSize: 12 }}>{cat.label}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+}
+
+// ── Female featured video card ─────────────────────────────────────────────────
+const TAG_COLORS_F = {
+  GLUTES:'#FF6B9D', LEGS:'#F59E0B', FLEXIBILITY:'#A78BFA',
+  CORE:'#FF6B6B', CARDIO:'#EC4899', ARMS:'#4ECDC4',
+  HIIT:'#C8F135', STRENGTH:'#C8F135', RECOVERY:'#6EE7B7', SHOULDERS:'#60A5FA',
+};
+
+function FeaturedVideoCard({ video, navigation }) {
+  const [ready, setReady] = useState(false);
+  const color = TAG_COLORS_F[video.tag] || '#C8F135';
+  return (
+    <TouchableOpacity
+      onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigation.navigate('Workouts'); }}
+      activeOpacity={0.88}
+      style={{ width: 148, height: 210, borderRadius: 18, overflow: 'hidden', backgroundColor: '#0a0a14',
+        shadowColor: color, shadowOpacity: 0.25, shadowRadius: 10, elevation: 5 }}>
+      {!ready && (
+        <View style={[StyleSheet.absoluteFill, { justifyContent:'center', alignItems:'center', backgroundColor:'#0a0a14' }]}>
+          <Ionicons name="body-outline" size={24} color="rgba(255,255,255,0.15)" />
+        </View>
+      )}
+      <Video source={video.src} style={StyleSheet.absoluteFill}
+        resizeMode={ResizeMode.COVER} shouldPlay isLooping isMuted
+        onReadyForDisplay={() => setReady(true)} />
+      <LinearGradient colors={['transparent','rgba(0,0,0,0.88)']}
+        style={[StyleSheet.absoluteFill, { justifyContent:'flex-end', padding: 10 }]}>
+        <View style={{ backgroundColor: color + '28', borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3,
+          alignSelf:'flex-start', borderWidth:1, borderColor: color + '55', marginBottom: 5 }}>
+          <Text style={{ color, fontSize: 9, fontWeight:'800', letterSpacing:0.5 }}>{video.tag}</Text>
+        </View>
+        <Text style={{ color:'#fff', fontWeight:'800', fontSize: 13, lineHeight:17 }} numberOfLines={2}>{video.label}</Text>
+        {video.dur && (
+          <View style={{ flexDirection:'row', alignItems:'center', gap:3, marginTop:4 }}>
+            <Ionicons name="time-outline" size={10} color={color} />
+            <Text style={{ color, fontSize:10, fontWeight:'700' }}>{video.dur}</Text>
+          </View>
+        )}
+        {!video.dur && (
+          <View style={{ flexDirection:'row', alignItems:'center', gap:3, marginTop:4 }}>
+            <View style={{ width:5, height:5, borderRadius:3, backgroundColor: color }} />
+            <Text style={{ color:'rgba(255,255,255,0.5)', fontSize:10 }}>Tap to explore</Text>
+          </View>
+        )}
+      </LinearGradient>
+    </TouchableOpacity>
+  );
+}
+
+function FemaleFeaturedSlider({ C, navigation }) {
+  const featured = useMemo(() => {
+    const cats = ['GLUTES','LEGS','FLEXIBILITY','CORE','CARDIO','ARMS','HIIT','STRENGTH'];
+    const picks = [];
+    cats.forEach(cat => {
+      const pool = VIDEOS_FEMALE.filter(v => v.tag === cat);
+      if (pool.length > 0) picks.push(pool[Math.floor(Math.random() * pool.length)]);
+    });
+    return picks;
+  }, []);
+  return (
+    <View style={{ marginBottom: 4 }}>
+      <View style={{ flexDirection:'row', justifyContent:'space-between', alignItems:'center', paddingHorizontal:16, marginBottom:10 }}>
+        <View>
+          <Text style={{ color: C.text, fontSize: 16, fontWeight:'800' }}>Featured For You</Text>
+          <Text style={{ color: C.dim, fontSize: 11, marginTop:2 }}>Personalized workout picks ✨</Text>
+        </View>
+        <TouchableOpacity onPress={() => { Haptics.selectionAsync(); navigation.navigate('Workouts'); }}>
+          <Text style={{ color:'#C8F135', fontSize:12, fontWeight:'700' }}>See All ›</Text>
+        </TouchableOpacity>
+      </View>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal:16, gap:10, paddingBottom:4 }}>
+        {featured.map((v, i) => <FeaturedVideoCard key={i} video={v} navigation={navigation} />)}
+      </ScrollView>
+    </View>
+  );
+}
+
+// ── Female yoga quick banner ───────────────────────────────────────────────────
+const YOGA_DAY_MAP = {
+  Sun:{ name:'Rest & Restore',  dur:'15 min', color:'#6EE7B7' },
+  Mon:{ name:'Morning Flow',    dur:'15 min', color:'#FF6B6B' },
+  Tue:{ name:'Hip Openers',     dur:'20 min', color:'#C8F135' },
+  Wed:{ name:'Balance & Focus', dur:'15 min', color:'#4ECDC4' },
+  Thu:{ name:'Backbend Flow',   dur:'20 min', color:'#A78BFA' },
+  Fri:{ name:'Full Body',       dur:'20 min', color:'#F59E0B' },
+  Sat:{ name:'Core & Stretch',  dur:'20 min', color:'#EC4899' },
+};
+const DAY_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+function FemaleYogaBanner({ navigation, C }) {
+  const todayKey = DAY_SHORT[new Date().getDay()];
+  const session = YOGA_DAY_MAP[todayKey];
+  return (
+    <TouchableOpacity
+      onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); navigation.navigate('Yoga'); }}
+      activeOpacity={0.87}
+      style={{ marginHorizontal:16, marginBottom:14, borderRadius:20, overflow:'hidden',
+        shadowColor: session.color, shadowOpacity:0.3, shadowRadius:12, elevation:6 }}>
+      <LinearGradient
+        colors={[session.color + '40', session.color + '18', '#0A0A0F']}
+        start={{ x:0, y:0 }} end={{ x:1, y:1 }}
+        style={{ padding:18, borderWidth:1, borderColor: session.color + '35', borderRadius:20 }}>
+        <View style={{ flexDirection:'row', alignItems:'center', justifyContent:'space-between' }}>
+          <View style={{ flex:1 }}>
+            <View style={{ flexDirection:'row', alignItems:'center', gap:8, marginBottom:7 }}>
+              <LinearGradient colors={['#C8F135','#6EE7B7']}
+                style={{ width:30, height:30, borderRadius:15, justifyContent:'center', alignItems:'center' }}>
+                <Ionicons name="leaf" size={15} color="#0A0A0F" />
+              </LinearGradient>
+              <Text style={{ color:'rgba(255,255,255,0.5)', fontSize:10, fontWeight:'800', letterSpacing:1.2 }}>TODAY'S YOGA SESSION</Text>
+            </View>
+            <Text style={{ color:'#fff', fontSize:22, fontWeight:'900', marginBottom:5, letterSpacing:-0.3 }}>{session.name}</Text>
+            <View style={{ flexDirection:'row', alignItems:'center', gap:12 }}>
+              <View style={{ flexDirection:'row', alignItems:'center', gap:5 }}>
+                <Ionicons name="time-outline" size={12} color={session.color} />
+                <Text style={{ color:session.color, fontWeight:'700', fontSize:12 }}>{session.dur}</Text>
+              </View>
+              <View style={{ flexDirection:'row', alignItems:'center', gap:5 }}>
+                <Ionicons name="body-outline" size={12} color="rgba(255,255,255,0.4)" />
+                <Text style={{ color:'rgba(255,255,255,0.4)', fontSize:12 }}>3 poses</Text>
+              </View>
+            </View>
+          </View>
+          <LinearGradient colors={[session.color, session.color + 'BB']}
+            style={{ width:54, height:54, borderRadius:27, justifyContent:'center', alignItems:'center',
+              shadowColor: session.color, shadowOpacity:0.6, shadowRadius:10 }}>
+            <Ionicons name="play" size={22} color="#fff" />
+          </LinearGradient>
+        </View>
+      </LinearGradient>
+    </TouchableOpacity>
+  );
+}
+
+// ── Female wellness glow strip ─────────────────────────────────────────────────
+function FemaleWellnessStrip({ C, isDark }) {
+  const items = [
+    { icon:'leaf-outline',         label:'Yoga',    sub:'3 poses today',  color:'#A78BFA' },
+    { icon:'flame-outline',        label:'Burn',    sub:'Active zone',    color:'#FF6B6B' },
+    { icon:'heart-outline',        label:'Wellness',sub:'On track',       color:'#FF6B9D' },
+    { icon:'sparkles-outline',     label:'Glow',    sub:'Keep it up!',    color:'#F59E0B' },
+  ];
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{ paddingHorizontal:16, gap:10, paddingVertical:4 }}>
+      {items.map((item, i) => (
+        <LinearGradient key={i}
+          colors={[item.color + '22', item.color + '0A']}
+          style={{ borderRadius:16, padding:12, minWidth:95, borderWidth:1, borderColor: item.color + '33',
+            alignItems:'center', gap:5 }}>
+          <View style={{ width:36, height:36, borderRadius:18, backgroundColor: item.color + '22',
+            justifyContent:'center', alignItems:'center', borderWidth:1, borderColor: item.color + '44' }}>
+            <Ionicons name={item.icon} size={16} color={item.color} />
+          </View>
+          <Text style={{ color: item.color, fontWeight:'800', fontSize:12 }}>{item.label}</Text>
+          <Text style={{ color:C.dim, fontSize:10, fontWeight:'600', textAlign:'center' }}>{item.sub}</Text>
+        </LinearGradient>
+      ))}
+    </ScrollView>
+  );
+}
+
+// ── Today's Workout card with spring play button + pulse ──────────────────────
+function WorkoutCardAnimated({ plan, planName, planMins, planCals, planExs, gender, navigation, C, s, isDark }) {
   const { animStyle: cardScale, onPressIn, onPressOut } = useSpringPress(0.97);
   const pulseStyle = usePulse(true, 0.92, 1.0, 1800);
   const cardGlow = glowStyle(isDark, C.accent, 10, 0.14);
+  const bgImg = getWorkoutImg(plan, gender);
+
   return (
-    <Reanimated.View style={[cardScale]}>
+    <Animated.View style={[cardScale]}>
       <TouchableOpacity style={[s.workoutCard, cardGlow]}
         activeOpacity={1}
         onPressIn={onPressIn} onPressOut={onPressOut}
@@ -168,8 +639,17 @@ function WorkoutCardAnimated({ plan, planName, planMins, planCals, planExs, navi
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           plan ? navigation.navigate('WorkoutDetail', { plan }) : navigation.navigate('Workouts');
         }}>
-        <LinearGradient colors={isDark ? ['#1A2A0A','#0A1A0A'] : ['#1A1F17','#0E1117']}
-          style={StyleSheet.absoluteFill} start={{x:0,y:0}} end={{x:1,y:1}} />
+        
+        {bgImg ? (
+          <>
+            <Image source={bgImg} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition="center top" />
+            <LinearGradient colors={isDark ? ['rgba(26,42,10,0.85)','rgba(10,26,10,0.95)'] : ['rgba(26,31,23,0.8)','rgba(14,17,23,0.95)']}
+              style={StyleSheet.absoluteFill} start={{x:0,y:0}} end={{x:1,y:1}} />
+          </>
+        ) : (
+          <LinearGradient colors={isDark ? ['#1A2A0A','#0A1A0A'] : ['#1A1F17','#0E1117']}
+            style={StyleSheet.absoluteFill} start={{x:0,y:0}} end={{x:1,y:1}} />
+        )}
         <View style={{ flex:1 }}>
           <Text style={s.workoutLabel}>TODAY'S WORKOUT</Text>
           <Text style={s.workoutName} numberOfLines={1}>{planName}</Text>
@@ -186,19 +666,19 @@ function WorkoutCardAnimated({ plan, planName, planMins, planCals, planExs, navi
             ))}
           </View>
         </View>
-        <Reanimated.View style={[s.workoutPlayBtn, pulseStyle]}>
+        <Animated.View style={[s.workoutPlayBtn, pulseStyle]}>
           <Ionicons name="play" size={22} color={C.accentText} />
-        </Reanimated.View>
+        </Animated.View>
       </TouchableOpacity>
-    </Reanimated.View>
+    </Animated.View>
   );
 }
 
-// ── Quick action button with spring press ─────────────────────
+// â"€â"€ Quick action button with spring press â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 function QuickActionBtn({ q, navigation, s, C }) {
   const { animStyle, onPressIn, onPressOut } = useSpringPress(0.90);
   return (
-    <Reanimated.View style={animStyle}>
+    <Animated.View style={animStyle}>
       <TouchableOpacity style={s.quickBtn} activeOpacity={1}
         onPressIn={onPressIn} onPressOut={onPressOut}
         onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigation.navigate(q.screen); }}>
@@ -207,11 +687,11 @@ function QuickActionBtn({ q, navigation, s, C }) {
         </View>
         <Text style={s.quickLabel}>{q.label}</Text>
       </TouchableOpacity>
-    </Reanimated.View>
+    </Animated.View>
   );
 }
 
-// ── Animated calorie progress bar ─────────────────────────────
+// â"€â"€ Animated calorie progress bar â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 function CalBar({ pct, C, isDark }) {
   const anim = useBarFill(pct, 180, 700);
   const width = anim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
@@ -221,6 +701,148 @@ function CalBar({ pct, C, isDark }) {
   return (
     <View style={{ height: 7, backgroundColor: `${C.accent}22`, borderRadius: 4, overflow: 'hidden' }}>
       <Animated.View style={[{ height: '100%', backgroundColor: C.accent, borderRadius: 4 }, { width }, barGlow]} />
+    </View>
+  );
+}
+
+// ── 7-day training split ────────────────────────────────────────
+const DAILY_SPLIT = [
+  { key:'chest',  label:'Chest Day',      mcIcon:'weight-lifter',    tags:['CHEST'],                                               sub:'Push · Chest Focus'       },
+  { key:'back',   label:'Back Day',       mcIcon:'human-handsdown',  tags:['BACK','STRENGTH'],                                     sub:'Pull · Back Focus'        },
+  { key:'arms',   label:'Arms Day',       mcIcon:'arm-flex',         tags:['ARMS'],                                                sub:'Biceps & Triceps'         },
+  { key:'legs',   label:'Leg Day',        mcIcon:'run-fast',         tags:['LEGS','GLUTES'],                                       sub:'Lower Body Focus'         },
+  { key:'core',   label:'Core & Cardio',  mcIcon:'lightning-bolt',   tags:['CORE','CARDIO','HIIT'],                                sub:'Endurance Focus'          },
+  { key:'full',   label:'Full Body',      mcIcon:'dumbbell',         tags:['CHEST','BACK','ARMS','LEGS','GLUTES','SHOULDERS'],     sub:'All Muscle Groups'        },
+  { key:'rest',   label:'Rest Day',       mcIcon:'leaf',             tags:['RECOVERY','FLEXIBILITY'],                              sub:'Active Recovery'          },
+];
+const DAY_LABELS = ['MON','TUE','WED','THU','FRI','SAT','SUN'];
+
+function DailyRoutineSection({ gender, C, isDark, navigation }) {
+  const pool     = gender === 'female' ? VIDEOS_FEMALE : VIDEOS_MALE;
+  const now      = new Date();
+  const splitIdx = (now.getDay() + 6) % 7; // Sun=6, Mon=0, Tue=1...
+  const today    = DAILY_SPLIT[splitIdx];
+
+  const exercises = useMemo(() => {
+    const matches = pool.filter(v => today.tags.includes(v.tag));
+    if (matches.length === 0) return [];
+    const dayOfYear = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
+    const start     = dayOfYear % matches.length;
+    return Array.from({ length: Math.min(4, matches.length) }, (_, i) => matches[(start + i) % matches.length]);
+  }, [splitIdx, gender]);
+
+  const todayGlow = isDark ? {
+    shadowColor: C.accent, shadowOffset: { width:0, height:0 },
+    shadowOpacity: 0.18, shadowRadius: 10, elevation: 6,
+  } : {};
+
+  return (
+    <View style={{ marginHorizontal:16, marginBottom:16 }}>
+      {/* Row header */}
+      <View style={{ flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
+        <Text style={{ color:C.muted, fontSize:10, fontWeight:'800', letterSpacing:1.4, textTransform:'uppercase' }}>Daily Routine</Text>
+        <View style={{ backgroundColor:`${C.accent}18`, borderRadius:8, paddingHorizontal:8, paddingVertical:3, borderWidth:1, borderColor:`${C.accent}33` }}>
+          <Text style={{ color:C.accent, fontSize:9, fontWeight:'800', letterSpacing:0.8 }}>SPLIT PROGRAM</Text>
+        </View>
+      </View>
+
+      {/* 7-day strip */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap:6, paddingBottom:12 }}>
+        {DAILY_SPLIT.map((day, i) => {
+          const isToday = i === splitIdx;
+          return (
+            <View key={day.key} style={{
+              paddingHorizontal:10, paddingVertical:8, borderRadius:14,
+              backgroundColor: isToday ? C.accent : C.card,
+              borderWidth:1, borderColor: isToday ? C.accent : C.border,
+              alignItems:'center', minWidth:48,
+            }}>
+              <Text style={{ color: isToday ? C.accentText : C.dim, fontSize:9, fontWeight:'800', letterSpacing:0.6 }}>
+                {DAY_LABELS[i]}
+              </Text>
+              <Text style={{ color: isToday ? C.accentText : C.text, fontSize:11, fontWeight:'900', marginTop:3 }} numberOfLines={1}>
+                {day.label.split(' ')[0]}
+              </Text>
+              {isToday && (
+                <View style={{ width:4, height:4, borderRadius:2, backgroundColor:C.accentText, marginTop:4, opacity:0.6 }} />
+              )}
+            </View>
+          );
+        })}
+      </ScrollView>
+
+      {/* Today's card */}
+      <View style={[{
+        backgroundColor: isDark ? '#121A00' : '#F6FDE6',
+        borderRadius:18, borderWidth:1, borderColor:`${C.accent}40`,
+        overflow:'hidden',
+      }, todayGlow]}>
+        {/* Header row */}
+        <View style={{
+          flexDirection:'row', alignItems:'center', gap:12,
+          padding:14, paddingBottom:12,
+          borderBottomWidth:1, borderBottomColor: isDark ? `${C.accent}22` : `${C.accent}20`,
+        }}>
+          <View style={{ width:46, height:46, borderRadius:13, backgroundColor:`${C.accent}22`,
+            alignItems:'center', justifyContent:'center' }}>
+            <MaterialCommunityIcons name={today.mcIcon} size={24} color={C.accent} />
+          </View>
+          <View style={{ flex:1 }}>
+            <Text style={{ color:C.accent, fontSize:9, fontWeight:'900', letterSpacing:1.2, textTransform:'uppercase', marginBottom:2 }}>
+              TODAY · {DAY_LABELS[splitIdx]}
+            </Text>
+            <Text style={{ color:C.text, fontSize:17, fontWeight:'900', lineHeight:20 }}>{today.label}</Text>
+            <Text style={{ color:C.muted, fontSize:11, fontWeight:'600', marginTop:2 }}>{today.sub}</Text>
+          </View>
+          <View style={{ backgroundColor:`${C.accent}22`, borderRadius:10, paddingHorizontal:10, paddingVertical:6, alignItems:'center' }}>
+            <Text style={{ color:C.accent, fontSize:14, fontWeight:'900' }}>{exercises.length}</Text>
+            <Text style={{ color:C.muted, fontSize:8, fontWeight:'800', letterSpacing:0.4 }}>EXCS</Text>
+          </View>
+        </View>
+
+        {/* Exercise rows */}
+        {exercises.length > 0 ? (
+          exercises.map((ex, i) => (
+            <TouchableOpacity key={`${ex.label}${i}`} activeOpacity={0.7}
+              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigation.navigate('Workouts'); }}
+              style={{
+                flexDirection:'row', alignItems:'center', gap:12,
+                paddingVertical:11, paddingHorizontal:14,
+                borderTopWidth: i > 0 ? 1 : 0, borderTopColor: isDark ? `${C.accent}15` : `${C.accent}18`,
+              }}>
+              <View style={{ width:28, height:28, borderRadius:8, backgroundColor:`${C.accent}22`,
+                alignItems:'center', justifyContent:'center' }}>
+                <Text style={{ color:C.accent, fontSize:12, fontWeight:'900' }}>{i + 1}</Text>
+              </View>
+              <Text style={{ flex:1, color:C.text, fontSize:13, fontWeight:'700' }}>{ex.label}</Text>
+              <View style={{ backgroundColor:`${C.accent}18`, borderRadius:8, paddingHorizontal:8, paddingVertical:4,
+                borderWidth:1, borderColor:`${C.accent}30` }}>
+                <Text style={{ color:C.accent, fontSize:9, fontWeight:'800', letterSpacing:0.5 }}>{ex.tag}</Text>
+              </View>
+              <Ionicons name="play-circle-outline" size={20} color={`${C.accent}88`} />
+            </TouchableOpacity>
+          ))
+        ) : (
+          <View style={{ alignItems:'center', paddingVertical:24, gap:8 }}>
+            <MaterialCommunityIcons name="leaf" size={32} color={C.muted} />
+            <Text style={{ color:C.muted, fontSize:13, fontWeight:'700' }}>Rest Day — Recharge!</Text>
+            <Text style={{ color:C.dim, fontSize:11 }}>Light stretching or foam rolling recommended</Text>
+          </View>
+        )}
+
+        {/* Footer CTA */}
+        <TouchableOpacity
+          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigation.navigate('Workouts'); }}
+          style={{
+            flexDirection:'row', alignItems:'center', justifyContent:'center', gap:6,
+            paddingVertical:12, borderTopWidth:1,
+            borderTopColor: isDark ? `${C.accent}22` : `${C.accent}20`,
+          }}>
+          <Text style={{ color:C.accent, fontSize:12, fontWeight:'800', letterSpacing:0.4 }}>View Full Workout Plan</Text>
+          <Ionicons name="arrow-forward" size={13} color={C.accent} />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -272,7 +894,7 @@ export default function HomeScreen({ navigation }) {
   const refresh = sR || nR || gR;
   const onRefresh = () => { rS(); rN(); rG(); };
 
-  // ── Computed values (safe with null data while loading) ────────
+  // â"€â"€ Computed values (safe with null data while loading) â"€â"€â"€â"€â"€â"€â"€â"€
   const streak      = stats?.streak?.current_streak       || 0;
   const totalWkts   = stats?.workout_stats?.total_workouts || 0;
   const weekly      = stats?.weekly_activity               || [];
@@ -301,7 +923,7 @@ export default function HomeScreen({ navigation }) {
   const firstName  = user?.full_name?.split(' ')[0] || 'Champ';
   const weightGoal = goals.find(g => g.type === 'weight_loss' || g.type === 'weight_gain');
 
-  // ── Entrance animations — must be before early return ─────────
+  // â"€â"€ Entrance animations â€" must be before early return â"€â"€â"€â"€â"€â"€â"€â"€â"€
   const e0 = useEntrance(0);
   const e1 = useEntrance(1);
   const e2 = useEntrance(2);
@@ -309,13 +931,14 @@ export default function HomeScreen({ navigation }) {
   const e4 = useEntrance(4);
   const e5 = useEntrance(5);
   const e6 = useEntrance(6);
+  const e7 = useEntrance(7);
 
-  // ── Count-up — enabled only after data loads ──────────────────
+  // â"€â"€ Count-up â€" enabled only after data loads â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
   const streakDisplay      = useCountUp(streak,      700, !loading);
   const totalWktsDisplay   = useCountUp(totalWkts,   700, !loading);
   const calDisplay         = useCountUp(calConsumed, 800, !loading);
 
-  // ── Hero card glow / border depth ─────────────────────────────
+  // â"€â"€ Hero card glow / border depth â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
   const heroDepth = isDark
     ? [{ borderColor: `${C.accent}33` }, glowStyle(true, C.accent, 14, 0.18)]
     : [{ borderColor: C.border }];
@@ -335,10 +958,10 @@ export default function HomeScreen({ navigation }) {
       refreshControl={<RefreshControl refreshing={refresh} onRefresh={onRefresh} tintColor={C.accent} />}
       showsVerticalScrollIndicator={false}>
 
-      {/* ══════════════════════════════════════════════════════
+      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
           HEADER
-      ══════════════════════════════════════════════════════ */}
-      <Reanimated.View style={e0}>
+      â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+      <Animated.View style={e0}>
       <View style={s.header}>
         <View>
           <Text style={s.greeting}>{getGreeting()}</Text>
@@ -370,12 +993,15 @@ export default function HomeScreen({ navigation }) {
           </TouchableOpacity>
         </View>
       </View>
-      </Reanimated.View>
+      </Animated.View>
 
-      {/* ══════════════════════════════════════════════════════
-          HERO — GENDER BODY TRANSFORMATION CARD
-      ══════════════════════════════════════════════════════ */}
-      <Reanimated.View style={[e1, { marginHorizontal:16, marginBottom:14 }, ...heroDepth]}>
+      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+          HERO â€" GENDER BODY TRANSFORMATION CARD
+      â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+
+      {gender === 'female' && <FemaleCategoryStrip C={C} isDark={isDark} navigation={navigation} />}
+      {/* Female category strip */}
+      <Animated.View style={[e1, { marginHorizontal:16, marginBottom:14 }, ...heroDepth]}>
       <View style={[s.heroCard, { marginHorizontal:0, marginBottom:0 }]}>
         <LinearGradient
           colors={isDark ? [C.surfaceAlt ?? C.card2, C.bg] : ['#1A1F17', '#0E1117']}
@@ -439,12 +1065,12 @@ export default function HomeScreen({ navigation }) {
           </View>
         )}
       </View>
-      </Reanimated.View>
+      </Animated.View>
 
-      {/* ══════════════════════════════════════════════════════
+      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
           3-STAT STRIP
-      ══════════════════════════════════════════════════════ */}
-      <Reanimated.View style={e2}>
+      â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+      <Animated.View style={e2}>
       <View style={s.statStrip}>
         {[
           { icon:'flame',            color:C.accent, val: streakDisplay,          sub:'Day Streak' },
@@ -461,17 +1087,22 @@ export default function HomeScreen({ navigation }) {
           </React.Fragment>
         ))}
       </View>
-      </Reanimated.View>
+      </Animated.View>
 
-      {/* ══════════════════════════════════════════════════════
-          TODAY'S MACROS — RING PROGRESS
-      ══════════════════════════════════════════════════════ */}
-      <Reanimated.View style={e3}>
+      {/* Female featured slider + wellness strip */}
+      {gender === 'female' && <FemaleFeaturedSlider C={C} navigation={navigation} />}
+      {gender === 'female' && <FemaleWellnessStrip C={C} isDark={isDark} />}
+
+
+      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+          TODAY'S MACROS â€" RING PROGRESS
+      â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+      <Animated.View style={e3}>
       <View style={s.card}>
         <View style={s.cardHeader}>
           <Text style={s.cardTitle}>Today's Nutrition</Text>
           <TouchableOpacity onPress={() => navigation.navigate('Nutrition')}>
-            <Text style={s.seeAll}>Log Food ›</Text>
+            <Text style={s.seeAll}>Log Food â€º</Text>
           </TouchableOpacity>
         </View>
 
@@ -493,18 +1124,18 @@ export default function HomeScreen({ navigation }) {
           <MacroRing value={fatConsumed}  max={fatTarget}  color={C.accent} label="FATS"    unit="g" C={C} isDark={isDark} />
         </View>
       </View>
-      </Reanimated.View>
+      </Animated.View>
 
-      {/* ══════════════════════════════════════════════════════
+      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
           TODAY'S WORKOUT CARD
-      ══════════════════════════════════════════════════════ */}
-      <Reanimated.View style={e4}>
+      â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+      <Animated.View style={e4}>
       <WorkoutCardAnimated plan={plan} planName={planName} planMins={planMins} planCals={planCals}
-        planExs={planExs} navigation={navigation} C={C} s={s} isDark={isDark} />
+        planExs={planExs} gender={gender} navigation={navigation} C={C} s={s} isDark={isDark} />
 
-      {/* ══════════════════════════════════════════════════════
+      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
           QUICK ACTIONS
-      ══════════════════════════════════════════════════════ */}
+      â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
       <View style={s.quickGrid}>
         {[
           { icon:'restaurant',      label:'Log Food',  color:C.accent, screen:'Nutrition' },
@@ -515,12 +1146,15 @@ export default function HomeScreen({ navigation }) {
           <QuickActionBtn key={q.label} q={q} navigation={navigation} s={s} C={C} />
         ))}
       </View>
-      </Reanimated.View>
+      </Animated.View>
 
-      {/* ══════════════════════════════════════════════════════
+      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
           AI COACH BANNER
-      ══════════════════════════════════════════════════════ */}
-      <Reanimated.View style={e5}>
+      â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+      {/* Female yoga quick banner */}
+      {gender === 'female' && <FemaleYogaBanner navigation={navigation} C={C} />}
+
+      <Animated.View style={e5}>
       <TouchableOpacity style={[s.aiCard, glowStyle(isDark, C.accent, 10, 0.12)]}
         onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigation.navigate('AICoach'); }}
         activeOpacity={0.85}>
@@ -538,28 +1172,33 @@ export default function HomeScreen({ navigation }) {
           </View>
           <Text style={s.aiSub}>
             {streak >= 3
-              ? `${streak}-day streak! Get your personalized daily report →`
-              : 'Wellness score • Daily report • Custom plans →'}
+              ? `${streak}-day streak! Get your personalized daily report â†’`
+              : 'Wellness score â€¢ Daily report â€¢ Custom plans â†’'}
           </Text>
         </View>
         <View style={[s.aiArrow, { backgroundColor:C.accent }]}>
           <Ionicons name="chevron-forward" size={16} color={C.accentText} />
         </View>
       </TouchableOpacity>
-      </Reanimated.View>
+      </Animated.View>
 
-      {/* ══════════════════════════════════════════════════════
+      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
           WORKOUT VIDEO OF THE DAY
-      ══════════════════════════════════════════════════════ */}
-      <Reanimated.View style={e5}>
+      â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+      <Animated.View style={e5}>
       <Text style={s.sectionLbl}>WORKOUT OF THE DAY</Text>
       <WorkoutVideoCard gender={gender} navigation={navigation} C={C} s={s} />
-      </Reanimated.View>
+      </Animated.View>
 
-      {/* ══════════════════════════════════════════════════════
+      {/* DAILY TRAINING SPLIT */}
+      <Animated.View style={e6}>
+      <DailyRoutineSection gender={gender} C={C} isDark={isDark} navigation={navigation} />
+      </Animated.View>
+
+      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
           WEEKLY ACTIVITY BAR CHART
-      ══════════════════════════════════════════════════════ */}
-      <Reanimated.View style={e5}>
+      â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+      <Animated.View style={e5}>
       <View style={s.card}>
         <View style={s.cardHeader}>
           <Text style={s.cardTitle}>Weekly Activity</Text>
@@ -585,17 +1224,17 @@ export default function HomeScreen({ navigation }) {
           })}
         </View>
       </View>
-      </Reanimated.View>
+      </Animated.View>
 
-      {/* ══════════════════════════════════════════════════════
+      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
           ACTIVE GOALS
-      ══════════════════════════════════════════════════════ */}
-      <Reanimated.View style={e6}>
+      â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+      <Animated.View style={e7}>
       <View style={s.card}>
         <View style={s.cardHeader}>
           <Text style={s.cardTitle}>Active Goals</Text>
           <TouchableOpacity onPress={() => navigation.navigate('Goals')}>
-            <Text style={s.seeAll}>See all ›</Text>
+            <Text style={s.seeAll}>See all â€º</Text>
           </TouchableOpacity>
         </View>
 
@@ -654,12 +1293,12 @@ export default function HomeScreen({ navigation }) {
           <Text style={s.addGoalTxt}>Add New Goal</Text>
         </TouchableOpacity>
       </View>
-      </Reanimated.View>
+      </Animated.View>
 
-      {/* ══════════════════════════════════════════════════════
+      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
           SLEEP
-      ══════════════════════════════════════════════════════ */}
-      <Reanimated.View style={e6}>
+      â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+      <Animated.View style={e7}>
       {stats?.last_sleep ? (
         <TouchableOpacity style={[s.sleepCard, glowStyle(isDark, C.accent, 8, 0.12)]}
           onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigation.navigate('Sleep'); }}
@@ -691,13 +1330,13 @@ export default function HomeScreen({ navigation }) {
           </View>
           <View style={{ flex:1 }}>
             <Text style={s.sleepLabel}>Sleep Tracker</Text>
-            <Text style={{ color:C.muted, fontSize:12 }}>Log last night's sleep →</Text>
+            <Text style={{ color:C.muted, fontSize:12 }}>Log last night's sleep â†’</Text>
           </View>
         </TouchableOpacity>
       )}
 
       <View style={{ height: 28 }} />
-      </Reanimated.View>
+      </Animated.View>
     </ScrollView>
     </SafeAreaView>
   );
@@ -837,3 +1476,4 @@ const makeStyles = (C) => StyleSheet.create({
   sleepDur:     { color:C.text, fontSize:22, fontWeight:'900' },
   sleepUnit:    { color:C.muted, fontSize:13, fontWeight:'400' },
 });
+

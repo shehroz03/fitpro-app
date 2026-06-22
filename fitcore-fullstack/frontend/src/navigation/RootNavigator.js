@@ -26,6 +26,10 @@ import QuizOnboarding from '../onboarding/QuizOnboarding';
 import SplashVideoScreen from '../screens/SplashVideoScreen';
 import SleepScreen             from '../screens/SleepScreen';
 import FitnessTrackerScreen   from '../screens/FitnessTrackerScreen';
+import YogaScreen             from '../screens/YogaScreen';
+import YogaPoseDetailScreen   from '../screens/YogaPoseDetailScreen';
+import DietDoctorScreen       from '../screens/DietDoctorScreen';
+import VideoLibraryScreen    from '../screens/VideoLibraryScreen';
 
 const Tab   = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -53,6 +57,8 @@ function MainTabs() {
   const C = useC();
   const isDark = useThemeStore(s => s.isDark);
   const insets = useSafeAreaInsets();
+  const user = useAuthStore(s => s.user);
+  const isFemale = user?.gender === 'female';
   const tabBarStyle = useMemo(() => ({
     backgroundColor: isDark ? 'rgba(10,10,15,0.97)' : 'rgba(255,255,255,0.97)',
     borderTopColor: C.border,
@@ -75,6 +81,10 @@ function MainTabs() {
         options={{ tabBarIcon: ({ focused }) => <TabIcon name="barbell"    label="Workouts"  focused={focused} /> }} />
       <Tab.Screen name="Nutrition" component={NutritionScreen}
         options={{ tabBarIcon: ({ focused }) => <TabIcon name="restaurant" label="Nutrition" focused={focused} /> }} />
+      {isFemale && (
+        <Tab.Screen name="Yoga" component={YogaScreen}
+          options={{ tabBarIcon: ({ focused }) => <TabIcon name="leaf" label="Yoga" focused={focused} /> }} />
+      )}
       <Tab.Screen name="Profile"   component={ProfileScreen}
         options={{ tabBarIcon: ({ focused }) => <TabIcon name="person"     label="Profile"   focused={focused} /> }} />
     </Tab.Navigator>
@@ -98,11 +108,14 @@ function AppStack() {
       })}
     >
       <Stack.Screen name="Main"          component={MainTabs}            options={{ headerShown: false }} />
-      <Stack.Screen name="Goals"         component={GoalsScreen}         options={{ title: 'My Goals' }} />
-      <Stack.Screen name="WorkoutDetail" component={WorkoutDetailScreen} options={{ title: 'Workout', headerTransparent: false }} />
+      <Stack.Screen name="Goals"         component={GoalsScreen}         options={{ headerShown: false }} />
+      <Stack.Screen name="WorkoutDetail" component={WorkoutDetailScreen} options={{ headerShown: false }} />
       <Stack.Screen name="AICoach"       component={AICoachScreen}       options={{ headerShown: false }} />
       <Stack.Screen name="Sleep"         component={SleepScreen}         options={{ headerShown: false }} />
       <Stack.Screen name="Tracker"       component={FitnessTrackerScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="YogaPoseDetail" component={YogaPoseDetailScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="DietDoctor"    component={DietDoctorScreen}    options={{ headerShown: false }} />
+      <Stack.Screen name="VideoLibrary" component={VideoLibraryScreen}  options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }

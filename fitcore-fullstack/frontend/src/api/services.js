@@ -384,10 +384,10 @@ export const nutritionAPI = {
 
   // Real AI vision via the `analyze-food` Supabase Edge Function (OpenAI GPT-4o).
   // `region` is the circled area as normalized coords {x,y,w,h} (0-1), or null.
-  analyzeImage: async ({ imageBase64, region = null, mimeType = 'image/jpeg' } = {}) => {
+  analyzeImage: async ({ imageBase64, region = null, mimeType = 'image/jpeg', mode = 'single' } = {}) => {
     if (!imageBase64) throw new Error('No image provided');
     const { data, error } = await supabase.functions.invoke('analyze-food', {
-      body: { imageBase64, region, mimeType },
+      body: { imageBase64, region, mimeType, mode },
     });
     if (error) throw new Error(await fnErrorMessage(error, 'AI analysis failed'));
     if (data?.error) throw new Error(data.error);

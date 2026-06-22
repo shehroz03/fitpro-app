@@ -1,4 +1,6 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { View, Text, ScrollView, TouchableOpacity, Modal,
@@ -781,11 +783,48 @@ export default function NutritionScreen({ navigation }) {
 
   // AI Scanner States
   const [aiImage,       setAiImage]       = useState(null);
-  const [aiPath,        setAiPath]        = useState([]);    // finger trail (container px)
-  const [aiBox,         setAiBox]         = useState(null);  // circled region {x,y,w,h norm + px}
+  const [aiPath,        setAiPath]        = useState([]);
+  const [aiBox,         setAiBox]         = useState(null);
   const [aiResult,      setAiResult]      = useState(null);
   const [aiLoading,     setAiLoading]     = useState(false);
   const [scrollEnabled, setScrollEnabled] = useState(true);
+  // Multi-item scan
+  const [scanMode,      setScanMode]      = useState('single');  // 'single' | 'scan_all'
+  const [aiItems,       setAiItems]       = useState([]);        // scan_all results
+  const [checkedItems,  setCheckedItems]  = useState({});        // which items selected for log
+  // Favorites
+  const [favorites,     setFavorites]     = useState([]);
+
+  const FAVES_KEY = '@fitcore_ai_faves';
+
+  const loadFavorites = useCallback(async () => {
+    try {
+      const raw = await AsyncStorage.getItem(FAVES_KEY);
+      if (raw) setFavorites(JSON.parse(raw));
+    } catch {}
+  }, []);
+
+  const saveFavorite = useCallback(async (food) => {
+    try {
+      const raw = await AsyncStorage.getItem(FAVES_KEY);
+      const faves = raw ? JSON.parse(raw) : [];
+      const idx = faves.findIndex(f => f.name.toLowerCase() === food.name.toLowerCase());
+      if (idx >= 0) {
+        faves[idx].count = (faves[idx].count || 0) + 1;
+        faves[idx].lastUsed = Date.now();
+      } else {
+        faves.unshift({ name: food.name, calories: food.calories, protein_g: food.protein_g,
+          carbs_g: food.carbs_g, fat_g: food.fat_g, serving_size_g: food.serving_size_g || 100,
+          count: 1, lastUsed: Date.now() });
+      }
+      faves.sort((a, b) => (b.count - a.count));
+      const top = faves.slice(0, 12);
+      await AsyncStorage.setItem(FAVES_KEY, JSON.stringify(top));
+      setFavorites(top);
+    } catch {}
+  }, []);
+
+  useEffect(() => { loadFavorites(); }, [loadFavorites]);
 
   // refs for the circle-to-select gesture (read inside PanResponder closures)
   const imgLayout  = useRef({ width: 1, height: 1 });   // rendered container size
@@ -907,13 +946,15 @@ export default function NutritionScreen({ navigation }) {
     setAiPath([]);
     setAiBox(null);
     setAiResult(null);
+    setAiItems([]);
+    setCheckedItems({});
   };
 
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: false,
-      quality: 0.45,   // smaller payload → faster + avoids edge-function size errors
+      quality: 0.45,
       base64: true,
     });
     if (!result.canceled) {
@@ -932,10 +973,36 @@ export default function NutritionScreen({ navigation }) {
         imageBase64: aiImage.base64,
         region: aiBox ? { x: aiBox.x, y: aiBox.y, w: aiBox.w, h: aiBox.h } : null,
         mimeType: aiImage.mimeType || 'image/jpeg',
+        mode: 'single',
       });
-      setAiResult(res.data.data);
+      setAiResult(res.data.data || res.data);
+      setAiItems([]);
     } catch (e) {
       Alert.alert('AI Error', e.message || 'Could not analyze image');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const analyzeFoodFullPlate = async () => {
+    if (!aiImage) return;
+    setAiLoading(true);
+    try {
+      const res = await nutritionAPI.analyzeImage({
+        imageBase64: aiImage.base64,
+        mimeType: aiImage.mimeType || 'image/jpeg',
+        mode: 'scan_all',
+      });
+      const result = res.data.data || res.data;
+      const items = result.items || [];
+      setAiItems(items);
+      setAiResult(null);
+      // pre-check all items
+      const checked = {};
+      items.forEach((_, i) => { checked[i] = true; });
+      setCheckedItems(checked);
+    } catch (e) {
+      Alert.alert('AI Error', e.message || 'Could not scan plate');
     } finally {
       setAiLoading(false);
     }
@@ -944,6 +1011,7 @@ export default function NutritionScreen({ navigation }) {
   const logAiFood = () => {
     if (!aiResult) return;
     const grams = aiResult.serving_size_g || 100;
+    saveFavorite(aiResult);
     setLogFood({
       id: 'ai-custom',
       name: aiResult.name,
@@ -954,6 +1022,38 @@ export default function NutritionScreen({ navigation }) {
       serving_size_g: grams,
     });
     setLogQty(String(grams));
+    setShowLogModal(true);
+  };
+
+  const logFavoriteQuick = (fav) => {
+    saveFavorite(fav);
+    setLogFood({ id: 'ai-fav', name: fav.name, calories: fav.calories,
+      protein_g: fav.protein_g, carbs_g: fav.carbs_g, fat_g: fav.fat_g,
+      serving_size_g: fav.serving_size_g || 100 });
+    setLogQty(String(fav.serving_size_g || 100));
+    setShowLogModal(true);
+  };
+
+  const logCheckedItems = () => {
+    const selected = aiItems.filter((_, i) => checkedItems[i]);
+    if (!selected.length) return;
+    // log first selected — for simplicity, open log modal per item sequentially
+    // Here we log first one; user logs all by tapping each
+    const first = selected[0];
+    saveFavorite(first);
+    setLogFood({ id: 'ai-custom', name: first.name, calories: first.calories,
+      protein_g: first.protein_g, carbs_g: first.carbs_g, fat_g: first.fat_g,
+      serving_size_g: first.serving_size_g || 100 });
+    setLogQty(String(first.serving_size_g || 100));
+    setShowLogModal(true);
+  };
+
+  const logSingleItem = (item) => {
+    saveFavorite(item);
+    setLogFood({ id: 'ai-custom', name: item.name, calories: item.calories,
+      protein_g: item.protein_g, carbs_g: item.carbs_g, fat_g: item.fat_g,
+      serving_size_g: item.serving_size_g || 100 });
+    setLogQty(String(item.serving_size_g || 100));
     setShowLogModal(true);
   };
 
@@ -1217,18 +1317,97 @@ export default function NutritionScreen({ navigation }) {
         ═══════════════════════════════════════════════ */}
         {activeTab === 'ai' && (
           <View style={{ flex:1 }}>
-            <View style={[s.goalCard, { borderColor: C.accent }]}>
-              <View style={{ flexDirection:'row', alignItems:'center', gap:6, marginBottom:4 }}>
-                <Ionicons name="camera" size={16} color={C.accent} />
-                <Text style={[s.goalCardTitle, { marginBottom:0 }]}>AI Food Scanner</Text>
-              </View>
-              <Text style={s.goalCardSub}>Upload a photo of your plate, then <Text style={{ color:C.accent, fontWeight:'800' }}>draw a circle around any one item</Text> with your finger. The AI will identify it and estimate its portion, calories & macros.</Text>
+
+            {/* ── DIET DOCTOR BANNER ── */}
+            <TouchableOpacity
+              style={aiStyles.doctorBanner}
+              onPress={() => navigation.navigate('DietDoctor')}
+              activeOpacity={0.85}
+            >
+              <LinearGradient
+                colors={['#0D1A14', '#111122']}
+                style={aiStyles.doctorBannerGrad}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+              >
+                <Text style={{ fontSize: 28 }}>
+                  {(user?.gender === 'female') ? '👩‍⚕️' : '👨‍⚕️'}
+                </Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: '#C8F135', fontWeight: '800', fontSize: 13 }}>
+                    AI Diet Doctor
+                  </Text>
+                  <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, marginTop: 1 }}>
+                    Personalized diet plan — answers your questions first
+                  </Text>
+                </View>
+                <View style={aiStyles.doctorBannerArrow}>
+                  <Ionicons name="chevron-forward" size={16} color="#C8F135" />
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            {/* ── MODE TOGGLE ── */}
+            <View style={aiStyles.modeRow}>
+              <TouchableOpacity
+                style={[aiStyles.modeBtn, scanMode === 'single' && aiStyles.modeBtnOn]}
+                onPress={() => { setScanMode('single'); resetAiGesture(); }}
+              >
+                <Ionicons name="scan-outline" size={14} color={scanMode === 'single' ? '#0A0A0F' : C.dim} />
+                <Text style={[aiStyles.modeTxt, scanMode === 'single' && aiStyles.modeTxtOn]}>Single Item</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[aiStyles.modeBtn, scanMode === 'scan_all' && aiStyles.modeBtnOn]}
+                onPress={() => { setScanMode('scan_all'); resetAiGesture(); }}
+              >
+                <Ionicons name="grid-outline" size={14} color={scanMode === 'scan_all' ? '#0A0A0F' : C.dim} />
+                <Text style={[aiStyles.modeTxt, scanMode === 'scan_all' && aiStyles.modeTxtOn]}>Full Plate</Text>
+              </TouchableOpacity>
             </View>
 
+            {/* ── MODE HINT ── */}
+            <View style={[s.goalCard, { borderColor: C.accent, marginBottom: 10 }]}>
+              <View style={{ flexDirection:'row', alignItems:'center', gap:6, marginBottom:4 }}>
+                <Ionicons name={scanMode === 'scan_all' ? 'grid' : 'camera'} size={15} color={C.accent} />
+                <Text style={[s.goalCardTitle, { marginBottom:0 }]}>
+                  {scanMode === 'scan_all' ? 'Full Plate Scanner' : 'AI Food Scanner'}
+                </Text>
+              </View>
+              <Text style={s.goalCardSub}>
+                {scanMode === 'scan_all'
+                  ? 'Upload a photo and AI will detect ALL food items on your plate at once — calories, macros for each.'
+                  : 'Upload a photo, then draw a circle around one item. AI identifies it with 90%+ accuracy.'}
+              </Text>
+            </View>
+
+            {/* ── FAVORITES STRIP ── */}
+            {favorites.length > 0 && (
+              <View style={{ marginBottom: 12 }}>
+                <Text style={[s.secLabel, { marginBottom: 7 }]}>YOUR FAVORITES</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ gap: 8 }}>
+                  {favorites.slice(0, 8).map((fav, i) => (
+                    <TouchableOpacity key={i} style={aiStyles.favChip} onPress={() => logFavoriteQuick(fav)}>
+                      <Text style={aiStyles.favChipName} numberOfLines={1}>{fav.name}</Text>
+                      <Text style={aiStyles.favChipCal}>{fav.calories} kcal</Text>
+                      {fav.count > 1 && (
+                        <View style={aiStyles.favCount}>
+                          <Text style={{ color: '#0A0A0F', fontSize: 8, fontWeight: '800' }}>{fav.count}x</Text>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* ── IMAGE AREA ── */}
             {!aiImage ? (
               <TouchableOpacity style={aiStyles.uploadBtn} onPress={pickImage}>
                 <Ionicons name="image-outline" size={42} color={C.accent} style={{ marginBottom:10 }} />
-                <Text style={aiStyles.uploadBtnTxt}>Tap to Choose Image</Text>
+                <Text style={aiStyles.uploadBtnTxt}>Tap to Choose Photo</Text>
+                <Text style={{ color: C.dim, fontSize: 11, marginTop: 4 }}>
+                  {scanMode === 'scan_all' ? 'AI will scan the entire plate' : 'Then circle one food item'}
+                </Text>
               </TouchableOpacity>
             ) : (
               <View>
@@ -1238,44 +1417,45 @@ export default function NutritionScreen({ navigation }) {
                     const { width, height } = e.nativeEvent.layout;
                     imgLayout.current = { width, height };
                   }}
-                  {...aiPan.panHandlers}
+                  {...(scanMode === 'single' ? aiPan.panHandlers : {})}
                 >
                   <Image source={{ uri: aiImage.uri }} style={aiStyles.previewImg} contentFit="contain" />
 
-                  {/* finger-trail + selected-region outline */}
-                  <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
-                    {aiPath.length > 1 && (
-                      <Polyline
-                        points={aiPath.map(p => `${p.x},${p.y}`).join(' ')}
-                        fill="none"
-                        stroke={C.accent}
-                        strokeWidth={3}
-                        strokeLinejoin="round"
-                        strokeLinecap="round"
-                        opacity={aiBox ? 0.3 : 0.95}
-                      />
-                    )}
-                    {aiBox?.px && (
-                      <Rect
-                        x={aiBox.px.x} y={aiBox.px.y}
-                        width={aiBox.px.w} height={aiBox.px.h}
-                        rx={14} ry={14}
-                        fill="rgba(200,241,53,0.10)"
-                        stroke={C.accent}
-                        strokeWidth={2.5}
-                        strokeDasharray="9 5"
-                      />
-                    )}
-                  </Svg>
+                  {scanMode === 'single' && (
+                    <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
+                      {aiPath.length > 1 && (
+                        <Polyline
+                          points={aiPath.map(p => `${p.x},${p.y}`).join(' ')}
+                          fill="none" stroke={C.accent} strokeWidth={3}
+                          strokeLinejoin="round" strokeLinecap="round"
+                          opacity={aiBox ? 0.3 : 0.95}
+                        />
+                      )}
+                      {aiBox?.px && (
+                        <Rect
+                          x={aiBox.px.x} y={aiBox.px.y}
+                          width={aiBox.px.w} height={aiBox.px.h}
+                          rx={14} ry={14}
+                          fill="rgba(200,241,53,0.10)"
+                          stroke={C.accent} strokeWidth={2.5} strokeDasharray="9 5"
+                        />
+                      )}
+                    </Svg>
+                  )}
 
-                  {/* hint while nothing is drawn yet */}
-                  {aiPath.length === 0 && !aiResult && (
+                  {scanMode === 'single' && aiPath.length === 0 && !aiResult && (
                     <View style={[aiStyles.hintBadge, { flexDirection:'row', alignItems:'center', gap:5 }]}>
                       <Ionicons name="finger-print-outline" size={13} color={C.accent} />
                       <Text style={aiStyles.hintTxt}>Circle a food item</Text>
                     </View>
                   )}
-                  {aiBox && (
+                  {scanMode === 'scan_all' && !aiLoading && aiItems.length === 0 && (
+                    <View style={[aiStyles.hintBadge, { flexDirection:'row', alignItems:'center', gap:5 }]}>
+                      <Ionicons name="grid-outline" size={13} color={C.accent} />
+                      <Text style={aiStyles.hintTxt}>Tap Scan Full Plate</Text>
+                    </View>
+                  )}
+                  {aiBox && scanMode === 'single' && (
                     <View style={[aiStyles.selBadge, { flexDirection:'row', alignItems:'center', gap:5 }]}>
                       <Ionicons name="checkmark-circle" size={13} color="#0A0A0F" />
                       <Text style={aiStyles.selTxt}>Item selected</Text>
@@ -1283,13 +1463,14 @@ export default function NutritionScreen({ navigation }) {
                   )}
                 </View>
 
+                {/* controls */}
                 <View style={aiStyles.controls}>
                   <TouchableOpacity style={aiStyles.retakeBtn} onPress={pickImage}>
                     <Text style={aiStyles.retakeBtnTxt}>Retake</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[aiStyles.analyzeBtn, aiLoading && aiStyles.analyzeBtnDisabled]}
-                    onPress={analyzeFood}
+                    onPress={scanMode === 'scan_all' ? analyzeFoodFullPlate : analyzeFood}
                     disabled={aiLoading}
                   >
                     {aiLoading
@@ -1297,19 +1478,22 @@ export default function NutritionScreen({ navigation }) {
                       : (
                         <View style={{ flexDirection:'row', alignItems:'center', gap:6 }}>
                           <Ionicons name="sparkles" size={15} color="#0A0A0F" />
-                          <Text style={aiStyles.analyzeBtnTxt}>{aiBox ? 'Analyze Selected' : 'Analyze Plate'}</Text>
+                          <Text style={aiStyles.analyzeBtnTxt}>
+                            {scanMode === 'scan_all' ? 'Scan Full Plate' : aiBox ? 'Analyze Selected' : 'Analyze Item'}
+                          </Text>
                         </View>
                       )}
                   </TouchableOpacity>
                 </View>
 
-                {aiBox && !aiResult && (
+                {aiBox && !aiResult && scanMode === 'single' && (
                   <TouchableOpacity onPress={resetAiGesture} style={aiStyles.clearBtn}>
                     <Text style={aiStyles.clearTxt}>Clear selection & circle again</Text>
                   </TouchableOpacity>
                 )}
 
-                {aiResult && (
+                {/* ── SINGLE RESULT ── */}
+                {aiResult && scanMode === 'single' && (
                   <View style={aiStyles.resultCard}>
                     <View style={aiStyles.resHead}>
                       <Text style={aiStyles.resName} numberOfLines={2}>{aiResult.name}</Text>
@@ -1319,36 +1503,88 @@ export default function NutritionScreen({ navigation }) {
                         </View>
                       )}
                     </View>
-
                     {!!aiResult.quantity && (
                       <Text style={aiStyles.resQty}>Portion: {aiResult.quantity}</Text>
                     )}
-
                     <View style={aiStyles.resMacroRow}>
-                      <View style={aiStyles.resMacroBox}>
-                        <Text style={[aiStyles.resMacroVal, { color:C.accent }]}>{aiResult.calories}</Text>
-                        <Text style={aiStyles.resMacroLbl}>kcal</Text>
+                      {[['kcal', aiResult.calories, C.accent], ['protein', `${aiResult.protein_g}g`, '#4ECDC4'],
+                        ['carbs', `${aiResult.carbs_g}g`, '#F59E0B'], ['fat', `${aiResult.fat_g}g`, '#FF6B6B']].map(([lbl, val, col]) => (
+                        <View key={lbl} style={aiStyles.resMacroBox}>
+                          <Text style={[aiStyles.resMacroVal, { color: col }]}>{val}</Text>
+                          <Text style={aiStyles.resMacroLbl}>{lbl}</Text>
+                        </View>
+                      ))}
+                    </View>
+                    {!!aiResult.note && <Text style={aiStyles.resNote}>{aiResult.note}</Text>}
+                    <TouchableOpacity style={aiStyles.logResBtn} onPress={logAiFood}>
+                      <Ionicons name="add-circle" size={16} color="#0A0A0F" />
+                      <Text style={aiStyles.logResBtnTxt}>Log this Food</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {/* ── MULTI-ITEM RESULTS ── */}
+                {aiItems.length > 0 && scanMode === 'scan_all' && (
+                  <View style={aiStyles.resultCard}>
+                    {/* header */}
+                    <View style={{ flexDirection:'row', alignItems:'center', justifyContent:'space-between', marginBottom: 12 }}>
+                      <View style={{ flexDirection:'row', alignItems:'center', gap:6 }}>
+                        <Ionicons name="grid" size={16} color={C.accent} />
+                        <Text style={{ color: C.text, fontWeight:'800', fontSize: 15 }}>
+                          {aiItems.length} Items Detected
+                        </Text>
                       </View>
-                      <View style={aiStyles.resMacroBox}>
-                        <Text style={[aiStyles.resMacroVal, { color:C.accent }]}>{aiResult.protein_g}g</Text>
-                        <Text style={aiStyles.resMacroLbl}>protein</Text>
-                      </View>
-                      <View style={aiStyles.resMacroBox}>
-                        <Text style={[aiStyles.resMacroVal, { color:C.accent }]}>{aiResult.carbs_g}g</Text>
-                        <Text style={aiStyles.resMacroLbl}>carbs</Text>
-                      </View>
-                      <View style={aiStyles.resMacroBox}>
-                        <Text style={[aiStyles.resMacroVal, { color:C.accent }]}>{aiResult.fat_g}g</Text>
-                        <Text style={aiStyles.resMacroLbl}>fat</Text>
+                      <View style={aiStyles.confPill}>
+                        <Text style={aiStyles.confTxt}>
+                          {aiItems.filter((_, i) => checkedItems[i]).reduce((s, it) => s + it.calories, 0)} kcal selected
+                        </Text>
                       </View>
                     </View>
 
-                    {!!aiResult.note && (
-                      <Text style={aiStyles.resNote}>{aiResult.note}</Text>
-                    )}
+                    {/* items list */}
+                    {aiItems.map((item, i) => (
+                      <View key={i} style={aiStyles.multiItem}>
+                        <TouchableOpacity
+                          style={[aiStyles.checkbox, checkedItems[i] && aiStyles.checkboxOn]}
+                          onPress={() => setCheckedItems(p => ({ ...p, [i]: !p[i] }))}
+                        >
+                          {checkedItems[i] && <Ionicons name="checkmark" size={12} color="#0A0A0F" />}
+                        </TouchableOpacity>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: C.text, fontWeight:'700', fontSize: 13 }}>{item.name}</Text>
+                          <Text style={{ color: C.dim, fontSize: 11, marginTop: 2 }}>{item.quantity}</Text>
+                          <View style={{ flexDirection:'row', gap: 10, marginTop: 4 }}>
+                            <Text style={{ color: C.accent, fontSize: 11, fontWeight:'800' }}>{item.calories} kcal</Text>
+                            <Text style={{ color: '#4ECDC4', fontSize: 11 }}>P {item.protein_g}g</Text>
+                            <Text style={{ color: '#F59E0B', fontSize: 11 }}>C {item.carbs_g}g</Text>
+                            <Text style={{ color: '#FF6B6B', fontSize: 11 }}>F {item.fat_g}g</Text>
+                          </View>
+                        </View>
+                        <TouchableOpacity onPress={() => logSingleItem(item)} style={aiStyles.itemLogBtn}>
+                          <Ionicons name="add" size={16} color={C.accent} />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
 
-                    <TouchableOpacity style={aiStyles.logResBtn} onPress={logAiFood}>
-                      <Text style={aiStyles.logResBtnTxt}>+ Log this Food</Text>
+                    {/* total row */}
+                    <View style={aiStyles.multiTotal}>
+                      <Text style={{ color: C.dim, fontSize: 12 }}>
+                        {aiItems.filter((_, i) => checkedItems[i]).length} of {aiItems.length} selected
+                      </Text>
+                      <Text style={{ color: C.accent, fontWeight:'800', fontSize: 14 }}>
+                        Total: {aiItems.filter((_, i) => checkedItems[i]).reduce((s, it) => s + it.calories, 0)} kcal
+                      </Text>
+                    </View>
+
+                    <TouchableOpacity
+                      style={[aiStyles.logResBtn, { opacity: Object.values(checkedItems).some(Boolean) ? 1 : 0.4 }]}
+                      onPress={logCheckedItems}
+                      disabled={!Object.values(checkedItems).some(Boolean)}
+                    >
+                      <Ionicons name="add-circle" size={16} color="#0A0A0F" />
+                      <Text style={aiStyles.logResBtnTxt}>
+                        Log First Selected Item
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 )}
@@ -1585,8 +1821,29 @@ const makeAiStyles = (C) => StyleSheet.create({
   resMacroVal: { fontSize: 16, fontWeight: '900' },
   resMacroLbl: { color: C.muted, fontSize: 9, fontWeight: '600', marginTop: 2 },
   resNote: { color: C.muted, fontSize: 12, lineHeight: 16, marginTop: 12, fontStyle: 'italic' },
-  logResBtn: { backgroundColor: C.accent, padding: 12, borderRadius: 10, alignItems: 'center', marginTop: 14 },
-  logResBtnTxt: { color: C.accentText, fontWeight: '800' }
+  logResBtn: { backgroundColor: C.accent, padding: 12, borderRadius: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 14 },
+  logResBtnTxt: { color: C.accentText, fontWeight: '800' },
+  // Mode toggle
+  modeRow: { flexDirection: 'row', backgroundColor: C.card, borderRadius: 12, padding: 4, marginBottom: 12, borderWidth: 1, borderColor: C.border },
+  modeBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 9, paddingVertical: 9 },
+  modeBtnOn: { backgroundColor: C.accent },
+  modeTxt: { color: C.dim, fontSize: 12, fontWeight: '700' },
+  modeTxtOn: { color: '#0A0A0F' },
+  // Favorites
+  favChip: { backgroundColor: C.card, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: C.border, minWidth: 90, position: 'relative' },
+  favChipName: { color: C.text, fontSize: 12, fontWeight: '700', marginBottom: 2, maxWidth: 100 },
+  favChipCal: { color: C.accent, fontSize: 10, fontWeight: '700' },
+  favCount: { position: 'absolute', top: -4, right: -4, backgroundColor: C.accent, borderRadius: 8, width: 18, height: 18, alignItems: 'center', justifyContent: 'center' },
+  // Multi-item
+  multiItem: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: `${C.accent}1A` },
+  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: C.accent, alignItems: 'center', justifyContent: 'center' },
+  checkboxOn: { backgroundColor: C.accent },
+  itemLogBtn: { width: 32, height: 32, borderRadius: 16, borderWidth: 1, borderColor: C.accent, alignItems: 'center', justifyContent: 'center' },
+  multiTotal: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, marginTop: 4 },
+  // Diet Doctor banner
+  doctorBanner: { borderRadius: 16, overflow: 'hidden', marginBottom: 12, borderWidth: 1, borderColor: 'rgba(200,241,53,0.2)' },
+  doctorBannerGrad: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
+  doctorBannerArrow: { width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(200,241,53,0.15)', alignItems: 'center', justifyContent: 'center' },
 });
 
 const makeS = (C) => StyleSheet.create({

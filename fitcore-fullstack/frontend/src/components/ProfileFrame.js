@@ -2,8 +2,12 @@ import React, { useId } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { FRAMES, getFrame } from '../utils/frames';
+import { getFrame, framesForGender } from '../utils/frames';
+
+const PREVIEW_F = require('../../assets/avatars/fav1.jpg');
+const PREVIEW_M = require('../../assets/avatars/mav2.jpg');
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  ProfileFrame — wraps any avatar with a decorative SVG frame.
@@ -46,15 +50,17 @@ export function ProfileFrame({ frameId = 'none', avatarSize, children }) {
 //  FrameSelector — grid of frames. Each preview uses the same ProfileFrame
 //  renderer, so the thumbnail looks exactly like the real DP frame.
 // ─────────────────────────────────────────────────────────────────────────────
-export function FrameSelector({ currentId, onSelect, C }) {
+export function FrameSelector({ currentId, onSelect, C, gender }) {
   const AV = 50;
+  const frames = framesForGender(gender);
+  const previewSrc = gender === 'male' ? PREVIEW_M : PREVIEW_F;
   return (
     <ScrollView
       showsVerticalScrollIndicator={false}
       nestedScrollEnabled
       contentContainerStyle={fs.grid}
     >
-      {FRAMES.map(frame => {
+      {frames.map(frame => {
         const active = frame.id === currentId;
         return (
           <TouchableOpacity
@@ -65,13 +71,11 @@ export function FrameSelector({ currentId, onSelect, C }) {
           >
             <View style={fs.previewBox}>
               <ProfileFrame frameId={frame.id} avatarSize={AV}>
-                <View style={{
-                  width: AV, height: AV, borderRadius: AV / 2,
-                  backgroundColor: C.accentDim,
-                  alignItems: 'center', justifyContent: 'center',
-                }}>
-                  <Ionicons name="person" size={AV * 0.5} color={C.accent} />
-                </View>
+                <Image
+                  source={previewSrc}
+                  style={{ width: AV, height: AV, borderRadius: AV / 2 }}
+                  contentFit="cover"
+                />
               </ProfileFrame>
             </View>
 
@@ -94,8 +98,8 @@ export function FrameSelector({ currentId, onSelect, C }) {
 const fs = StyleSheet.create({
   grid:       { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingHorizontal: 4, paddingVertical: 4 },
   item:       { width: '30%', alignItems: 'center', borderRadius: 14, borderWidth: 1.5,
-                paddingVertical: 12, paddingHorizontal: 4, position: 'relative' },
-  previewBox: { height: 84, alignItems: 'center', justifyContent: 'center' },
+                paddingVertical: 12, paddingHorizontal: 4, position: 'relative', overflow: 'hidden' },
+  previewBox: { height: 84, width: '100%', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   label:      { fontSize: 11, fontWeight: '700', marginTop: 6, textAlign: 'center' },
   tick:       { position: 'absolute', top: 6, right: 6, width: 16, height: 16,
                 borderRadius: 8, alignItems: 'center', justifyContent: 'center' },

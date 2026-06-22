@@ -88,79 +88,29 @@ function ThemeStep({ ans, set, C, onNext }) {
   const setDark = useThemeStore(s => s.setDark);
   const isDark  = useThemeStore(s => s.isDark);
   const chosen  = ans.theme_choice;
+  const ACCENT  = '#C8F135';
 
   const pick = (dark) => {
     setDark(dark);
     set('theme_choice', dark ? 'dark' : 'light');
-    setTimeout(() => onNext(), 480);
-  };
-
-  const ACCENT = '#C8F135';
-
-  const PhoneMockup = ({ dark }) => {
-    const bg    = dark ? '#0A0A0F' : '#F2F4F8';
-    const card  = dark ? '#111118' : '#FFFFFF';
-    const card2 = dark ? '#16161F' : '#F0F3F8';
-    const brd   = dark ? '#1E1E2A' : '#DEE3ED';
-    const txt   = dark ? '#FFFFFF' : '#0D0D14';
-    const mut   = dark ? '#55556A' : '#8888A0';
-    const acL   = dark ? `${ACCENT}22` : `${ACCENT}30`;
-    const acB   = dark ? `${ACCENT}44` : `${ACCENT}55`;
-
-    return (
-      <View style={[mm.phone, { backgroundColor: bg }]}>
-        {/* notch */}
-        <View style={mm.notch} />
-        {/* header row */}
-        <View style={[mm.hdr, { borderBottomColor: brd }]}>
-          <View style={{ gap: 2 }}>
-            <View style={[mm.pill, { width: 28, height: 4, backgroundColor: mut }]} />
-            <View style={[mm.pill, { width: 44, height: 7, backgroundColor: txt }]} />
-          </View>
-          <View style={[mm.ava, { backgroundColor: acL, borderColor: ACCENT }]} />
-        </View>
-        {/* hero card */}
-        <View style={[mm.hero, { backgroundColor: acL, borderColor: acB }]}>
-          <View style={{ gap: 3, flex: 1 }}>
-            <View style={[mm.pill, { width: 38, height: 4, backgroundColor: ACCENT }]} />
-            <View style={[mm.pill, { width: 64, height: 8, backgroundColor: txt }]} />
-            <View style={[mm.pill, { width: 50, height: 5, backgroundColor: mut }]} />
-          </View>
-          <View style={[mm.playBtn, { backgroundColor: ACCENT }]} />
-        </View>
-        {/* stats strip */}
-        <View style={mm.stats}>
-          {[ACCENT, '#4D8DFF', '#FF9F0A'].map((col, i) => (
-            <View key={i} style={[mm.statBox, { backgroundColor: card, borderColor: brd }]}>
-              <View style={[mm.dot, { backgroundColor: col }]} />
-              <View style={[mm.pill, { width: 20, height: 4, backgroundColor: mut, marginTop: 3 }]} />
-            </View>
-          ))}
-        </View>
-        {/* macro rings row */}
-        <View style={[mm.macroRow, { backgroundColor: card, borderColor: brd }]}>
-          {[ACCENT,'#9B6DFF','#FF8C42'].map((col,i) => (
-            <View key={i} style={{ alignItems:'center', gap:2 }}>
-              <View style={[mm.ring, { borderColor: `${col}55` }]}>
-                <View style={[mm.ringFill, { borderColor: col, borderTopColor: 'transparent', borderLeftColor: 'transparent' }]} />
-              </View>
-              <View style={[mm.pill, { width: 14, height: 3, backgroundColor: mut }]} />
-            </View>
-          ))}
-        </View>
-        {/* tab bar */}
-        <View style={[mm.tab, { backgroundColor: card2, borderTopColor: brd }]}>
-          {[0,1,2,3,4].map(i => (
-            <View key={i} style={[mm.tabDot, { backgroundColor: i === 2 ? ACCENT : mut, width: i===2?18:10, height: i===2?4:3 }]} />
-          ))}
-        </View>
-      </View>
-    );
+    setTimeout(() => onNext(), 500);
   };
 
   const THEMES = [
-    { dark: true,  name: 'Dark',  icon: 'moon',   desc: 'Easy on eyes\nPerfect for gym',  recommended: true },
-    { dark: false, name: 'Light', icon: 'sunny',  desc: 'Clean & bright\nGreat outdoors', recommended: false },
+    {
+      dark: true, name: 'Dark Mode', emoji: '🌙',
+      tagline: 'Easy on the eyes', desc: 'Perfect for gym & night sessions',
+      popular: true,
+      bg: '#0D0D14', card: '#16161F', text: '#FFFFFF', muted: 'rgba(255,255,255,0.45)',
+      accent2: '#4D8DFF', accent3: '#FF9F0A',
+    },
+    {
+      dark: false, name: 'Light Mode', emoji: '☀️',
+      tagline: 'Clean & energetic', desc: 'Great for outdoor workouts',
+      popular: false,
+      bg: '#F0F3FA', card: '#FFFFFF', text: '#0D0D14', muted: 'rgba(0,0,0,0.4)',
+      accent2: '#3B82F6', accent3: '#F59E0B',
+    },
   ];
 
   return (
@@ -169,16 +119,18 @@ function ThemeStep({ ans, set, C, onNext }) {
       <Text style={[th.sub, { color: C.muted }]}>You can change this anytime in settings</Text>
 
       <View style={th.cards}>
-        {THEMES.map(({ dark, name, icon, desc, recommended }) => {
-          const selected = chosen ? chosen === (dark ? 'dark' : 'light') : isDark === dark;
+        {THEMES.map((t) => {
+          const selected = chosen ? chosen === (t.dark ? 'dark' : 'light') : isDark === t.dark;
           return (
-            <TouchableOpacity key={name} style={[th.card,
-              selected ? { borderColor: ACCENT, backgroundColor: `${ACCENT}0A` }
-                       : { borderColor: C.border, backgroundColor: C.card }]}
-              onPress={() => pick(dark)} activeOpacity={0.88}>
+            <TouchableOpacity key={t.name} activeOpacity={0.88} onPress={() => pick(t.dark)}
+              style={[th.card, { backgroundColor: t.bg, borderColor: selected ? ACCENT : 'transparent' }]}>
 
-              {/* recommended badge */}
-              {recommended && (
+              {/* decorative BG blobs */}
+              <View style={[th.blob1, { backgroundColor: t.dark ? '#1E1E3A' : '#E2E9F5' }]} />
+              <View style={[th.blob2, { backgroundColor: ACCENT + (t.dark ? '12' : '18') }]} />
+
+              {/* popular badge */}
+              {t.popular && (
                 <View style={[th.badge, { backgroundColor: ACCENT }]}>
                   <Text style={th.badgeTxt}>⭐ POPULAR</Text>
                 </View>
@@ -187,32 +139,61 @@ function ThemeStep({ ans, set, C, onNext }) {
               {/* checkmark */}
               {selected && (
                 <View style={[th.check, { backgroundColor: ACCENT }]}>
-                  <Ionicons name="checkmark" size={12} color="#0A0A0F" />
+                  <Ionicons name="checkmark" size={14} color="#0A0A0F" />
                 </View>
               )}
 
-              {/* phone mockup */}
-              <View style={th.mockupWrap}>
-                <PhoneMockup dark={dark} />
+              {/* content */}
+              <View style={th.inner}>
+                {/* left: info */}
+                <View style={{ flex: 1 }}>
+                  <Text style={th.emoji}>{t.emoji}</Text>
+                  <Text style={[th.name, { color: t.text }]}>{t.name}</Text>
+                  <Text style={[th.tagline, { color: ACCENT }]}>{t.tagline}</Text>
+                  <Text style={[th.desc, { color: t.muted }]}>{t.desc}</Text>
+
+                  {/* color swatches */}
+                  <View style={th.swatches}>
+                    {[ACCENT, t.accent2, t.accent3, t.dark ? '#FF6B9D' : '#EC4899'].map((col, i) => (
+                      <View key={i} style={[th.swatch, { backgroundColor: col }]} />
+                    ))}
+                  </View>
+                </View>
+
+                {/* right: mini UI preview */}
+                <View style={[th.preview, { backgroundColor: t.card }]}>
+                  {/* header */}
+                  <View style={th.pvHdr}>
+                    <View style={[th.pvPill, { width: 32, backgroundColor: t.muted, opacity: 0.4 }]} />
+                    <View style={[th.pvDot, { backgroundColor: ACCENT }]} />
+                  </View>
+                  {/* hero bar */}
+                  <View style={[th.pvHero, { backgroundColor: ACCENT + '22' }]}>
+                    <View style={[th.pvPill, { width: 40, backgroundColor: ACCENT }]} />
+                    <View style={[th.pvPill, { width: 26, height: 3, backgroundColor: t.muted, opacity: 0.4, marginTop: 3 }]} />
+                  </View>
+                  {/* stat dots */}
+                  <View style={th.pvStats}>
+                    {[ACCENT, t.accent2, t.accent3].map((col, i) => (
+                      <View key={i} style={[th.pvStat, { backgroundColor: t.dark ? '#1E1E2A' : '#F0F3FA' }]}>
+                        <View style={[th.pvStatDot, { backgroundColor: col }]} />
+                      </View>
+                    ))}
+                  </View>
+                  {/* bottom bar */}
+                  <View style={[th.pvBar, { backgroundColor: t.dark ? '#1E1E2A' : '#E8ECF4' }]}>
+                    {[0,1,2].map(i => (
+                      <View key={i} style={[th.pvBarDot, { backgroundColor: i === 1 ? ACCENT : t.muted, opacity: i === 1 ? 1 : 0.3, width: i === 1 ? 18 : 8 }]} />
+                    ))}
+                  </View>
+                </View>
               </View>
 
-              {/* label + desc */}
-              <View style={th.info}>
-                <View style={{ flexDirection:'row', alignItems:'center', gap:6, marginBottom:3 }}>
-                  <View style={[th.iconWrap, { backgroundColor: selected ? `${ACCENT}25` : `${C.muted}18` }]}>
-                    <Ionicons name={icon} size={13} color={selected ? ACCENT : C.muted} />
-                  </View>
-                  <Text style={[th.label, { color: selected ? ACCENT : C.text }]}>{name}</Text>
-                </View>
-                <Text style={[th.desc, { color: C.muted }]}>{desc}</Text>
-                {/* selection pill */}
-                <View style={[th.selPill,
-                  selected ? { backgroundColor: ACCENT } : { backgroundColor: C.border }]}>
-                  <View style={[th.selDot, { backgroundColor: selected ? '#0A0A0F' : C.muted }]} />
-                  <Text style={[th.selTxt, { color: selected ? '#0A0A0F' : C.muted }]}>
-                    {selected ? 'Selected' : 'Tap to select'}
-                  </Text>
-                </View>
+              {/* select footer */}
+              <View style={[th.foot, { backgroundColor: selected ? ACCENT : (t.dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)') }]}>
+                <Text style={[th.footTxt, { color: selected ? '#0A0A0F' : t.muted }]}>
+                  {selected ? '✓  Selected' : 'Tap to select'}
+                </Text>
               </View>
             </TouchableOpacity>
           );
@@ -222,51 +203,51 @@ function ThemeStep({ ans, set, C, onNext }) {
   );
 }
 
-const mm = StyleSheet.create({
-  phone:   { width: '100%', borderRadius: 16, overflow: 'hidden',
-             borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.08)', aspectRatio: 0.5 },
-  notch:   { width: 36, height: 6, borderRadius: 3, backgroundColor: '#00000050',
-             alignSelf: 'center', marginTop: 6, marginBottom: 4 },
-  hdr:     { flexDirection:'row', alignItems:'center', justifyContent:'space-between',
-             paddingHorizontal:8, paddingBottom:6, borderBottomWidth:0.5 },
-  ava:     { width:18, height:18, borderRadius:9, borderWidth:1.5 },
-  hero:    { marginHorizontal:7, borderRadius:10, borderWidth:1, padding:8,
-             flexDirection:'row', alignItems:'center', gap:6, marginBottom:5 },
-  playBtn: { width:18, height:18, borderRadius:9, flexShrink:0 },
-  stats:   { flexDirection:'row', gap:4, marginHorizontal:7, marginBottom:5 },
-  statBox: { flex:1, borderRadius:8, borderWidth:0.5, padding:5, alignItems:'center' },
-  macroRow:{ flexDirection:'row', justifyContent:'space-around', marginHorizontal:7,
-             borderRadius:10, borderWidth:0.5, padding:8, marginBottom:5 },
-  ring:    { width:22, height:22, borderRadius:11, borderWidth:3, alignItems:'center', justifyContent:'center' },
-  ringFill:{ width:16, height:16, borderRadius:8, borderWidth:3 },
-  tab:     { flexDirection:'row', justifyContent:'space-around', alignItems:'center',
-             paddingVertical:7, borderTopWidth:0.5, marginTop:'auto' },
-  tabDot:  { borderRadius:3 },
-  pill:    { borderRadius:4 },
-  dot:     { width:10, height:10, borderRadius:5 },
-});
-
 const th = StyleSheet.create({
-  wrap:       { flex:1, paddingHorizontal:18, paddingTop:4, paddingBottom:8 },
-  title:      { fontSize:26, fontWeight:'900', textAlign:'center', marginBottom:5 },
-  sub:        { fontSize:12, textAlign:'center', marginBottom:18, lineHeight:17 },
-  cards:      { flexDirection:'row', gap:12, flex:1 },
-  card:       { flex:1, borderWidth:2, borderRadius:22, padding:11,
-                alignItems:'stretch', position:'relative' },
-  badge:      { position:'absolute', top:-1, left:10, borderRadius:8,
-                paddingHorizontal:7, paddingVertical:3, zIndex:10 },
-  badgeTxt:   { fontSize:8, fontWeight:'900', color:'#0A0A0F', letterSpacing:0.5 },
-  check:      { position:'absolute', top:9, right:9, width:22, height:22,
-                borderRadius:11, alignItems:'center', justifyContent:'center', zIndex:10 },
-  mockupWrap: { flex:1, marginBottom:10 },
-  info:       { gap:2 },
-  iconWrap:   { width:22, height:22, borderRadius:7, alignItems:'center', justifyContent:'center' },
-  label:      { fontSize:15, fontWeight:'900' },
-  desc:       { fontSize:10, lineHeight:14, marginLeft:2 },
-  selPill:    { flexDirection:'row', alignItems:'center', gap:5, borderRadius:10,
-                paddingHorizontal:8, paddingVertical:5, marginTop:7 },
-  selDot:     { width:6, height:6, borderRadius:3 },
-  selTxt:     { fontSize:10, fontWeight:'800' },
+  wrap:      { flex:1, paddingHorizontal:18, paddingTop:4, paddingBottom:8 },
+  title:     { fontSize:26, fontWeight:'900', textAlign:'center', marginBottom:5 },
+  sub:       { fontSize:12, textAlign:'center', marginBottom:16, opacity:0.6 },
+  cards:     { flex:1, gap:14 },
+
+  card:      { flex:1, borderRadius:24, borderWidth:2.5, overflow:'hidden',
+               padding:18, position:'relative' },
+  blob1:     { position:'absolute', width:160, height:160, borderRadius:80,
+               top:-50, right:-50, opacity:0.7 },
+  blob2:     { position:'absolute', width:200, height:200, borderRadius:100,
+               bottom:-70, left:-60 },
+
+  badge:     { position:'absolute', top:14, left:14, borderRadius:8,
+               paddingHorizontal:10, paddingVertical:4, zIndex:10 },
+  badgeTxt:  { fontSize:9, fontWeight:'900', color:'#0A0A0F', letterSpacing:0.5 },
+  check:     { position:'absolute', top:14, right:14, width:28, height:28,
+               borderRadius:14, alignItems:'center', justifyContent:'center', zIndex:10 },
+
+  inner:     { flex:1, flexDirection:'row', alignItems:'center', gap:16, paddingTop:16 },
+
+  emoji:     { fontSize:36, marginBottom:6 },
+  name:      { fontSize:20, fontWeight:'900', marginBottom:2 },
+  tagline:   { fontSize:13, fontWeight:'700', marginBottom:3 },
+  desc:      { fontSize:11, lineHeight:16, marginBottom:12 },
+
+  swatches:  { flexDirection:'row', gap:7 },
+  swatch:    { width:22, height:22, borderRadius:11 },
+
+  preview:   { width:90, borderRadius:14, padding:8, gap:6,
+               shadowColor:'#000', shadowOpacity:0.15, shadowRadius:8, shadowOffset:{width:0,height:4},
+               elevation:4 },
+  pvHdr:     { flexDirection:'row', justifyContent:'space-between', alignItems:'center' },
+  pvPill:    { height:5, borderRadius:3 },
+  pvDot:     { width:10, height:10, borderRadius:5 },
+  pvHero:    { borderRadius:8, padding:7, gap:2 },
+  pvStats:   { flexDirection:'row', gap:4 },
+  pvStat:    { flex:1, borderRadius:6, padding:5, alignItems:'center' },
+  pvStatDot: { width:10, height:10, borderRadius:5 },
+  pvBar:     { borderRadius:8, paddingVertical:6, flexDirection:'row',
+               justifyContent:'space-around', alignItems:'center' },
+  pvBarDot:  { height:4, borderRadius:2 },
+
+  foot:      { borderRadius:14, paddingVertical:11, alignItems:'center', marginTop:14 },
+  footTxt:   { fontSize:12, fontWeight:'800', letterSpacing:0.3 },
 });
 
 // ── Section intro with spring animation ─────────────────────────────────────
@@ -453,11 +434,10 @@ function FocusScreen({ gender, ans, set, C, s }) {
 
         {/* connector lines SVG overlay */}
         {rowW > 0 && rowH > 0 && listW > 0 && (
+          <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, width: rowW, height: rowH }}>
           <Svg
-            pointerEvents="none"
             width={rowW}
             height={rowH}
-            style={{ position: 'absolute', top: 0, left: 0 }}
           >
             {areas.map(opt => {
               const oy  = optY[opt.region];
@@ -493,6 +473,7 @@ function FocusScreen({ gender, ans, set, C, s }) {
               );
             })}
           </Svg>
+          </View>
         )}
       </View>
     </View>
@@ -559,6 +540,7 @@ export default function QuizOnboarding({ onComplete }) {
         const h = u.height_cm / 100;
         u.bmi = +(u.weight_kg / (h * h)).toFixed(1);
       }
+      if (ans.focus_areas?.length) u.focus_areas = ans.focus_areas;
       if (Object.keys(u).length) await setUser(u);
 
       const goalType = ans.body_shape === 'skinny' ? 'muscle_gain'

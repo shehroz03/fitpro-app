@@ -8,7 +8,7 @@ import { useAuthStore } from '../store/authStore';
 import { progressAPI } from '../api/services';
 import { useC, DARK, LIGHT } from '../utils/theme';
 import { useThemeStore } from '../store/themeStore';
-import { AVATARS, avatarSource } from '../utils/avatars';
+import { avatarSource, avatarsForGender } from '../utils/avatars';
 import { ProfileFrame, FrameSelector } from '../components/ProfileFrame';
 import { useFrameStore } from '../store/frameStore';
 import { Ionicons } from '@expo/vector-icons';
@@ -151,7 +151,8 @@ export default function ProfileScreen({ navigation }) {
           <ProfileFrame frameId={frameId} avatarSize={82}>
             {avatarSource(user?.avatar_url) ? (
               <Image source={avatarSource(user.avatar_url)}
-                style={[s.avatar, frameId !== 'none' && { borderWidth: 0 }]} />
+                style={[s.avatar, frameId !== 'none' && { borderWidth: 0 }]}
+                contentFit="cover" />
             ) : (
               <View style={[s.avatar, frameId !== 'none' && { borderWidth: 0 }]}>
                 <Text style={s.avatarTxt}>{initials}</Text>
@@ -305,17 +306,30 @@ export default function ProfileScreen({ navigation }) {
               placeholder="Tell us about yourself..." />
 
             <Text style={s.inputLabel}>Avatar</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.avatarScroll}>
-              {AVATARS.map((a) => (
-                <TouchableOpacity key={a.id} onPress={() => setEditForm(p => ({ ...p, avatar_url: a.id }))}>
-                  <Image source={a.src} style={[s.avatarOpt, editForm.avatar_url === a.id && s.avatarOptOn]} />
-                </TouchableOpacity>
-              ))}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}
+              style={s.avatarScroll} contentContainerStyle={{ gap: 10, paddingVertical: 6 }}>
+              {avatarsForGender(user?.gender).map((a) => {
+                const selected = editForm.avatar_url === a.id;
+                return (
+                  <TouchableOpacity key={a.id} onPress={() => setEditForm(p => ({ ...p, avatar_url: a.id }))}
+                    style={[s.avatarOptWrap, selected && { borderColor: C.accent, borderWidth: 2.5 }]}>
+                    <Image source={a.src}
+                      style={s.avatarOpt}
+                      contentFit="cover"
+                    />
+                    {selected && (
+                      <View style={s.avatarOptCheck}>
+                        <Ionicons name="checkmark" size={10} color="#000" />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
 
             <Text style={[s.inputLabel, { marginTop: 8 }]}>Profile Frame</Text>
             <View style={{ maxHeight: 280 }}>
-              <FrameSelector currentId={frameId} onSelect={setFrame} C={C} />
+              <FrameSelector currentId={frameId} onSelect={setFrame} C={C} gender={user?.gender} />
             </View>
 
             <Text style={s.inputLabel}>Units</Text>
@@ -359,6 +373,7 @@ export default function ProfileScreen({ navigation }) {
               currentId={frameId}
               onSelect={(id) => { setFrame(id); setShowFrame(false); }}
               C={C}
+              gender={user?.gender}
             />
           </View>
         </View>
@@ -465,9 +480,13 @@ const makeStyles = (C) => StyleSheet.create({
                   marginBottom:6, textTransform:'uppercase' },
   input:        { backgroundColor:C.bg, borderRadius:12, borderWidth:1, borderColor:C.border,
                   padding:12, color:C.text, fontSize:14, marginBottom:0 },
-  avatarScroll: { flexDirection:'row', marginBottom:14 },
-  avatarOpt:    { width:50, height:50, borderRadius:25, marginRight:10, borderWidth:2, borderColor:'transparent' },
-  avatarOptOn:  { borderColor:C.accent },
+  avatarScroll:    { marginBottom:14 },
+  avatarOptWrap:   { width:64, height:64, borderRadius:32, borderWidth:2, borderColor:'transparent',
+                     overflow:'hidden', position:'relative' },
+  avatarOpt:       { width:'100%', height:'100%' },
+  avatarOptCheck:  { position:'absolute', bottom:2, right:2, width:18, height:18,
+                     borderRadius:9, backgroundColor:'#C8F135',
+                     alignItems:'center', justifyContent:'center' },
   unitToggle:   { flexDirection:'row', gap:10, marginBottom:14 },
   unitBtn:      { flex:1, borderRadius:12, borderWidth:1, borderColor:C.border,
                   paddingVertical:10, alignItems:'center', backgroundColor:C.bg },

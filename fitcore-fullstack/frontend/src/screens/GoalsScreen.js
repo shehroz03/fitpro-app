@@ -2,11 +2,12 @@ import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   View, Text, ScrollView, TouchableOpacity, Modal,
-  TextInput, StyleSheet, Alert, ActivityIndicator, RefreshControl,
+  TextInput, StyleSheet, Alert, ActivityIndicator, RefreshControl, SafeAreaView,
 } from 'react-native';
 import { goalsAPI, progressAPI } from '../api/services';
 import { useC } from '../utils/theme';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const GOAL_TYPES = ['weight_loss','muscle_gain','endurance','flexibility','maintenance'];
 const TYPE_MC = {
@@ -28,6 +29,7 @@ export default function GoalsScreen({ navigation }) {
   const C = useC();
   const gc = useMemo(() => makeGc(C), [C]);
   const s  = useMemo(() => makeS(C), [C]);
+  const insets = useSafeAreaInsets();
   const TYPE_COLORS = useMemo(() => ({
     weight_loss: C.orange, muscle_gain: C.blue, endurance: C.teal,
     flexibility: C.purple, maintenance: C.accent,
@@ -262,8 +264,11 @@ export default function GoalsScreen({ navigation }) {
 
   return (
     <View style={s.root}>
-      <View style={s.header}>
-        <View>
+      <View style={[s.header, { paddingTop: insets.top + 8 }]}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} activeOpacity={0.7}>
+          <Ionicons name="chevron-back" size={22} color={C.text} />
+        </TouchableOpacity>
+        <View style={{ flex: 1 }}>
           <Text style={s.secLabel}>MY FITNESS</Text>
           <Text style={s.title}>Goals</Text>
         </View>
@@ -518,6 +523,7 @@ const makeGc = (C) => StyleSheet.create({
 
 const makeS = (C) => StyleSheet.create({
   root:          { flex:1, backgroundColor:C.bg },
+  backBtn:       { width:36, height:36, borderRadius:18, alignItems:'center', justifyContent:'center', marginRight:8, marginBottom:2 },
   header:        { flexDirection:'row', justifyContent:'space-between', alignItems:'flex-end', paddingHorizontal:16, paddingTop:16, marginBottom:14 },
   secLabel:      { color:C.muted, fontSize:10, fontWeight:'700', letterSpacing:1.2 },
   title:         { color:C.text, fontSize:24, fontWeight:'900' },
