@@ -4,7 +4,7 @@
 //    mode = 'report' → returns structured JSON wellness report
 //    mode = 'chat'   → returns plain text coaching response
 //
-//  Model: gpt-4o  (same OpenAI key as analyze-food)
+//  Model: gpt-4.1  (same OpenAI key as analyze-food)
 //
 //  DEPLOY:
 //    supabase secrets set OPENAI_API_KEY=sk-....your-key....
@@ -165,7 +165,9 @@ GUIDELINES:
 - If data is missing, acknowledge it and give general evidence-based advice.
 - For plans: be specific — times, quantities, sets/reps, durations.
 - Keep responses under 350 words unless creating a detailed multi-day plan.
-- Use bullet points and clear sections for readability.
+- Use markdown formatting: ## for section headings, **bold** for key terms, - for bullet lists.
+- When providing a workout plan with exercises, format them as a GFM markdown table with columns: | Exercise | Sets | Reps | Rest | — with a short intro paragraph above the table.
+- For non-exercise content (tips, warm-up, nutrition) use clean heading + bullet formatting.
 - Always end with 1-2 clear immediate action items.
 - Do not repeat the user's question back to them.`;
 }
@@ -210,7 +212,7 @@ Deno.serve(async (req) => {
           "Authorization": `Bearer ${OPENAI_API_KEY}`,
         },
         body: JSON.stringify({
-          model:       "gpt-4o",
+          model:       "gpt-4.1",
           max_tokens:  isReport ? 1024 : 2048,
           temperature: 0.4,
           response_format: isReport ? { type: "json_object" } : undefined,

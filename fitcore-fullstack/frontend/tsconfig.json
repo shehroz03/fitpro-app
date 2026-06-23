@@ -1,0 +1,20 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "jsx": "react-jsx",
+    "noEmit": true,
+    "skipLibCheck": true,
+    "allowJs": true,
+    "checkJs": false,
+    "paths": {
+      "@expo/vector-icons": ["./node_modules/expo/node_modules/@expo/vector-icons/build/Icons"]
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "App.js",
+    "index.js"
+  ]
+}

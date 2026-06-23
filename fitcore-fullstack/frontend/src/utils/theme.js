@@ -1,58 +1,88 @@
 import { useThemeStore } from '../store/themeStore';
 
-// ── Design tokens ──────────────────────────────────────────────
-// DARK: deep green-black base, lime accent stays identical in both modes
-export const DARK = {
-  bg:          '#0B0D0A',
-  surface:     '#161914',
-  surfaceAlt:  '#1F231C',
-  textPrimary: '#F4F5F3',
-  textMuted:   '#8A8F86',
-  dim:         '#55556A',
-  border:      '#262A22',
-  accent:      '#C8F135',
-  accentText:  '#0E1117',
-  accentDim:   'rgba(200,241,53,0.15)',
+// ─────────────────────────────────────────────────────────────────────────────
+//  DESIGN TOKENS — Single source of truth.
+//  DARK: deep navy + vibrant purple #7C5CFC (matches reference fitness app)
+//  LIGHT: off-white + indigo #4F46E5 (clean professional)
+//  Green (#16A34A) = success/streak/completed only — never accent.
+// ─────────────────────────────────────────────────────────────────────────────
 
-  // Backward-compat aliases — old names still resolve
-  card:   '#161914',
-  card2:  '#1F231C',
-  text:   '#F4F5F3',
-  muted:  '#8A8F86',
-
-  // Removed semantic palette — mapped to accent/neutral
-  blue:   '#C8F135',
-  orange: '#C8F135',
-  purple: '#C8F135',
-  teal:   '#C8F135',
-  red:    '#8A8F86',
+// Card shadow (use in style prop as: ...SHADOW.card)
+export const SHADOW = {
+  card: {
+    shadowColor: '#101828',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  sm: {
+    shadowColor: '#101828',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+    elevation: 1,
+  },
 };
 
-// LIGHT: warm off-white base, same lime accent
+// DARK: deep navy base + vibrant purple — matches reference fitness app design
+export const DARK = {
+  bg:          '#0B0C1A',   // very dark navy
+  surface:     '#161730',   // card background
+  surfaceAlt:  '#1E1F3C',   // elevated surface
+  textPrimary: '#F0F0FF',   // slightly purple-tinted white
+  textMuted:   '#8B8BAF',
+  dim:         '#52526A',
+  border:      '#252548',
+  accent:      '#7C5CFC',   // vibrant purple
+  accentText:  '#FFFFFF',
+  accentDim:   'rgba(124,92,252,0.15)',
+  success:     '#16A34A',
+
+  card:   '#161730',
+  card2:  '#1E1F3C',
+  text:   '#F0F0FF',
+  muted:  '#8B8BAF',
+
+  blue:   '#7C5CFC',
+  orange: '#F59E0B',
+  purple: '#7C5CFC',
+  teal:   '#7C5CFC',
+  red:    '#EF4444',
+};
+
 export const LIGHT = {
-  bg:          '#F4F5F3',
-  surface:     '#FFFFFF',
-  surfaceAlt:  '#ECEEE9',
-  textPrimary: '#0E1117',
-  textMuted:   '#6B7280',
-  dim:         '#8888A0',
-  border:      '#E3E5E0',
-  accent:      '#C8F135',
-  accentText:  '#0E1117',
-  accentDim:   'rgba(200,241,53,0.15)',
+  // Backgrounds
+  bg:          '#FAFAFB',   // off-white — pure white feels flat
+  surface:     '#FFFFFF',   // card bg — use with SHADOW.card
+  surfaceAlt:  '#F4F4F5',   // secondary surface (pill track, input bg)
 
-  // Backward-compat aliases
+  // Text scale
+  textPrimary: '#18181B',
+  textMuted:   '#71717A',
+  dim:         '#A1A1AA',
+
+  // Structure
+  border:      '#ECECEF',
+
+  // Accent — Indigo only
+  accent:      '#4F46E5',
+  accentText:  '#FFFFFF',
+  accentDim:   'rgba(79,70,229,0.08)',
+  success:     '#16A34A',   // completed / streak / positive delta ONLY
+
+  // Compat aliases
   card:  '#FFFFFF',
-  card2: '#ECEEE9',
-  text:  '#0E1117',
-  muted: '#6B7280',
+  card2: '#F4F4F5',
+  text:  '#18181B',
+  muted: '#71717A',
 
-  // Removed semantic palette — mapped to accent/neutral
-  blue:   '#C8F135',
-  orange: '#C8F135',
-  purple: '#C8F135',
-  teal:   '#C8F135',
-  red:    '#6B7280',
+  // Semantic — used sparingly
+  blue:   '#4F46E5',
+  orange: '#F59E0B',
+  purple: '#4F46E5',
+  teal:   '#4F46E5',
+  red:    '#EF4444',
 };
 
 // ── Typography scale ───────────────────────────────────────────

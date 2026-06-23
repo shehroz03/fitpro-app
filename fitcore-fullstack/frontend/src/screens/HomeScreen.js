@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+﻿import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import {
@@ -371,7 +371,7 @@ function WorkoutVideoCard({ gender, navigation, C, s }) {
         ) : (
           <View style={{ flexDirection:'row', alignItems:'center', gap:6 }}>
             <Animated.View style={[s.playBtn, pulseStyle]}>
-              <Ionicons name="play" size={10} color="#0A0A0F" />
+              <Ionicons name="play" size={10} color={C.accentText} />
             </Animated.View>
             <Text style={s.videoSub}>Tap to explore workouts</Text>
           </View>
@@ -445,14 +445,12 @@ function FemaleCategoryStrip({ C, isDark, navigation }) {
               onPress={() => { Haptics.selectionAsync(); setActive(cat.id); cat.id === 'yoga' && navigation.navigate('Yoga'); }}
               style={{
                 flexDirection: 'row', alignItems: 'center', gap: 5,
-                backgroundColor: on ? cat.color : (isDark ? '#18182A' : '#F0F0F8'),
+                backgroundColor: on ? C.accentDim : C.surfaceAlt,
                 borderRadius: 22, paddingHorizontal: 14, paddingVertical: 9,
-                borderWidth: 1.5, borderColor: on ? cat.color : 'transparent',
-                shadowColor: on ? cat.color : 'transparent',
-                shadowOpacity: on ? 0.45 : 0, shadowRadius: 8, elevation: on ? 4 : 0,
+                borderWidth: 1.5, borderColor: on ? C.accent : 'transparent',
               }}>
               <Text style={{ fontSize: 15 }}>{cat.emoji}</Text>
-              <Text style={{ color: on ? '#0A0A0F' : C.dim, fontWeight: '800', fontSize: 12 }}>{cat.label}</Text>
+              <Text style={{ color: on ? C.accent : C.muted, fontWeight: '800', fontSize: 12 }}>{cat.label}</Text>
             </TouchableOpacity>
           );
         })}
@@ -566,9 +564,9 @@ function FemaleYogaBanner({ navigation, C }) {
         <View style={{ flexDirection:'row', alignItems:'center', justifyContent:'space-between' }}>
           <View style={{ flex:1 }}>
             <View style={{ flexDirection:'row', alignItems:'center', gap:8, marginBottom:7 }}>
-              <LinearGradient colors={['#C8F135','#6EE7B7']}
+              <LinearGradient colors={[C.accent + 'CC', C.accent]}
                 style={{ width:30, height:30, borderRadius:15, justifyContent:'center', alignItems:'center' }}>
-                <Ionicons name="leaf" size={15} color="#0A0A0F" />
+                <Ionicons name="leaf" size={15} color={C.accentText} />
               </LinearGradient>
               <Text style={{ color:'rgba(255,255,255,0.5)', fontSize:10, fontWeight:'800', letterSpacing:1.2 }}>TODAY'S YOGA SESSION</Text>
             </View>
@@ -847,6 +845,228 @@ function DailyRoutineSection({ gender, C, isDark, navigation }) {
   );
 }
 
+// ── Male Today's Progress Card (matches reference design) ─────────────────────
+
+function MiniStatRing({ pct, color, icon, val, sub }) {
+  const R = 30; const STROKE = 5;
+  const circumference = 2 * Math.PI * R;
+  const dash = Math.max((pct / 100) * circumference, 1);
+  return (
+    <View style={{ alignItems: 'center', flex: 1 }}>
+      <View style={{ width: 76, height: 76, alignItems: 'center', justifyContent: 'center' }}>
+        <Svg width={76} height={76} style={{ position: 'absolute' }}>
+          <SvgCircle cx={38} cy={38} r={R} stroke="rgba(255,255,255,0.12)"
+            strokeWidth={STROKE} fill="none" />
+          <SvgCircle cx={38} cy={38} r={R} stroke={color}
+            strokeWidth={STROKE} fill="none"
+            strokeDasharray={`${dash} ${circumference}`}
+            strokeDashoffset={-(circumference * 0.25)}
+            strokeLinecap="round" />
+        </Svg>
+        <View style={{ alignItems: 'center', gap: 1 }}>
+          <Ionicons name={icon} size={14} color={color} />
+          <Text style={{ color: '#fff', fontSize: 15, fontWeight: '900', lineHeight: 17 }}>{val}</Text>
+        </View>
+      </View>
+      <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 9, fontWeight: '700',
+        textAlign: 'center', marginTop: 4, lineHeight: 12 }} numberOfLines={2}>{sub}</Text>
+    </View>
+  );
+}
+
+function MaleTodayProgressCard({ calDisplay, calTarget, calPct, streak, activeDays, totalWkts, C, navigation }) {
+  const weekPct = Math.min((activeDays / 7) * 100, 100);
+  const wktPct  = Math.min((totalWkts / 100) * 100, 100);
+  return (
+    <TouchableOpacity activeOpacity={0.92}
+      onPress={() => navigation.navigate("Nutrition")}
+      style={{ marginHorizontal: 16, marginBottom: 14, borderRadius: 20, overflow: "hidden",
+        shadowColor: "#7C5CFC", shadowOpacity: 0.4, shadowRadius: 16, elevation: 10 }}>
+      <LinearGradient
+        colors={["#3A1FA0", "#5B34CC", "#7C5CFC"]}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={{ paddingHorizontal: 18, paddingTop: 18, paddingBottom: 20 }}>
+
+        {/* Header */}
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+          <View>
+            <Text style={{ color: "#fff", fontSize: 16, fontWeight: "800", letterSpacing: -0.3 }}>Today's Progress</Text>
+            <Text style={{ color: "rgba(255,255,255,0.55)", fontSize: 11, marginTop: 3 }}>
+              {streak >= 3 ? `${streak}-day streak! Keep it up!` : "Lets crush todays goals!"}
+            </Text>
+          </View>
+          <View style={{ backgroundColor: "rgba(255,255,255,0.15)", borderRadius: 10,
+            paddingHorizontal: 10, paddingVertical: 5 }}>
+            <Text style={{ color: "#fff", fontSize: 11, fontWeight: "800" }}>{activeDays}/7 days</Text>
+          </View>
+        </View>
+
+        {/* 3 ring stats */}
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+          <MiniStatRing pct={calPct}  color="#FF6B6B" icon="flame"         val={String(calDisplay)} sub={`/ ${calTarget} kcal`} />
+          <MiniStatRing pct={weekPct} color="#FFC107" icon="calendar"      val={`${activeDays}/7`}  sub="Active Days" />
+          <MiniStatRing pct={wktPct}  color="#4ECDC4" icon="barbell"       val={String(totalWkts)}  sub="Workouts Total" />
+        </View>
+      </LinearGradient>
+    </TouchableOpacity>
+  );
+}
+
+// ── Nutrition home card data ───────────────────────────────────────────────────
+const DIET_PLAN_CARDS = [
+  { id:'keto',   cat:'KETO',           label:'Easy Keto',      sub:'Healthy & Simple', color:'#E8A435', bg:'#1C1400', img:'https://images.pexels.com/photos/1580466/pexels-photo-1580466.jpeg?auto=compress&cs=tinysrgb&w=300' },
+  { id:'drinks', cat:'HEALTHY DRINKS', label:'5-Min Smoothie', sub:'Quick Energy',     color:'#60A5FA', bg:'#00142A', img:'https://images.pexels.com/photos/775030/pexels-photo-775030.jpeg?auto=compress&cs=tinysrgb&w=300'   },
+  { id:'vegan',  cat:'VEGAN',          label:'Easy Vegan',     sub:'High Protein',     color:'#4ADE80', bg:'#001400', img:'https://images.pexels.com/photos/1143754/pexels-photo-1143754.jpeg?auto=compress&cs=tinysrgb&w=300'  },
+  { id:'keto2',  cat:'KETO',           label:'Keto Breakfast', sub:'Low Carb Start',   color:'#F87171', bg:'#1C0000', img:'https://images.pexels.com/photos/376464/pexels-photo-376464.jpeg?auto=compress&cs=tinysrgb&w=300'   },
+];
+
+const DAILY_MEAL_SETS = [
+  [
+    { type:'Breakfast', name:'Oat Milk Bowls',           img:'https://images.pexels.com/photos/1099680/pexels-photo-1099680.jpeg?auto=compress&cs=tinysrgb&w=120' },
+    { type:'Lunch',     name:'Peanut Tofu Wrap',         img:'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=120' },
+    { type:'Dinner',    name:'Pasta with Peas',          img:'https://images.pexels.com/photos/1279330/pexels-photo-1279330.jpeg?auto=compress&cs=tinysrgb&w=120' },
+  ],
+  [
+    { type:'Breakfast', name:'Strawberry Banana Yogurt', img:'https://images.pexels.com/photos/1132047/pexels-photo-1132047.jpeg?auto=compress&cs=tinysrgb&w=120' },
+    { type:'Lunch',     name:'Grilled Chicken Salad',    img:'https://images.pexels.com/photos/2097090/pexels-photo-2097090.jpeg?auto=compress&cs=tinysrgb&w=120' },
+    { type:'Dinner',    name:'Grilled Ancho Chicken',    img:'https://images.pexels.com/photos/2338407/pexels-photo-2338407.jpeg?auto=compress&cs=tinysrgb&w=120' },
+  ],
+  [
+    { type:'Breakfast', name:'Avocado Toast',            img:'https://images.pexels.com/photos/1351238/pexels-photo-1351238.jpeg?auto=compress&cs=tinysrgb&w=120' },
+    { type:'Lunch',     name:'Quinoa Power Bowl',        img:'https://images.pexels.com/photos/1640774/pexels-photo-1640774.jpeg?auto=compress&cs=tinysrgb&w=120' },
+    { type:'Dinner',    name:'Lemon Herb Salmon',        img:'https://images.pexels.com/photos/3655916/pexels-photo-3655916.jpeg?auto=compress&cs=tinysrgb&w=120' },
+  ],
+  [
+    { type:'Breakfast', name:'Greek Yogurt Parfait',     img:'https://images.pexels.com/photos/1102007/pexels-photo-1102007.jpeg?auto=compress&cs=tinysrgb&w=120' },
+    { type:'Lunch',     name:'Turkey Lettuce Wrap',      img:'https://images.pexels.com/photos/1640775/pexels-photo-1640775.jpeg?auto=compress&cs=tinysrgb&w=120' },
+    { type:'Dinner',    name:'Stir-Fry Tofu Bowl',      img:'https://images.pexels.com/photos/1410235/pexels-photo-1410235.jpeg?auto=compress&cs=tinysrgb&w=120' },
+  ],
+  [
+    { type:'Breakfast', name:'Green Protein Smoothie',   img:'https://images.pexels.com/photos/775030/pexels-photo-775030.jpeg?auto=compress&cs=tinysrgb&w=120' },
+    { type:'Lunch',     name:'Brown Rice Veggie Bowl',   img:'https://images.pexels.com/photos/723198/pexels-photo-723198.jpeg?auto=compress&cs=tinysrgb&w=120' },
+    { type:'Dinner',    name:'Baked Chicken Breast',     img:'https://images.pexels.com/photos/2673353/pexels-photo-2673353.jpeg?auto=compress&cs=tinysrgb&w=120' },
+  ],
+  [
+    { type:'Breakfast', name:'Chia Seed Pudding',        img:'https://images.pexels.com/photos/3026810/pexels-photo-3026810.jpeg?auto=compress&cs=tinysrgb&w=120' },
+    { type:'Lunch',     name:'Mediterranean Salad',      img:'https://images.pexels.com/photos/1684863/pexels-photo-1684863.jpeg?auto=compress&cs=tinysrgb&w=120' },
+    { type:'Dinner',    name:'Lean Beef Stir Fry',       img:'https://images.pexels.com/photos/3763847/pexels-photo-3763847.jpeg?auto=compress&cs=tinysrgb&w=120' },
+  ],
+  [
+    { type:'Breakfast', name:'Egg White Omelette',       img:'https://images.pexels.com/photos/824635/pexels-photo-824635.jpeg?auto=compress&cs=tinysrgb&w=120' },
+    { type:'Lunch',     name:'Lentil Soup & Bread',      img:'https://images.pexels.com/photos/539451/pexels-photo-539451.jpeg?auto=compress&cs=tinysrgb&w=120' },
+    { type:'Dinner',    name:'Shrimp Cauliflower Rice',  img:'https://images.pexels.com/photos/566566/pexels-photo-566566.jpeg?auto=compress&cs=tinysrgb&w=120' },
+  ],
+];
+
+function NutritionHomeCard({ calConsumed, calTarget, protConsumed, protTarget, carbConsumed, carbTarget, fatConsumed, fatTarget, calPct, calDisplay, C, isDark, navigation }) {
+  const now     = new Date();
+  const doy     = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
+  const meals   = DAILY_MEAL_SETS[doy % DAILY_MEAL_SETS.length];
+  const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+  return (
+    <View style={{ marginHorizontal: 16, marginBottom: 14 }}>
+
+      {/* Heading — BetterMe bold italic style */}
+      <View style={{ flexDirection:'row', justifyContent:'space-between', alignItems:'flex-end', marginBottom: 16 }}>
+        <View>
+          <Text style={{ color: C.muted, fontSize:10, fontWeight:'700', letterSpacing:1.5, marginBottom: 3 }}>TODAY'S PLAN</Text>
+          <Text style={{ color: C.text, fontSize:26, fontWeight:'900', fontStyle:'italic', lineHeight:30 }}>Meal Plan</Text>
+        </View>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Nutrition')}
+          style={{ flexDirection:'row', alignItems:'center', gap:5, backgroundColor:'rgba(200,241,53,0.1)', borderRadius:14, paddingHorizontal:12, paddingVertical:8, borderWidth:1, borderColor:'rgba(200,241,53,0.25)' }}>
+          <Ionicons name="restaurant-outline" size={13} color={C.accent} />
+          <Text style={{ color: C.accent, fontSize:12, fontWeight:'800' }}>Log Food</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Classic Meal Plan card — BetterMe style */}
+      <View style={{ backgroundColor:'#16161F', borderRadius:22, borderWidth:1, borderColor:'rgba(255,255,255,0.08)', overflow:'hidden', marginBottom:14 }}>
+        {/* Card header */}
+        <View style={{ flexDirection:'row', alignItems:'center', justifyContent:'space-between', paddingHorizontal:16, paddingTop:14, paddingBottom:12, borderBottomWidth:1, borderBottomColor:'rgba(255,255,255,0.06)' }}>
+          <Text style={{ color: C.muted, fontSize:10, fontWeight:'800', letterSpacing:1.2 }}>CLASSIC DIET PLAN</Text>
+          <View style={{ backgroundColor:'rgba(200,241,53,0.12)', borderRadius:8, paddingHorizontal:8, paddingVertical:3, borderWidth:1, borderColor:'rgba(200,241,53,0.25)' }}>
+            <Text style={{ color: C.accent, fontSize:10, fontWeight:'700' }}>{dateStr}</Text>
+          </View>
+        </View>
+
+        {/* Meal rows with circular food photos */}
+        {meals.map((meal, i) => (
+          <TouchableOpacity key={meal.type} onPress={() => navigation.navigate('Nutrition')} activeOpacity={0.75}
+            style={{ flexDirection:'row', alignItems:'center', gap:14, paddingHorizontal:16, paddingVertical:13,
+              borderTopWidth: i > 0 ? 1 : 0, borderTopColor:'rgba(255,255,255,0.05)' }}>
+            <Image source={{ uri: meal.img }}
+              style={{ width:56, height:56, borderRadius:28, borderWidth:2, borderColor:'rgba(255,255,255,0.1)' }}
+              contentFit="cover" />
+            <View style={{ flex:1 }}>
+              <Text style={{ color:'rgba(255,255,255,0.38)', fontSize:10, fontWeight:'800', letterSpacing:0.8, marginBottom:3 }}>
+                {meal.type.toUpperCase()}
+              </Text>
+              <Text style={{ color: C.text, fontSize:14, fontWeight:'700' }} numberOfLines={1}>{meal.name}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.2)" />
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Lazy Diet Bag heading — BetterMe bold italic */}
+      <View style={{ flexDirection:'row', justifyContent:'space-between', alignItems:'flex-end', marginBottom:12 }}>
+        <View>
+          <Text style={{ color: C.text, fontSize:22, fontWeight:'900', fontStyle:'italic' }}>Lazy Diet Bag</Text>
+          <Text style={{ color: C.muted, fontSize:10, fontWeight:'800', letterSpacing:1.2 }}>KETO</Text>
+        </View>
+        <TouchableOpacity onPress={() => navigation.navigate('Nutrition')}
+          style={{ flexDirection:'row', alignItems:'center', gap:3 }}>
+          <Text style={{ color: C.accent, fontSize:12, fontWeight:'700' }}>See all</Text>
+          <Ionicons name="chevron-forward" size={12} color={C.accent} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Diet plan category cards — horizontal scroll, BetterMe style */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap:10, paddingBottom:4 }}>
+        {DIET_PLAN_CARDS.map(plan => (
+          <TouchableOpacity key={plan.id} onPress={() => navigation.navigate('Nutrition')} activeOpacity={0.85}
+            style={{ width:200, height:108, borderRadius:18, overflow:'hidden', backgroundColor: plan.bg,
+              shadowColor: plan.color, shadowOpacity:0.3, shadowRadius:8, elevation:4 }}>
+            {/* Food photo right side */}
+            <Image source={{ uri: plan.img }}
+              style={{ position:'absolute', right:-8, bottom:0, width:118, height:118 }}
+              contentFit="cover" />
+            {/* Left-to-right gradient fade */}
+            <LinearGradient
+              colors={[plan.bg, plan.bg + 'EE', plan.bg + '99', 'transparent']}
+              start={{ x:0, y:0 }} end={{ x:1, y:0 }}
+              style={StyleSheet.absoluteFill} />
+            <View style={{ padding:14 }}>
+              <Text style={{ color:'rgba(255,255,255,0.45)', fontSize:9, fontWeight:'900', letterSpacing:1.5, marginBottom:5 }}>{plan.cat}</Text>
+              <Text style={{ color:'#fff', fontSize:15, fontWeight:'900', lineHeight:19 }}>{plan.label}</Text>
+              <Text style={{ color:'rgba(255,255,255,0.55)', fontSize:11, marginTop:4 }}>{plan.sub}</Text>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      {/* Macro summary card */}
+      <View style={{ backgroundColor:'#16161F', borderRadius:18, borderWidth:1, borderColor:'rgba(255,255,255,0.07)', padding:14, marginTop:12 }}>
+        <View style={{ flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
+          <Text style={{ color: C.muted, fontSize:11, fontWeight:'700' }}>Daily Calories</Text>
+          <Text style={{ color: C.accent, fontSize:13, fontWeight:'900' }}>
+            {calDisplay} <Text style={{ color: C.muted, fontWeight:'600', fontSize:11 }}>/ {calTarget} kcal</Text>
+          </Text>
+        </View>
+        <CalBar pct={calPct} C={C} isDark={isDark} />
+        <View style={{ flexDirection:'row', justifyContent:'space-around', marginTop:14 }}>
+          <MacroRing value={protConsumed} max={protTarget} color={C.accent} label="PROTEIN" unit="g" C={C} isDark={isDark} />
+          <MacroRing value={carbConsumed} max={carbTarget} color={C.accent} label="CARBS"   unit="g" C={C} isDark={isDark} />
+          <MacroRing value={fatConsumed}  max={fatTarget}  color={C.accent} label="FATS"    unit="g" C={C} isDark={isDark} />
+        </View>
+      </View>
+    </View>
+  );
+}
+
 const getGreeting = () => {
   const h = new Date().getHours();
   if (h < 5)  return 'GOOD NIGHT';
@@ -1000,64 +1220,66 @@ export default function HomeScreen({ navigation }) {
       â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
 
       {gender === 'female' && <FemaleCategoryStrip C={C} isDark={isDark} navigation={navigation} />}
-      {/* Female category strip */}
+
+      {/* Male: Today's Progress Card — Purple gradient with 3 ring stats */}
+      {gender === 'male' && (
+        <Animated.View style={e1}>
+          <MaleTodayProgressCard
+            calDisplay={calDisplay} calTarget={calTarget} calPct={calPct}
+            streak={streak} activeDays={activeDays} totalWkts={totalWkts}
+            C={C} navigation={navigation}
+          />
+        </Animated.View>
+      )}
+
+      {/* Female: Body transformation card */}
+      {gender === 'female' && (
       <Animated.View style={[e1, { marginHorizontal:16, marginBottom:14 }, ...heroDepth]}>
       <View style={[s.heroCard, { marginHorizontal:0, marginBottom:0 }]}>
         <LinearGradient
-          colors={isDark ? [C.surfaceAlt ?? C.card2, C.bg] : ['#1A1F17', '#0E1117']}
+          colors={isDark ? [C.surfaceAlt ?? C.card2, C.bg] : [C.surface, C.surfaceAlt]}
           style={StyleSheet.absoluteFill}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
 
-        {/* Body images */}
         <View style={s.heroBodyRow}>
-          {/* Before */}
           <View style={s.heroBodyWrap}>
             <Text style={s.heroBodyLbl}>NOW</Text>
             <Image source={bodyImgs.before} style={s.heroBodyImg} contentFit="contain" />
           </View>
 
-          {/* Arrow + info center */}
           <View style={s.heroCenter}>
-            <View style={[s.goalBadge,
-              { backgroundColor: `${C.accent}20`, borderColor: `${C.accent}44` }]}>
-              <Text style={[s.goalBadgeTxt, { color: C.accent }]}>
+            <View style={[s.goalBadge, { backgroundColor:`${C.accent}20`, borderColor:`${C.accent}44` }]}>
+              <Text style={[s.goalBadgeTxt, { color:C.accent }]}>
                 {goalType === 'weight_gain' ? '💪 GAIN' : '🔥 LOSE'}
               </Text>
             </View>
-
-            <Ionicons name={goalType === 'weight_gain' ? 'trending-up' : 'trending-down'}
-              size={28} color={C.accent} />
-
+            <Ionicons name={goalType === 'weight_gain' ? 'trending-up' : 'trending-down'} size={28} color={C.accent} />
             {weightGoal?.target_value ? (
-              <View style={{ alignItems: 'center' }}>
-                <Text style={[s.heroTargetNum, { color: C.accent }]}>
-                  {weightGoal.target_value}
-                </Text>
+              <View style={{ alignItems:'center' }}>
+                <Text style={[s.heroTargetNum, { color:C.accent }]}>{weightGoal.target_value}</Text>
                 <Text style={s.heroTargetUnit}>kg goal</Text>
               </View>
             ) : (
               <TouchableOpacity onPress={() => navigation.navigate('Goals')}
-                style={[s.setGoalBtn, { borderColor: C.accent }]}>
-                <Text style={{ color: C.accent, fontSize: 9, fontWeight: '800' }}>SET GOAL</Text>
+                style={[s.setGoalBtn, { borderColor:C.accent }]}>
+                <Text style={{ color:C.accent, fontSize:9, fontWeight:'800' }}>SET GOAL</Text>
               </TouchableOpacity>
             )}
           </View>
 
-          {/* After */}
           <View style={s.heroBodyWrap}>
             <Text style={s.heroBodyLbl}>GOAL</Text>
             <Image source={bodyImgs.after} style={s.heroBodyImg} contentFit="contain" />
           </View>
         </View>
 
-        {/* Progress bar */}
         {weightGoal?.target_value && weightGoal?.current_value != null && (
-          <View style={{ paddingHorizontal: 16, paddingBottom: 14 }}>
-            <View style={{ flexDirection:'row', justifyContent:'space-between', marginBottom: 5 }}>
-              <Text style={{ color: C.muted, fontSize: 10, fontWeight: '700' }}>
+          <View style={{ paddingHorizontal:16, paddingBottom:14 }}>
+            <View style={{ flexDirection:'row', justifyContent:'space-between', marginBottom:5 }}>
+              <Text style={{ color:C.muted, fontSize:10, fontWeight:'700' }}>
                 {weightGoal.current_value || user?.weight_kg || 0} kg now
               </Text>
-              <Text style={{ color: C.accent, fontSize:10, fontWeight:'800' }}>
+              <Text style={{ color:C.accent, fontSize:10, fontWeight:'800' }}>
                 {weightGoal.progress_pct || 0}% complete
               </Text>
             </View>
@@ -1066,6 +1288,7 @@ export default function HomeScreen({ navigation }) {
         )}
       </View>
       </Animated.View>
+      )}
 
       {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
           3-STAT STRIP
@@ -1098,32 +1321,14 @@ export default function HomeScreen({ navigation }) {
           TODAY'S MACROS â€" RING PROGRESS
       â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
       <Animated.View style={e3}>
-      <View style={s.card}>
-        <View style={s.cardHeader}>
-          <Text style={s.cardTitle}>Today's Nutrition</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Nutrition')}>
-            <Text style={s.seeAll}>Log Food â€º</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Calorie bar */}
-        <View style={{ marginBottom: 14 }}>
-          <View style={{ flexDirection:'row', justifyContent:'space-between', marginBottom: 5 }}>
-            <Text style={{ color:C.muted, fontSize:11, fontWeight:'700' }}>Calories</Text>
-            <Text style={{ color:C.accent, fontSize:12, fontWeight:'900' }}>
-              {calDisplay} <Text style={{ color:C.muted, fontWeight:'600' }}>/ {calTarget} kcal</Text>
-            </Text>
-          </View>
-          <CalBar pct={calPct} C={C} isDark={isDark} />
-        </View>
-
-        {/* Macro rings row */}
-        <View style={{ flexDirection:'row', justifyContent:'space-around' }}>
-          <MacroRing value={protConsumed} max={protTarget} color={C.accent} label="PROTEIN" unit="g" C={C} isDark={isDark} />
-          <MacroRing value={carbConsumed} max={carbTarget} color={C.accent} label="CARBS"   unit="g" C={C} isDark={isDark} />
-          <MacroRing value={fatConsumed}  max={fatTarget}  color={C.accent} label="FATS"    unit="g" C={C} isDark={isDark} />
-        </View>
-      </View>
+      <NutritionHomeCard
+        calConsumed={calConsumed}   calTarget={calTarget}
+        protConsumed={protConsumed} protTarget={protTarget}
+        carbConsumed={carbConsumed} carbTarget={carbTarget}
+        fatConsumed={fatConsumed}   fatTarget={fatTarget}
+        calPct={calPct}             calDisplay={calDisplay}
+        C={C} isDark={isDark}       navigation={navigation}
+      />
       </Animated.View>
 
       {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
@@ -1139,9 +1344,9 @@ export default function HomeScreen({ navigation }) {
       <View style={s.quickGrid}>
         {[
           { icon:'restaurant',      label:'Log Food',  color:C.accent, screen:'Nutrition' },
-          { icon:'moon',            label:'Sleep',     color:C.accent, screen:'Sleep'     },
-          { icon:'trophy',          label:'Goals',     color:C.accent, screen:'Goals'     },
-          { icon:'analytics',       label:'Tracker',   color:C.accent, screen:'Tracker'   },
+          { icon:'moon',            label:'Sleep',     color:C.accent, screen:'Sleep'   },
+          { icon:'trophy',          label:'Goals',     color:C.accent, screen:'Goals'   },
+          { icon:'analytics',       label:'Tracker',   color:C.accent, screen:'Tracker' },
         ].map(q => (
           <QuickActionBtn key={q.label} q={q} navigation={navigation} s={s} C={C} />
         ))}
@@ -1155,29 +1360,35 @@ export default function HomeScreen({ navigation }) {
       {gender === 'female' && <FemaleYogaBanner navigation={navigation} C={C} />}
 
       <Animated.View style={e5}>
-      <TouchableOpacity style={[s.aiCard, glowStyle(isDark, C.accent, 10, 0.12)]}
-        onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigation.navigate('AICoach'); }}
-        activeOpacity={0.85}>
-        <LinearGradient colors={[C.surfaceAlt ?? C.card2, C.bg]}
+      <TouchableOpacity style={s.aiCard}
+        onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigation.navigate("AICoach"); }}
+        activeOpacity={0.88}>
+        <LinearGradient
+          colors={gender === "male"
+            ? ["#0A2E1A", "#145C2F", "#1A7A3D"]
+            : [C.surfaceAlt ?? C.card2, C.bg]}
           style={StyleSheet.absoluteFill} start={{x:0,y:0}} end={{x:1,y:1}} />
-        <View style={s.aiIconWrap}>
-          <MaterialCommunityIcons name="robot-outline" size={24} color={C.accent} />
+        <View style={[s.aiIconWrap,
+          gender === "male" && { backgroundColor:"rgba(22,163,74,0.18)", borderColor:"rgba(22,163,74,0.3)" }]}>
+          <MaterialCommunityIcons name="robot-outline" size={24}
+            color={gender === "male" ? "#4ADE80" : C.accent} />
         </View>
         <View style={{ flex:1 }}>
-          <View style={{ flexDirection:'row', alignItems:'center', gap:6, marginBottom:3 }}>
-            <Text style={s.aiTitle}>AI Coach</Text>
-            <View style={{ backgroundColor:C.accentDim, borderRadius:6, paddingHorizontal:6, paddingVertical:2 }}>
-              <Text style={{ color:C.accent, fontSize:9, fontWeight:'800' }}>GPT-4o</Text>
+          <View style={{ flexDirection:"row", alignItems:"center", gap:6, marginBottom:3 }}>
+            <Text style={[s.aiTitle, gender === "male" && { color:"#fff" }]}>AI Coach</Text>
+            <View style={{ backgroundColor: gender === "male" ? "rgba(74,222,128,0.2)" : C.accentDim,
+              borderRadius:6, paddingHorizontal:6, paddingVertical:2 }}>
+              <Text style={{ color: gender === "male" ? "#4ADE80" : C.accent, fontSize:9, fontWeight:"800" }}>GPT-4o</Text>
             </View>
           </View>
-          <Text style={s.aiSub}>
+          <Text style={[s.aiSub, gender === "male" && { color:"rgba(255,255,255,0.65)" }]}>
             {streak >= 3
-              ? `${streak}-day streak! Get your personalized daily report â†’`
-              : 'Wellness score â€¢ Daily report â€¢ Custom plans â†’'}
+              ? `${streak}-day streak! Get personalized plan`
+              : "What should I do today? Ask Now"}
           </Text>
         </View>
-        <View style={[s.aiArrow, { backgroundColor:C.accent }]}>
-          <Ionicons name="chevron-forward" size={16} color={C.accentText} />
+        <View style={[s.aiArrow, { backgroundColor: gender === "male" ? "#16A34A" : C.accent }]}>
+          <Ionicons name="chevron-forward" size={16} color="#fff" />
         </View>
       </TouchableOpacity>
       </Animated.View>
@@ -1371,9 +1582,9 @@ const makeStyles = (C) => StyleSheet.create({
   goalBadge:    { borderRadius:20, borderWidth:1, paddingHorizontal:10, paddingVertical:4 },
   goalBadgeTxt: { fontSize:10, fontWeight:'900', letterSpacing:0.5 },
   heroTargetNum:{ fontSize:28, fontWeight:'900', lineHeight:30 },
-  heroTargetUnit:{ color:'rgba(255,255,255,0.4)', fontSize:10 },
+  heroTargetUnit:{ color:C.muted, fontSize:10 },
   setGoalBtn:   { borderWidth:1, borderRadius:10, paddingHorizontal:8, paddingVertical:5 },
-  heroBarBg:    { height:6, backgroundColor:'rgba(255,255,255,0.12)', borderRadius:3,
+  heroBarBg:    { height:6, backgroundColor:C.border, borderRadius:3,
                   overflow:'hidden', marginHorizontal:16 },
   heroBarFill:  { height:'100%', borderRadius:3 },
 

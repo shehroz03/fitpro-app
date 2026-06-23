@@ -8,10 +8,16 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useQuery } from '@tanstack/react-query';
+import { Image } from 'expo-image';
 import { useAuthStore } from '../store/authStore';
 import { useC } from '../utils/theme';
 import { useThemeStore } from '../store/themeStore';
 import { supabase } from '../api/supabase';
+import { workoutAPI } from '../api/services';
+
+const AI_PLAN_KEY = '@fitcore_ai_plan';
 
 const { width: W } = Dimensions.get('window');
 const LIME   = '#C8F135';
@@ -294,15 +300,25 @@ function DayCard({ day, index }) {
 // ─────────────────────────────────────────────────────────────────────────────
 //  FULL DIET PLAN CARD
 // ─────────────────────────────────────────────────────────────────────────────
-function DietPlanCard({ text, isFemale }) {
+function DietPlanCard({ text, isFemale, onSavePlan }) {
   const plan = parseDietPlan(text);
   const [copied, setCopied] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved,  setSaved]  = useState(false);
 
   const copyPlan = () => {
     Clipboard.setString(text);
     setCopied(true);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleSaveToApp = async () => {
+    if (saved || saving || !onSavePlan) return;
+    setSaving(true);
+    await onSavePlan(text, plan);
+    setSaving(false);
+    setSaved(true);
   };
 
   return (
@@ -394,6 +410,29 @@ function DietPlanCard({ text, isFemale }) {
         </View>
       ) : null}
 
+      {/* ─ Save to App button ─ */}
+      <TouchableOpacity
+        onPress={handleSaveToApp}
+        disabled={saved || saving}
+        style={[st.saveToAppBtn, saved && { backgroundColor: '#1A3A1A', borderColor: '#4ADE8040' }]}
+        activeOpacity={0.8}
+      >
+        {saving ? (
+          <ActivityIndicator size="small" color={LIME} />
+        ) : (
+          <>
+            <Ionicons
+              name={saved ? 'checkmark-circle' : 'add-circle'}
+              size={18}
+              color={saved ? '#4ADE80' : LIME}
+            />
+            <Text style={{ color: saved ? '#4ADE80' : LIME, fontWeight: '800', fontSize: 13, marginLeft: 6 }}>
+              {saved ? '✓ Saved to My Plan!' : 'Save to My App Plan'}
+            </Text>
+          </>
+        )}
+      </TouchableOpacity>
+
       {/* ─ AI disclaimer ─ */}
       <View style={st.disclaimer}>
         <Ionicons name="shield-checkmark-outline" size={11} color="rgba(255,255,255,0.25)" />
@@ -408,7 +447,7 @@ function DietPlanCard({ text, isFemale }) {
 // ─────────────────────────────────────────────────────────────────────────────
 //  ANIMATED MESSAGE BUBBLE — slides up + fades in
 // ─────────────────────────────────────────────────────────────────────────────
-function MessageBubble({ msg, doctorName, doctorColor, doctorEmoji, isFemale, isDark }) {
+function MessageBubble({ msg, doctorName, doctorColor, doctorEmoji, isFemale, isDark, onSavePlan, allPlans, navigation }) {
   const isUser = msg.role === 'user';
   const isDiet = msg.isDietPlan;
 
@@ -465,15 +504,23 @@ function MessageBubble({ msg, doctorName, doctorColor, doctorEmoji, isFemale, is
       <View style={{ paddingLeft: 40 }}>
         {isDiet ? (
           <View style={[st.dietCard, { borderColor: LIME + '35' }]}>
-            <DietPlanCard text={msg.content} isFemale={isFemale} />
+            <DietPlanCard text={msg.content} isFemale={isFemale} onSavePlan={onSavePlan} />
           </View>
         ) : (
-          <View style={[st.docBubble, { borderColor: 'rgba(255,255,255,0.07)' }]}>
-            {/* Colored left accent bar */}
-            <View style={[st.accentBar, { backgroundColor: doctorColor }]} />
-            <View style={{ paddingLeft: 10 }}>
-              <RichText text={msg.content} color="rgba(255,255,255,0.90)" size={14} />
+          <View>
+            <View style={[st.docBubble, { borderColor: 'rgba(255,255,255,0.07)' }]}>
+              <View style={[st.accentBar, { backgroundColor: doctorColor }]} />
+              <View style={{ paddingLeft: 10 }}>
+                <RichText text={msg.content} color="rgba(255,255,255,0.90)" size={14} />
+              </View>
             </View>
+            {detectWorkoutSuggestion(msg.content) && navigation && allPlans?.length > 0 && (
+              <WorkoutSuggestionCards
+                message={msg.content}
+                allPlans={allPlans}
+                navigation={navigation}
+              />
+            )}
           </View>
         )}
       </View>
@@ -507,6 +554,121 @@ function QuickChip({ label, icon, onPress, color }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+//  WORKOUT SUGGESTION — match AI exercise mentions to real app workouts
+// ─────────────────────────────────────────────────────────────────────────────
+const EXERCISE_CAT_MAP = [
+  [/cardio|running|jogging|cycling|swimming|hiit|fat.?burn|aerobic/i, 'cardio'],
+  [/strength|weight.?train|muscle|deadlift|squat|bench.?press|lift/i, 'strength'],
+  [/yoga|stretch|flexibility|breathing|mindful|relax/i, 'yoga'],
+  [/core|abs|plank|sit.?up|crunch/i, 'core'],
+  [/recovery|rest day|mobility|foam.?roll/i, 'recovery'],
+  [/full.?body|total.?body|circuit/i, 'full_body'],
+];
+
+function detectWorkoutSuggestion(text) {
+  if (!text) return false;
+  return /\b(exercise|workout|cardio|strength|yoga|hiit|squats?|push.?up|plank|lunges?|running|cycling|abs|core|training|gym|fitness routine)\b/i.test(text);
+}
+
+function matchWorkoutsToMessage(text, allPlans) {
+  if (!allPlans?.length) return [];
+  const matchedCats = [];
+  for (const [re, cat] of EXERCISE_CAT_MAP) {
+    if (re.test(text)) matchedCats.push(cat);
+  }
+  const pool = matchedCats.length
+    ? allPlans.filter(p => matchedCats.includes(p.category))
+    : allPlans;
+  return pool.slice(0, 4);
+}
+
+function WorkoutSuggestionCards({ message, allPlans, navigation }) {
+  const matches = matchWorkoutsToMessage(message, allPlans);
+  if (!matches.length) return null;
+  return (
+    <View style={{ marginTop: 10 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 8 }}>
+        <Ionicons name="barbell-outline" size={12} color={LIME} />
+        <Text style={{ color: LIME, fontSize: 11, fontWeight: '800', letterSpacing: 0.5 }}>
+          WORKOUTS FROM THE APP
+        </Text>
+      </View>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+        {matches.map(plan => (
+          <TouchableOpacity
+            key={plan.id}
+            onPress={() => navigation.navigate('WorkoutDetail', { plan })}
+            activeOpacity={0.85}
+            style={{ width: 155, borderRadius: 14, overflow: 'hidden', backgroundColor: '#1A1A28', borderWidth: 1, borderColor: 'rgba(200,241,53,0.15)' }}
+          >
+            <View style={{ width: 155, height: 95, backgroundColor: '#111' }}>
+              {plan.image ? (
+                <Image source={{ uri: plan.image }} style={{ width: 155, height: 95 }} contentFit="cover" />
+              ) : (
+                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name="barbell" size={28} color="rgba(255,255,255,0.2)" />
+                </View>
+              )}
+              <View style={{ position: 'absolute', top: 7, right: 7, backgroundColor: LIME, borderRadius: 10, width: 22, height: 22, alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name="play" size={11} color="#0A0A0F" />
+              </View>
+            </View>
+            <View style={{ padding: 8 }}>
+              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 12, marginBottom: 2 }} numberOfLines={1}>{plan.name}</Text>
+              <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10 }}>
+                {plan.category} · {plan.duration_min ?? '—'}min
+              </Text>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  SMART CHIP DETECTION — maps last AI question to quick-reply options
+// ─────────────────────────────────────────────────────────────────────────────
+function detectQuestionType(text) {
+  if (!text) return 'text';
+  const t = text.toLowerCase();
+  if (/married|unmarried|shadi|shaadi/.test(t))                          return 'marital';
+  if (/pregnant|pregnancy|حاملہ/.test(t))                                return 'pregnant';
+  if (/breastfeed|breast.?feed|nursing/.test(t))                         return 'breastfeeding';
+  if (/children|kids|baby|bachay|oldest|youngest/.test(t))               return 'children';
+  if (/pcos|thyroid|hormonal|irregular period|menopaus/.test(t))         return 'hormonal';
+  if (/medical condition|diabetes|blood pressure|cholesterol/.test(t))   return 'medical';
+  if (/goal|lose weight|gain weight|target|maqsad|health goal|fitness goal/.test(t)) return 'goal';
+  if (/active|activity|desk|gym|exercise|workout|how active/.test(t))    return 'activity';
+  if (/vegetarian|vegan|non.?veg|meat|prefer.*food|food.*prefer/.test(t)) return 'food_pref';
+  if (/allerg/.test(t))                                                   return 'allergies';
+  if (/meals per day|how many meals|kitni dafa|khana kitni/.test(t))     return 'meals_count';
+  if (/muscle.*fat|fat.*muscle|main focus|building.*fat|goal.*gym/.test(t)) return 'gym_focus';
+  if (/pre.?workout|post.?workout/.test(t))                               return 'workout_meals';
+  if (/gym.*day|days.*week|how many days|workout.*week/.test(t))         return 'gym_days';
+  return 'text';
+}
+
+const SMART_CHIPS = {
+  marital:        [{ l:'Married 💍', s:'Married' }, { l:'Unmarried 🙋', s:'Unmarried' }],
+  pregnant:       [{ l:'Yes, pregnant 🤰', s:'Yes, I am pregnant' }, { l:'No', s:'No' }],
+  breastfeeding:  [{ l:'Yes, breastfeeding 👶', s:'Yes, breastfeeding' }, { l:'No', s:'No' }],
+  children:       [{ l:'No children', s:'No children' }, { l:'Yes, have children 👶', s:'Yes, I have children' }],
+  hormonal:       [{ l:'PCOS 🌿', s:'I have PCOS' }, { l:'Thyroid', s:'Thyroid issues' }, { l:'Both', s:'PCOS and thyroid' }, { l:'None ✓', s:'None' }],
+  medical:        [{ l:'None ✓', s:'No medical conditions' }, { l:'Diabetes', s:'Diabetes' }, { l:'High BP', s:'High blood pressure' }, { l:'Other', s:'Other medical condition' }],
+  goal:           [{ l:'🔥 Lose weight', s:'Lose weight' }, { l:'💪 Build muscle', s:'Build muscle' }, { l:'📈 Gain weight', s:'Gain weight' }, { l:'🥗 Stay healthy', s:'Stay healthy, balanced diet' }, { l:'🏋️ Workout plan', s:'Workout nutrition plan' }],
+  activity:       [{ l:'💻 Desk job', s:'Mostly sedentary, desk job' }, { l:'🚶 Moderate', s:'Moderately active' }, { l:'🏋️ Gym goer', s:'Very active, gym regularly' }],
+  food_pref:      [{ l:'🍗 Non-veg', s:'Non-vegetarian' }, { l:'🥦 Vegetarian', s:'Vegetarian' }, { l:'🌱 Vegan', s:'Vegan' }],
+  allergies:      [{ l:'None ✓', s:'No food allergies' }, { l:'Dairy 🥛', s:'Dairy allergy' }, { l:'Gluten 🌾', s:'Gluten intolerance' }, { l:'Nuts 🥜', s:'Nut allergy' }],
+  meals_count:    [{ l:'2 meals', s:'2 big meals per day' }, { l:'3 meals', s:'3 regular meals per day' }, { l:'4-5 small', s:'4-5 small meals per day' }],
+  gym_focus:      [{ l:'💪 Muscle', s:'Build muscle' }, { l:'🔥 Fat loss', s:'Lose fat' }, { l:'⚖️ Both', s:'Both muscle and fat loss' }],
+  workout_meals:  [{ l:'Yes please ✓', s:'Yes, I want pre and post-workout meal recommendations' }, { l:'No thanks', s:'No' }],
+  gym_days:       [{ l:'0 (none)', s:'I don\'t work out' }, { l:'1-3 days', s:'1-3 days a week' }, { l:'4-5 days', s:'4-5 days a week' }, { l:'6-7 days', s:'6-7 days a week' }],
+};
+
+const CHAT_KEY_PREFIX = '@fitcore_diet_chat_';
+
+// ─────────────────────────────────────────────────────────────────────────────
 //  MAIN SCREEN
 // ─────────────────────────────────────────────────────────────────────────────
 export default function DietDoctorScreen({ navigation }) {
@@ -522,14 +684,24 @@ export default function DietDoctorScreen({ navigation }) {
   const doctorSpec  = isFemale ? "Women's Health & Nutrition" : "Sports Nutrition & Dietetics";
   const doctorEmoji = isFemale ? '👩‍⚕️' : '👨‍⚕️';
 
-  const [messages,   setMessages]   = useState([]);
-  const [input,      setInput]      = useState('');
-  const [loading,    setLoading]    = useState(false);
-  const [started,    setStarted]    = useState(false);
-  const [focused,    setFocused]    = useState(false);
-  const [activeGoal, setActiveGoal] = useState(null);
+  const [messages,    setMessages]   = useState([]);
+  const [input,       setInput]      = useState('');
+  const [loading,     setLoading]    = useState(false);
+  const [started,     setStarted]    = useState(false);
+  const [focused,     setFocused]    = useState(false);
+  const [activeGoal,  setActiveGoal] = useState(null);
+  const [chatLoaded,  setChatLoaded] = useState(false);
   const flatRef  = useRef(null);
   const inputRef = useRef(null);
+
+  const chatKey = user?.id ? `${CHAT_KEY_PREFIX}${user.id}` : null;
+
+  // Load workouts for exercise suggestion cards
+  const { data: allPlans = [] } = useQuery({
+    queryKey: ['workouts-all'],
+    queryFn: () => workoutAPI.getPlans({}).then(r => r.data.data || []),
+    staleTime: 10 * 60 * 1000,
+  });
 
   // Fetch active goal
   useEffect(() => {
@@ -558,28 +730,66 @@ export default function DietDoctorScreen({ navigation }) {
     const { data, error } = await supabase.functions.invoke('diet-doctor', {
       body: { messages: msgs, profile, gender, isStart, userId: user?.id || 'anonymous' },
     });
-    if (error) throw new Error(error.message || 'Doctor unavailable');
+    if (error) {
+      let detail = error.message || 'Doctor unavailable';
+      try {
+        if (error.context) {
+          const text = await error.context.text();
+          try {
+            const json = JSON.parse(text);
+            if (json?.error) detail = json.error;
+          } catch {
+            if (text) detail = text.slice(0, 300);
+          }
+        }
+      } catch {}
+      console.warn('[diet-doctor] invoke failed:', detail);
+      throw new Error(detail);
+    }
     if (data?.error) throw new Error(data.error);
     return { reply: data.reply, isDietPlan: data.isDietPlan || false };
   }, [gender, user, activeGoal]);
 
-  // Auto-start
+  // Load saved chat from AsyncStorage
   useEffect(() => {
-    if (started) return;
+    if (!chatKey) { setChatLoaded(true); return; }
+    AsyncStorage.getItem(chatKey)
+      .then(raw => {
+        if (raw) {
+          const saved = JSON.parse(raw);
+          if (Array.isArray(saved) && saved.length > 0) {
+            setMessages(saved);
+            setStarted(true);
+          }
+        }
+      })
+      .catch(() => {})
+      .finally(() => setChatLoaded(true));
+  }, [chatKey]);
+
+  // Auto-start ONLY if no saved chat
+  useEffect(() => {
+    if (!chatLoaded || started) return;
     setStarted(true);
     setLoading(true);
     callDietDoctor([], true)
       .then(({ reply, isDietPlan }) => {
         setMessages([{ role: 'assistant', content: reply, isDietPlan, time: getTime(), id: 'intro' }]);
       })
-      .catch(() => {
+      .catch((e) => {
         setMessages([{
           role: 'assistant', isDietPlan: false, time: getTime(), id: 'err0',
-          content: `Hello! I'm ${doctorName}. I'm having trouble connecting right now — please check your internet and try again.`,
+          content: `Hello! I'm ${doctorName}. I can't reach the AI service right now.\n\nReason: ${e?.message || 'connection error'}\n\nMake sure the "diet-doctor" function is deployed and OPENAI_API_KEY is set, then tap refresh.`,
         }]);
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [chatLoaded, started]);
+
+  // Save chat to AsyncStorage on every update
+  useEffect(() => {
+    if (!chatKey || !chatLoaded || messages.length === 0) return;
+    AsyncStorage.setItem(chatKey, JSON.stringify(messages)).catch(() => {});
+  }, [messages, chatKey, chatLoaded]);
 
   const scrollToEnd = () => setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 120);
 
@@ -613,8 +823,28 @@ export default function DietDoctorScreen({ navigation }) {
     }
   };
 
+  const handleSavePlan = useCallback(async (planText, parsedPlan) => {
+    try {
+      const data = {
+        text: planText,
+        parsed: parsedPlan,
+        savedAt: Date.now(),
+        doctorName,
+        isFemale,
+        goal: parsedPlan?.macros?.goal || '',
+        calories: parsedPlan?.macros?.calories || '',
+        protein: parsedPlan?.macros?.protein || '',
+      };
+      await AsyncStorage.setItem(AI_PLAN_KEY, JSON.stringify(data));
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (e) {
+      console.warn('Save plan error:', e);
+    }
+  }, [doctorName, isFemale]);
+
   const clearChat = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (chatKey) AsyncStorage.removeItem(chatKey).catch(() => {});
     setMessages([]); setStarted(false); setLoading(true);
     callDietDoctor([], true)
       .then(({ reply, isDietPlan }) => {
@@ -623,21 +853,17 @@ export default function DietDoctorScreen({ navigation }) {
       .catch(() => {}).finally(() => setLoading(false));
   };
 
-  const quickReplies = isFemale
-    ? [
-        { label: 'Lose weight',       icon: '🔥' },
-        { label: 'PCOS diet',         icon: '🌿' },
-        { label: 'Pregnant hoon',     icon: '🤰' },
-        { label: 'Gain weight',       icon: '💪' },
-        { label: 'Healthy eating',    icon: '🥗' },
-      ]
-    : [
-        { label: 'Build muscle',      icon: '💪' },
-        { label: 'Lose belly fat',    icon: '🔥' },
-        { label: 'Gym nutrition',     icon: '🏋️' },
-        { label: 'Gain weight',       icon: '📈' },
-        { label: 'Healthy eating',    icon: '🥗' },
-      ];
+  // Smart chips: detect question type from last AI message
+  const lastAiMsg = [...messages].reverse().find(m => m.role === 'assistant' && !m.isDietPlan);
+  const questionType = detectQuestionType(lastAiMsg?.content || '');
+  const smartChips = SMART_CHIPS[questionType] || null;
+
+  // First-message fallback chips (before any conversation)
+  const firstChips = isFemale
+    ? [{ l:'🔥 Lose weight', s:'Lose weight' }, { l:'🥗 Stay healthy', s:'Stay healthy, balanced diet' }, { l:'🌿 PCOS diet', s:'PCOS diet' }, { l:'🤰 Pregnant', s:'Pregnant hoon' }, { l:'💪 Gain weight', s:'Gain weight' }]
+    : [{ l:'💪 Build muscle', s:'Build muscle' }, { l:'🔥 Lose fat', s:'Lose belly fat' }, { l:'🥗 Stay healthy', s:'Stay healthy, balanced diet' }, { l:'🏋️ Workout plan', s:'Workout nutrition plan' }, { l:'📈 Gain weight', s:'Gain weight' }];
+
+  const chipsToShow = messages.length === 0 ? firstChips : smartChips;
 
   return (
     <KeyboardAvoidingView
@@ -698,6 +924,9 @@ export default function DietDoctorScreen({ navigation }) {
             doctorEmoji={doctorEmoji}
             isFemale={isFemale}
             isDark={isDark}
+            onSavePlan={handleSavePlan}
+            allPlans={allPlans}
+            navigation={navigation}
           />
         )}
         ListFooterComponent={
@@ -708,18 +937,17 @@ export default function DietDoctorScreen({ navigation }) {
       />
 
       {/* ── QUICK REPLIES ───────────────────────────────────────────── */}
-      {messages.length <= 2 && !loading && (
+      {!loading && chipsToShow && chipsToShow.length > 0 && (
         <ScrollView
           horizontal showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 14, gap: 8, paddingBottom: 6, paddingTop: 2 }}
         >
-          {quickReplies.map((q, i) => (
+          {chipsToShow.map((q, i) => (
             <QuickChip
               key={i}
-              label={q.label}
-              icon={q.icon}
+              label={q.l}
               color={doctorColor}
-              onPress={() => send(q.label)}
+              onPress={() => send(q.s)}
             />
           ))}
         </ScrollView>
@@ -820,6 +1048,7 @@ const st = StyleSheet.create({
   // Shopping & disclaimer
   shoppingBox: { marginHorizontal: 12, marginBottom: 8, backgroundColor: 'rgba(200,241,53,0.04)', borderRadius: 12, padding: 10, borderWidth: 1, borderColor: 'rgba(200,241,53,0.12)' },
   disclaimer:  { flexDirection: 'row', alignItems: 'flex-start', gap: 6, margin: 12, marginTop: 4 },
+  saveToAppBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', margin: 12, marginTop: 8, marginBottom: 4, paddingVertical: 12, borderRadius: 14, borderWidth: 1.5, borderColor: 'rgba(200,241,53,0.35)', backgroundColor: 'rgba(200,241,53,0.07)' },
   // Quick chips
   chip:        { flexDirection: 'row', alignItems: 'center', gap: 5, borderWidth: 1, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 7 },
   // Input

@@ -4,26 +4,98 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { View, Text, ScrollView, TouchableOpacity, Modal,
-  TextInput, StyleSheet, Alert, ActivityIndicator,
+  TextInput, StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, Platform,
   RefreshControl,  FlatList, Animated, Dimensions, PanResponder } from 'react-native';
 import Svg, { Polyline, Rect } from 'react-native-svg';
 import * as ImagePicker from 'expo-image-picker';
 import { nutritionAPI, goalsAPI } from '../api/services';
 import { useAuthStore } from '../store/authStore';
-import { useC } from '../utils/theme';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import MacroCircle from '../components/diet/MacroCircle';
+import MealRow from '../components/diet/MealRow';
+import PlanCard from '../components/diet/PlanCard';
+import { MACRO, DIET } from '../theme/dietTheme';
+import { useC } from '../utils/theme';
+
+// Muted category tones — low saturation, consistent treatment.
+// Never use bright/competing colors here.
+const PASTEL_CAT = {
+  protein:     '#FEF3E2',
+  carbs:       '#EEF2FF',
+  fruits:      '#FFF7ED',
+  fats:        '#FEFCE8',
+  nuts:        '#FEFCE8',
+  dairy:       '#F0F9FF',
+  drinks:      '#F5F3FF',
+  shakes:      '#F0FDF4',
+  vegetables:  '#F0FDF4',
+  meals:       '#FFF1F2',
+  supplements: '#FAF5FF',
+};
+const pastelForCategory = (c) => PASTEL_CAT[c] || '#F4F4F5';
+
+// Match a meal text description to a food in allFoods DB
+function matchFoodFromDB(mealText, allFoods) {
+  if (!allFoods?.length || !mealText) return null;
+  const lower = mealText.toLowerCase();
+  // Direct name match
+  const direct = allFoods.find(f => f.name && lower.includes(f.name.toLowerCase()));
+  if (direct) return direct;
+  // Category keyword match
+  const catKeys = [
+    [/chicken|turkey|beef|lamb|fish|salmon|tuna|egg|protein|meat|gosht/i, 'protein'],
+    [/rice|bread|pasta|oat|oatmeal|quinoa|potato|roti|naan|wheat|carb/i, 'carbs'],
+    [/shake|smoothie|juice|blend/i, 'shakes'],
+    [/apple|banana|mango|berry|fruit|orange|grape|ber/i, 'fruits'],
+    [/almond|walnut|nut|cashew|peanut|pistachio|badam/i, 'nuts'],
+    [/milk|yogurt|curd|cheese|dairy|cottage|dahi/i, 'dairy'],
+    [/water|tea|coffee|green tea|chai/i, 'drinks'],
+    [/salad|soup|meal|bowl|curry|dal|lentil|sabzi|veget/i, 'meals'],
+  ];
+  for (const [re, cat] of catKeys) {
+    if (re.test(lower)) {
+      const f = allFoods.find(x => x.category === cat);
+      if (f) return f;
+    }
+  }
+  return null;
+}
+
+// Parse emoji-annotated meal lines from AI plan text
+const PLAN_MEAL_EMOJIS = ['🌅','🍳','🥗','🍽️','🍎','🌙','💧','💪','💊'];
+const PLAN_MEAL_LABELS = {
+  '🌅': 'Wake-up', '🍳': 'Breakfast', '🥗': 'Snack', '🍽️': 'Lunch',
+  '🍎': 'Evening', '🌙': 'Dinner', '💧': 'Water', '💪': 'Pre-Workout', '💊': 'Supplements',
+};
+
+// LIGHT_FD is resolved at render time from useC() — defined here as a fallback ref.
+// Components that use it should call useFDColors() inside the component body.
+const useFDColors = () => {
+  const C = useC();
+  return {
+    bg:      C.bg,
+    card:    C.surface,
+    panel:   C.surfaceAlt,
+    text:    C.text,
+    muted:   C.muted,
+    divider: C.border,
+    accent:  C.accent,
+    pink:    C.red,
+  };
+};
 
 const { width: SW, height: SH } = Dimensions.get('window');
 
 // ── Meal timing rules ─────────────────────────────────────────
+// All meal time chips use a single neutral color — active state gets accent.
 const MEAL_TIMES = {
-  breakfast:    { label:'Breakfast',    ion:'weather-sunset-up',  time:'7:00 – 9:00 AM',  color:'#C8F135' },
-  pre_workout:  { label:'Pre-Workout',  ion:'lightning-bolt',     time:'60 min before',   color:'#C8F135' },
-  lunch:        { label:'Lunch',        ion:'white-balance-sunny',time:'12:00 – 2:00 PM', color:'#C8F135' },
-  snack:        { label:'Snack',        ion:'food-apple-outline', time:'4:00 – 5:00 PM',  color:'#C8F135' },
-  post_workout: { label:'Post-Workout', ion:'arm-flex-outline',   time:'Within 30 min',   color:'#C8F135' },
-  dinner:       { label:'Dinner',       ion:'weather-night',      time:'7:00 – 9:00 PM',  color:'#C8F135' },
+  breakfast:    { label:'Breakfast',    ion:'weather-sunset-up',  time:'7:00 – 9:00 AM',  color:'#4F46E5' },
+  pre_workout:  { label:'Pre-Workout',  ion:'lightning-bolt',     time:'60 min before',   color:'#4F46E5' },
+  lunch:        { label:'Lunch',        ion:'white-balance-sunny',time:'12:00 – 2:00 PM', color:'#4F46E5' },
+  snack:        { label:'Snack',        ion:'food-apple-outline', time:'4:00 – 5:00 PM',  color:'#4F46E5' },
+  post_workout: { label:'Post-Workout', ion:'arm-flex-outline',   time:'Within 30 min',   color:'#4F46E5' },
+  dinner:       { label:'Dinner',       ion:'weather-night',      time:'7:00 – 9:00 PM',  color:'#4F46E5' },
 };
 const MealIcon = ({ mealKey, size = 14, color }) => (
   <MaterialCommunityIcons
@@ -247,188 +319,119 @@ const MacroMini = ({ p, c, f }) => {
   );
 };
 
-// ── Food Card ─────────────────────────────────────────────────
-const makeFc = (C) => StyleSheet.create({
-  card:         { backgroundColor:C.card, borderRadius:16, borderWidth:1, borderColor:C.border,
-                  marginBottom:12, overflow:'hidden' },
-  cardSelected: { borderColor:C.accent, borderWidth:2, backgroundColor:`${C.accent}0A` },
-  imgWrap:      { height:160, position:'relative', overflow:'hidden' },
-  img:          { width:'100%', height:'100%' },
-  calBadge:     { position:'absolute', top:10, left:10, backgroundColor:'rgba(0,0,0,0.75)',
-                  borderRadius:10, paddingHorizontal:8, paddingVertical:4, alignItems:'center',
-                  borderWidth:1, borderColor:'rgba(200,241,53,0.5)' },
-  calBadgeTxt:  { color:C.accent, fontSize:16, fontWeight:'900', lineHeight:18 },
-  calBadgeSub:  { color:C.muted,  fontSize:8,  fontWeight:'600' },
-  tick:         { position:'absolute', top:10, right:10, backgroundColor:C.accent,
-                  borderRadius:12, width:26, height:26, alignItems:'center', justifyContent:'center' },
-  catIcon:      { position:'absolute', bottom:10, left:10, backgroundColor:'rgba(0,0,0,0.6)',
-                  borderRadius:8, width:28, height:28, alignItems:'center', justifyContent:'center' },
-  detailOverlay:{ position:'absolute', right:0, top:0, bottom:0, width:'46%',
-                  backgroundColor:'rgba(8,8,14,0.88)', padding:8,
-                  borderLeftWidth:1, borderLeftColor:'rgba(200,241,53,0.25)',
-                  justifyContent:'center', gap:2 },
-  ovCalLbl:     { color:C.accent, fontSize:7, fontWeight:'900', letterSpacing:1 },
-  ovDivider:    { height:1, backgroundColor:'rgba(255,255,255,0.1)', marginVertical:4 },
-  ovBenRow:     { flexDirection:'row', alignItems:'flex-start', gap:4 },
-  ovDot:        { color:C.accent, fontSize:5, marginTop:2 },
-  ovBenTxt:     { color:'#ddd', fontSize:9, fontWeight:'600', flex:1, lineHeight:12 },
-  ovSectionLbl: { color:C.muted, fontSize:7, fontWeight:'900', letterSpacing:0.8, marginBottom:2 },
-  ovTimingRow:  { flexDirection:'row', flexWrap:'wrap', gap:3 },
-  ovChip:       { flexDirection:'row', alignItems:'center', gap:2, borderRadius:5,
-                  paddingHorizontal:4, paddingVertical:2 },
-  ovChipTxt:    { fontSize:7, fontWeight:'800' },
-  ovWhyTxt:     { color:'#aaa', fontSize:8, lineHeight:12, fontStyle:'italic' },
-  info:         { padding:12 },
-  name:         { color:C.text, fontSize:15, fontWeight:'800', marginBottom:2 },
-  serving:      { color:C.dim,  fontSize:11, marginBottom:2 },
-  macroRow:     { flexDirection:'row', gap:8, marginTop:4 },
-  macroLbl:     { fontSize:10, fontWeight:'700' },
-  timeChip:     { flexDirection:'row', alignItems:'center', gap:3, borderRadius:8,
-                  paddingHorizontal:7, paddingVertical:3, marginRight:5 },
-  timeChipTxt:  { fontSize:9, fontWeight:'700' },
-  planBox:      { backgroundColor:`${C.accent}14`, borderRadius:8, padding:8,
-                  marginTop:8, borderWidth:1, borderColor:`${C.accent}33` },
-  planTxt:      { color:C.text, fontSize:12, fontWeight:'700', marginBottom:2 },
-  planReason:   { color:C.muted, fontSize:11, lineHeight:15 },
-  tip:          { color:C.dim, fontSize:11, marginTop:6, lineHeight:15 },
-});
+// ── Food Card — Clean minimal row (circular image + info) ──────
 const FoodCard = ({ food, selected, onToggle, onDetail, goal }) => {
   const C = useC();
-  const fc = useMemo(() => makeFc(C), [C]);
-  const plan     = goal === 'weight_gain' ? food.gain_plan : food.loss_plan;
-  const benefits = getFoodBenefits(food);
-  const timingKeys = (food.best_time || []).slice(0, 2);
-  const scaleAnim  = useRef(new Animated.Value(1)).current;
+  const plan = goal === 'weight_gain' ? food.gain_plan : food.loss_plan;
+  const timingKeys = (food.best_time || []).slice(0, 3);
+  const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const handleToggle = () => {
     Animated.sequence([
-      Animated.spring(scaleAnim, { toValue:0.94, useNativeDriver:true, speed:50 }),
+      Animated.spring(scaleAnim, { toValue:0.97, useNativeDriver:true, speed:50 }),
       Animated.spring(scaleAnim, { toValue:1,    useNativeDriver:true, speed:50 }),
     ]).start();
     onToggle(food);
   };
 
   return (
-    <Animated.View style={[{ transform:[{ scale:scaleAnim }] }, fc.card, selected && fc.cardSelected]}>
-
-      {/* ── IMAGE AREA — tap opens food detail page ── */}
-      <TouchableOpacity onPress={() => onDetail?.(food)} activeOpacity={0.88}>
-        <View style={fc.imgWrap}>
-          <Image
-            source={{ uri: food.image }}
-            style={fc.img}
-            contentFit="cover"
-            onError={() => {}}
-            defaultSource={{ uri: 'https://placehold.co/400x200/111118/C8F135.png?text=' + encodeURIComponent(food.name) }}
-          />
-
-          {/* Calorie Badge — top left */}
-          <View style={fc.calBadge}>
-            <Text style={fc.calBadgeTxt}>{food.calories}</Text>
-            <Text style={fc.calBadgeSub}>kcal</Text>
-          </View>
-
-          {/* Selected tick */}
-          {selected && (
-            <View style={fc.tick}>
-              <Ionicons name="checkmark" size={15} color="#0A0A0F" />
-            </View>
-          )}
-
-          {/* Category icon — bottom left */}
-          <View style={fc.catIcon}>
-            <FoodCatIcon category={food.category} size={14} color={C.accent} />
-          </View>
-
-          {/* ── DETAIL OVERLAY — right side of image ── */}
-          <View style={fc.detailOverlay}>
-            <Text style={fc.ovCalLbl}>NUTRIENTS</Text>
-            <View style={fc.ovDivider} />
-            {benefits.map((b, i) => (
-              <View key={i} style={fc.ovBenRow}>
-                <Text style={fc.ovDot}>◆</Text>
-                <Text style={fc.ovBenTxt}>{b}</Text>
+    <Animated.View style={[
+      { transform:[{ scale:scaleAnim }] },
+      { backgroundColor:C.card, borderRadius:16, borderWidth:1,
+        borderColor: selected ? C.accent : C.border,
+        marginBottom:10, overflow:'hidden',
+        ...(selected && { backgroundColor:`${C.accent}08` }),
+      }
+    ]}>
+      <TouchableOpacity
+        onPress={handleToggle}
+        onLongPress={() => onDetail?.(food)}
+        activeOpacity={0.88}
+        style={{ flexDirection:'row', alignItems:'center', padding:12, gap:12 }}
+      >
+        {/* Circular food image */}
+        <TouchableOpacity onPress={() => onDetail?.(food)} activeOpacity={0.85}>
+          <View style={{ width:64, height:64, borderRadius:32, overflow:'hidden',
+            borderWidth:2, borderColor: selected ? C.accent : C.border }}>
+            <Image
+              source={{ uri: food.image }}
+              style={{ width:64, height:64 }}
+              contentFit="cover"
+              defaultSource={{ uri: 'https://placehold.co/64x64/f5f0eb/00C853.png?text=' + encodeURIComponent(food.name[0]) }}
+            />
+            {selected && (
+              <View style={{ position:'absolute', inset:0, backgroundColor:`${C.accent}55`,
+                alignItems:'center', justifyContent:'center' }}>
+                <Ionicons name="checkmark" size={22} color="#fff" />
               </View>
-            ))}
-            <View style={fc.ovDivider} />
-            <Text style={fc.ovSectionLbl}>BEST TIME</Text>
-            <View style={fc.ovTimingRow}>
-              {timingKeys.map(t => (
-                <View key={t} style={[fc.ovChip, { backgroundColor:`${MEAL_TIMES[t]?.color||C.accent}30` }]}>
-                  <MealIcon mealKey={t} size={8} />
-                  <Text style={[fc.ovChipTxt, { color:MEAL_TIMES[t]?.color||C.accent }]}>
-                    {MEAL_TIMES[t]?.label||t}
-                  </Text>
-                </View>
-              ))}
-            </View>
-            {plan && (
-              <>
-                <View style={fc.ovDivider} />
-                <Text style={fc.ovSectionLbl}>WHY EAT</Text>
-                <Text style={fc.ovWhyTxt} numberOfLines={3}>{plan.reason}</Text>
-              </>
             )}
           </View>
+        </TouchableOpacity>
 
-          {/* "View Details" hint — bottom right of image */}
-          <View style={{ position:'absolute', bottom:10, right:10, backgroundColor:'rgba(0,0,0,0.60)',
-            borderRadius:8, paddingHorizontal:7, paddingVertical:4,
-            flexDirection:'row', alignItems:'center', gap:3 }}>
-            <Ionicons name="expand-outline" size={10} color="#fff" />
-            <Text style={{ color:'#fff', fontSize:9, fontWeight:'800' }}>View Details</Text>
-          </View>
-        </View>
-      </TouchableOpacity>
+        {/* Info */}
+        <View style={{ flex:1 }}>
+          <Text style={{ color:C.text, fontSize:15, fontWeight:'800', marginBottom:1 }} numberOfLines={1}>
+            {food.name}
+          </Text>
+          <Text style={{ color:C.muted, fontSize:12, marginBottom:4 }}>
+            {food.serving_size_g}g · <Text style={{ color:C.accent, fontWeight:'700' }}>{food.calories} kcal</Text>
+          </Text>
 
-      {/* ── INFO AREA — tap toggles selection ── */}
-      <TouchableOpacity onPress={handleToggle} activeOpacity={0.88}>
-        <View style={fc.info}>
-          <Text style={fc.name} numberOfLines={1}>{food.name}</Text>
-          <Text style={fc.serving}>{food.serving_size_g}g serving</Text>
-          <MacroMini p={food.protein_g} c={food.carbs_g} f={food.fat_g} />
-          <View style={fc.macroRow}>
-            <Text style={[fc.macroLbl, { color:C.accent   }]}>P {food.protein_g}g</Text>
-            <Text style={[fc.macroLbl, { color:C.accent }]}>C {food.carbs_g}g</Text>
-            <Text style={[fc.macroLbl, { color:C.accent }]}>F {food.fat_g}g</Text>
+          {/* Macro chips */}
+          <View style={{ flexDirection:'row', gap:6, marginBottom:4 }}>
+            {[['P', food.protein_g], ['C', food.carbs_g], ['F', food.fat_g]].map(([lbl, val]) => (
+              <View key={lbl} style={{ backgroundColor:`${C.accent}15`, borderRadius:6,
+                paddingHorizontal:6, paddingVertical:2 }}>
+                <Text style={{ color:C.accent, fontSize:10, fontWeight:'800' }}>{lbl} {val}g</Text>
+              </View>
+            ))}
           </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop:6 }}>
-            {(food.best_time||[]).map(t => (
-              <View key={t} style={[fc.timeChip, { backgroundColor:`${MEAL_TIMES[t]?.color||C.accent}22` }]}>
-                <MealIcon mealKey={t} size={10} />
-                <Text style={[fc.timeChipTxt, { color:MEAL_TIMES[t]?.color||C.accent }]}>
+
+          {/* Best time chips */}
+          <View style={{ flexDirection:'row', gap:4, flexWrap:'wrap' }}>
+            {timingKeys.map(t => (
+              <View key={t} style={{ flexDirection:'row', alignItems:'center', gap:3,
+                backgroundColor:`${MEAL_TIMES[t]?.color||C.accent}18`, borderRadius:6,
+                paddingHorizontal:6, paddingVertical:2 }}>
+                <MealIcon mealKey={t} size={9} />
+                <Text style={{ fontSize:9, fontWeight:'700', color:MEAL_TIMES[t]?.color||C.accent }}>
                   {MEAL_TIMES[t]?.label||t}
                 </Text>
               </View>
             ))}
-          </ScrollView>
-          {plan && (
-            <View style={fc.planBox}>
-              <View style={{ flexDirection:'row', alignItems:'center', gap:4 }}>
-                <Ionicons name={goal === 'weight_gain' ? 'trending-up' : 'trending-down'} size={12} color={C.accent} />
-                <Text style={fc.planTxt}>
-                  {plan.servings}x/day = <Text style={{ color:C.accent, fontWeight:'800' }}>{plan.total_cal} kcal</Text>
-                </Text>
-              </View>
-              <Text style={fc.planReason} numberOfLines={2}>{plan.reason}</Text>
-            </View>
-          )}
-          {food.tip && (
-            <View style={{ flexDirection:'row', alignItems:'flex-start', gap:4, marginTop:6 }}>
-              <Ionicons name="bulb-outline" size={11} color={C.dim} style={{ marginTop:2 }} />
-              <Text style={[fc.tip, { marginTop:0, flex:1 }]} numberOfLines={2}>{food.tip}</Text>
-            </View>
-          )}
-          {/* Tap to select hint */}
-          <View style={{ flexDirection:'row', alignItems:'center', justifyContent:'center', gap:4, marginTop:8,
-            paddingTop:8, borderTopWidth:0.5, borderColor:C.border }}>
-            {selected
-              ? <><Ionicons name="checkmark-circle" size={13} color={C.accent} /><Text style={{ color:C.accent, fontSize:11, fontWeight:'800' }}>Selected for plan</Text></>
-              : <><Ionicons name="add-circle-outline" size={13} color={C.dim} /><Text style={{ color:C.dim, fontSize:11, fontWeight:'600' }}>Tap to add to plan</Text></>
-            }
           </View>
+
+          {/* Plan box */}
+          {plan && (
+            <View style={{ flexDirection:'row', alignItems:'center', gap:4, marginTop:6,
+              backgroundColor:`${C.accent}12`, borderRadius:8, paddingHorizontal:8, paddingVertical:4 }}>
+              <Ionicons name={goal === 'weight_gain' ? 'trending-up' : 'trending-down'} size={11} color={C.accent} />
+              <Text style={{ color:C.text, fontSize:11, fontWeight:'700' }}>
+                {plan.servings}x/day = <Text style={{ color:C.accent, fontWeight:'900' }}>{plan.total_cal} kcal</Text>
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Right: chevron / add indicator */}
+        <View style={{ alignItems:'center', gap:4 }}>
+          {selected
+            ? <Ionicons name="checkmark-circle" size={22} color={C.accent} />
+            : <Ionicons name="add-circle-outline" size={22} color={C.dim} />
+          }
         </View>
       </TouchableOpacity>
+
+      {/* Add to plan label */}
+      <View style={{ paddingHorizontal:12, paddingBottom:10, paddingTop:0 }}>
+        <View style={{ borderTopWidth:0.5, borderColor:C.border, paddingTop:8,
+          flexDirection:'row', alignItems:'center', justifyContent:'center', gap:4 }}>
+          {selected
+            ? <Text style={{ color:C.accent, fontSize:11, fontWeight:'800' }}>✓ Added to plan</Text>
+            : <Text style={{ color:C.dim, fontSize:11, fontWeight:'600' }}>⊕ Tap to add to plan</Text>
+          }
+        </View>
+      </View>
     </Animated.View>
   );
 };
@@ -537,141 +540,112 @@ function GoalBanner({ goal, gender, C }) {
 
 // ── Food Detail Modal ──────────────────────────────────────────
 const FoodDetailModal = ({ food, goal, visible, onClose, onLogPress }) => {
-  const C = useC();
+  const insets = useSafeAreaInsets();
+  const L = useFDColors();
   if (!food) return null;
-  const plan       = goal === 'weight_gain' ? food.gain_plan : food.loss_plan;
+  const plan        = goal === 'weight_gain' ? food.gain_plan : food.loss_plan;
   const ingredients = getIngredients(food);
   const benefits    = getFoodBenefits(food);
-  const tot         = (food.protein_g || 0) + (food.carbs_g || 0) + (food.fat_g || 0) || 1;
-  const IMG_H       = Math.round(SH * 0.42);
   const isGain      = goal === 'weight_gain';
 
   return (
     <Modal visible={visible} animationType="slide" statusBarTranslucent>
-      <View style={{ flex:1, backgroundColor:C.bg }}>
-        <ScrollView showsVerticalScrollIndicator={false} bounces>
+      <View style={{ flex:1, backgroundColor:L.bg, paddingTop:insets.top }}>
+        <ScrollView showsVerticalScrollIndicator={false} bounces contentContainerStyle={{ paddingBottom:24 }}>
 
-          {/* ── HERO IMAGE ── */}
-          <View style={{ height:IMG_H, position:'relative' }}>
-            <Image
-              source={{ uri: food.image }}
-              style={{ width:'100%', height:'100%' }}
-              contentFit="cover"
-              onError={() => {}}
-            />
-            {/* Dark gradient overlay */}
-            <View style={{ position:'absolute', bottom:0, left:0, right:0, height:IMG_H * 0.55,
-              backgroundColor:'rgba(10,10,15,0.72)' }} />
+          {/* ── BACK BUTTON (white space above hero) ── */}
+          <TouchableOpacity onPress={onClose}
+            style={{ marginTop:8, marginLeft:16, width:44, height:44, borderRadius:22,
+              alignItems:'center', justifyContent:'center', backgroundColor:'#fff',
+              shadowColor:'#000', shadowOpacity:0.12, shadowRadius:6, shadowOffset:{ width:0, height:2 }, elevation:3 }}>
+            <Ionicons name="chevron-back" size={24} color={L.text} />
+          </TouchableOpacity>
 
-            {/* Back button */}
-            <TouchableOpacity onPress={onClose}
-              style={{ position:'absolute', top:48, left:16,
-                backgroundColor:'rgba(0,0,0,0.6)', borderRadius:20,
-                width:40, height:40, alignItems:'center', justifyContent:'center',
-                borderWidth:1, borderColor:'rgba(255,255,255,0.15)' }}>
-              <Ionicons name="arrow-back" size={22} color="#fff" />
-            </TouchableOpacity>
-
-            {/* Category badge — top right */}
-            <View style={{ position:'absolute', top:52, right:16,
-              backgroundColor:'rgba(0,0,0,0.65)', borderRadius:10,
-              paddingHorizontal:10, paddingVertical:5,
-              flexDirection:'row', alignItems:'center', gap:5,
-              borderWidth:1, borderColor:`${C.accent}44` }}>
-              <FoodCatIcon category={food.category} size={13} color={C.accent} />
-              <Text style={{ color:C.accent, fontSize:11, fontWeight:'800', textTransform:'uppercase' }}>
-                {food.category}
-              </Text>
-            </View>
-
-            {/* Calorie block — bottom of image */}
-            <View style={{ position:'absolute', bottom:16, left:16, right:16,
-              flexDirection:'row', alignItems:'flex-end', justifyContent:'space-between' }}>
-              <View>
-                <Text style={{ color:'#fff', fontSize:22, fontWeight:'900', lineHeight:26 }}>
-                  {food.name}
+          {/* ── ROUNDED HERO IMAGE ── */}
+          <View style={{ paddingHorizontal:16, paddingTop:12 }}>
+            <View style={{ borderRadius:20, overflow:'hidden', backgroundColor:L.card }}>
+              <Image
+                source={{ uri: food.image }}
+                style={{ width:'100%', height:260 }}
+                contentFit="cover"
+                onError={() => {}}
+              />
+              {/* Category pill — top right */}
+              <View style={{ position:'absolute', top:12, right:12,
+                backgroundColor:'rgba(255,255,255,0.92)', borderRadius:20,
+                paddingHorizontal:10, paddingVertical:5,
+                flexDirection:'row', alignItems:'center', gap:5 }}>
+                <FoodCatIcon category={food.category} size={13} color={L.accent} />
+                <Text style={{ color:L.text, fontSize:11, fontWeight:'800', textTransform:'uppercase' }}>
+                  {food.category}
                 </Text>
-                <Text style={{ color:'rgba(255,255,255,0.65)', fontSize:13, marginTop:2 }}>
-                  per {food.serving_size_g}g serving
-                </Text>
-              </View>
-              <View style={{ alignItems:'center',
-                backgroundColor:C.accent, borderRadius:12,
-                paddingHorizontal:12, paddingVertical:6 }}>
-                <Text style={{ color:C.accentText, fontSize:22, fontWeight:'900', lineHeight:24 }}>
-                  {food.calories}
-                </Text>
-                <Text style={{ color:C.accentText, fontSize:9, fontWeight:'800' }}>KCAL</Text>
               </View>
             </View>
           </View>
 
           {/* ── BODY ── */}
-          <View style={{ padding:16, gap:16 }}>
+          <View style={{ paddingHorizontal:20, paddingTop:16, gap:20 }}>
 
-            {/* Macro 3-column row */}
-            <View style={{ flexDirection:'row', gap:8 }}>
-              {[
-                { label:'Protein', val:food.protein_g, color:C.accent,   icon:'arm-flex-outline' },
-                { label:'Carbs',   val:food.carbs_g,   color:C.accent, icon:'lightning-bolt' },
-                { label:'Fats',    val:food.fat_g,     color:C.accent, icon:'water' },
-              ].map(m => (
-                <View key={m.label} style={{ flex:1, backgroundColor:C.card, borderRadius:14,
-                  borderWidth:1, borderColor:`${m.color}33`, padding:12, alignItems:'center', gap:6 }}>
-                  <View style={{ backgroundColor:`${m.color}18`, borderRadius:20,
-                    width:36, height:36, alignItems:'center', justifyContent:'center' }}>
-                    <MaterialCommunityIcons name={m.icon} size={18} color={m.color} />
-                  </View>
-                  <Text style={{ color:m.color, fontSize:20, fontWeight:'900' }}>{m.val}g</Text>
-                  <Text style={{ color:C.muted, fontSize:11, fontWeight:'700' }}>{m.label}</Text>
-                  {/* Mini % bar */}
-                  <View style={{ height:3, width:'100%', borderRadius:2, backgroundColor:C.border }}>
-                    <View style={{ height:'100%', borderRadius:2, backgroundColor:m.color,
-                      width:`${Math.min(100, (m.val/tot)*100)}%` }} />
-                  </View>
-                  <Text style={{ color:C.dim, fontSize:9 }}>{Math.round((m.val/tot)*100)}%</Text>
-                </View>
-              ))}
+            {/* Title */}
+            <Text style={{ color:L.text, fontSize:26, fontWeight:'800', textAlign:'center' }} numberOfLines={2}>
+              {food.name}
+            </Text>
+
+            {/* Meta row — serving + calories */}
+            <View style={{ flexDirection:'row', justifyContent:'center', gap:24, marginTop:-8 }}>
+              <View style={{ flexDirection:'row', alignItems:'center', gap:6 }}>
+                <Ionicons name="restaurant-outline" size={18} color={L.muted} />
+                <Text style={{ color:L.muted, fontSize:14, fontWeight:'600' }}>{food.serving_size_g}g serving</Text>
+              </View>
+              <View style={{ flexDirection:'row', alignItems:'center', gap:6 }}>
+                <Ionicons name="flame-outline" size={18} color={L.muted} />
+                <Text style={{ color:L.muted, fontSize:14, fontWeight:'600' }}>{food.calories} kcal</Text>
+              </View>
             </View>
 
-            {/* Ingredients */}
-            <View style={{ backgroundColor:C.card, borderRadius:16, borderWidth:1, borderColor:C.border, padding:14 }}>
-              <Text style={{ color:C.text, fontSize:14, fontWeight:'900', marginBottom:12, letterSpacing:0.5 }}>
-                INGREDIENTS
+            {/* Pastel macro circles */}
+            <View style={{ flexDirection:'row', justifyContent:'space-between', paddingHorizontal:4 }}>
+              <MacroCircle label="Carbs"   value={`${food.carbs_g}g`}   bg={MACRO.carbs} />
+              <MacroCircle label="Fat"     value={`${food.fat_g}g`}     bg={MACRO.fat} />
+              <MacroCircle label="Protein" value={`${food.protein_g}g`} bg={MACRO.protein} />
+            </View>
+
+            {/* Ingredients — mint panel, pink hyphen bullets */}
+            <View style={{ backgroundColor:L.panel, borderRadius:16, padding:18 }}>
+              <Text style={{ color:L.text, fontSize:18, fontWeight:'800', marginBottom:12 }}>
+                Ingredients
               </Text>
               {ingredients.map((ing, i) => (
                 <View key={i} style={{ flexDirection:'row', alignItems:'center', justifyContent:'space-between',
-                  paddingVertical:7, borderBottomWidth: i < ingredients.length-1 ? 0.5 : 0, borderColor:C.border }}>
-                  <View style={{ flexDirection:'row', alignItems:'center', gap:10 }}>
-                    <View style={{ width:10, height:10, borderRadius:5, backgroundColor:C.accent }} />
-                    <Text style={{ color:C.text, fontSize:13, fontWeight:'600' }}>{ing.n}</Text>
+                  paddingVertical:3 }}>
+                  <View style={{ flexDirection:'row', alignItems:'flex-start', flex:1 }}>
+                    <Text style={{ color:L.pink, fontSize:15, lineHeight:26, fontWeight:'800', width:16 }}>–</Text>
+                    <Text style={{ color:L.text, fontSize:15, lineHeight:26, fontWeight:'500', flex:1 }}>{ing.n}</Text>
                   </View>
-                  <Text style={{ color:C.accent, fontSize:13, fontWeight:'800' }}>
-                    {ing.g}g
-                  </Text>
+                  <Text style={{ color:L.accent, fontSize:14, fontWeight:'800', marginLeft:8 }}>{ing.g}g</Text>
                 </View>
               ))}
             </View>
 
             {/* Benefits */}
-            <View style={{ backgroundColor:C.card, borderRadius:16, borderWidth:1, borderColor:C.border, padding:14 }}>
-              <Text style={{ color:C.text, fontSize:14, fontWeight:'900', marginBottom:10, letterSpacing:0.5 }}>
-                BENEFITS
+            <View style={{ backgroundColor:L.card, borderRadius:16, padding:16 }}>
+              <Text style={{ color:L.text, fontSize:16, fontWeight:'800', marginBottom:10 }}>
+                Benefits
               </Text>
               {benefits.map((b, i) => (
                 <View key={i} style={{ flexDirection:'row', alignItems:'flex-start', gap:10, marginBottom:8 }}>
-                  <View style={{ backgroundColor:`${C.accent}20`, borderRadius:12, padding:5, marginTop:1 }}>
-                    <Ionicons name="checkmark" size={12} color={C.accent} />
+                  <View style={{ backgroundColor:`${L.accent}22`, borderRadius:12, padding:5, marginTop:1 }}>
+                    <Ionicons name="checkmark" size={12} color={L.accent} />
                   </View>
-                  <Text style={{ color:C.text, fontSize:13, fontWeight:'600', flex:1, lineHeight:18 }}>{b}</Text>
+                  <Text style={{ color:L.text, fontSize:14, fontWeight:'500', flex:1, lineHeight:18 }}>{b}</Text>
                 </View>
               ))}
             </View>
 
             {/* Best Time chips */}
-            <View style={{ backgroundColor:C.card, borderRadius:16, borderWidth:1, borderColor:C.border, padding:14 }}>
-              <Text style={{ color:C.text, fontSize:14, fontWeight:'900', marginBottom:12, letterSpacing:0.5 }}>
-                BEST TIME TO EAT
+            <View style={{ backgroundColor:L.card, borderRadius:16, padding:16 }}>
+              <Text style={{ color:L.text, fontSize:16, fontWeight:'800', marginBottom:12 }}>
+                Best Time to Eat
               </Text>
               <View style={{ flexDirection:'row', flexWrap:'wrap', gap:8 }}>
                 {(food.best_time || []).map(t => {
@@ -679,13 +653,12 @@ const FoodDetailModal = ({ food, goal, visible, onClose, onLogPress }) => {
                   if (!mt) return null;
                   return (
                     <View key={t} style={{ flexDirection:'row', alignItems:'center', gap:6,
-                      backgroundColor:`${mt.color}18`, borderRadius:20,
-                      paddingHorizontal:12, paddingVertical:6,
-                      borderWidth:1, borderColor:`${mt.color}44` }}>
-                      <MealIcon mealKey={t} size={14} color={mt.color} />
+                      backgroundColor:`${L.accent}14`, borderRadius:20,
+                      paddingHorizontal:12, paddingVertical:6 }}>
+                      <MealIcon mealKey={t} size={14} color={L.accent} />
                       <View>
-                        <Text style={{ color:mt.color, fontSize:12, fontWeight:'800' }}>{mt.label}</Text>
-                        <Text style={{ color:C.dim, fontSize:10 }}>{mt.time}</Text>
+                        <Text style={{ color:L.text, fontSize:12, fontWeight:'800' }}>{mt.label}</Text>
+                        <Text style={{ color:L.muted, fontSize:10 }}>{mt.time}</Text>
                       </View>
                     </View>
                   );
@@ -695,62 +668,55 @@ const FoodDetailModal = ({ food, goal, visible, onClose, onLogPress }) => {
 
             {/* Plan recommendation */}
             {plan && (
-              <View style={{ backgroundColor:`${isGain ? C.accent : C.accent}12`, borderRadius:16,
-                borderWidth:1, borderColor:`${isGain ? C.accent : C.accent}33`, padding:14 }}>
+              <View style={{ backgroundColor:`${L.accent}12`, borderRadius:16, padding:16 }}>
                 <View style={{ flexDirection:'row', alignItems:'center', gap:8, marginBottom:10 }}>
-                  <View style={{ backgroundColor:`${isGain ? C.accent : C.accent}20`, borderRadius:20, padding:6 }}>
-                    <Ionicons name={isGain ? 'trending-up' : 'trending-down'} size={16}
-                      color={isGain ? C.accent : C.accent} />
+                  <View style={{ backgroundColor:`${L.accent}22`, borderRadius:20, padding:6 }}>
+                    <Ionicons name={isGain ? 'trending-up' : 'trending-down'} size={16} color={L.accent} />
                   </View>
-                  <Text style={{ color:C.text, fontSize:14, fontWeight:'900' }}>
-                    {isGain ? 'GAIN PLAN' : 'LOSS PLAN'}
+                  <Text style={{ color:L.text, fontSize:15, fontWeight:'800' }}>
+                    {isGain ? 'Gain Plan' : 'Loss Plan'}
                   </Text>
                 </View>
                 <View style={{ flexDirection:'row', gap:10, marginBottom:10 }}>
-                  <View style={{ flex:1, backgroundColor:C.bg, borderRadius:10, padding:10, alignItems:'center' }}>
-                    <Text style={{ color:isGain ? C.accent : C.accent, fontSize:20, fontWeight:'900' }}>
-                      {plan.servings}x
-                    </Text>
-                    <Text style={{ color:C.muted, fontSize:11, fontWeight:'600' }}>Per Day</Text>
+                  <View style={{ flex:1, backgroundColor:'#fff', borderRadius:10, padding:10, alignItems:'center' }}>
+                    <Text style={{ color:L.accent, fontSize:20, fontWeight:'900' }}>{plan.servings}x</Text>
+                    <Text style={{ color:L.muted, fontSize:11, fontWeight:'600' }}>Per Day</Text>
                   </View>
-                  <View style={{ flex:1, backgroundColor:C.bg, borderRadius:10, padding:10, alignItems:'center' }}>
-                    <Text style={{ color:isGain ? C.accent : C.accent, fontSize:20, fontWeight:'900' }}>
-                      {plan.total_cal}
-                    </Text>
-                    <Text style={{ color:C.muted, fontSize:11, fontWeight:'600' }}>Total kcal</Text>
+                  <View style={{ flex:1, backgroundColor:'#fff', borderRadius:10, padding:10, alignItems:'center' }}>
+                    <Text style={{ color:L.accent, fontSize:20, fontWeight:'900' }}>{plan.total_cal}</Text>
+                    <Text style={{ color:L.muted, fontSize:11, fontWeight:'600' }}>Total kcal</Text>
                   </View>
                 </View>
-                <Text style={{ color:C.text, fontSize:13, lineHeight:19 }}>{plan.reason}</Text>
+                <Text style={{ color:L.text, fontSize:13, lineHeight:19 }}>{plan.reason}</Text>
               </View>
             )}
 
             {/* Tip */}
             {food.tip && (
-              <View style={{ backgroundColor:C.card, borderRadius:16, borderWidth:1, borderColor:C.border, padding:14,
-                flexDirection:'row', gap:10 }}>
-                <View style={{ backgroundColor:`${C.accent}20`, borderRadius:20, padding:7, alignSelf:'flex-start' }}>
-                  <Ionicons name="bulb-outline" size={16} color={C.accent} />
+              <View style={{ backgroundColor:L.card, borderRadius:16, padding:16, flexDirection:'row', gap:10 }}>
+                <View style={{ backgroundColor:`${L.accent}22`, borderRadius:20, padding:7, alignSelf:'flex-start' }}>
+                  <Ionicons name="bulb-outline" size={16} color={L.accent} />
                 </View>
                 <View style={{ flex:1 }}>
-                  <Text style={{ color:C.text, fontSize:13, fontWeight:'900', marginBottom:4 }}>PRO TIP</Text>
-                  <Text style={{ color:C.muted, fontSize:13, lineHeight:19 }}>{food.tip}</Text>
+                  <Text style={{ color:L.text, fontSize:13, fontWeight:'800', marginBottom:4 }}>Pro Tip</Text>
+                  <Text style={{ color:L.muted, fontSize:13, lineHeight:19 }}>{food.tip}</Text>
                 </View>
               </View>
             )}
 
             {/* Action buttons */}
-            <View style={{ flexDirection:'row', gap:10, marginTop:4, marginBottom:24 }}>
+            <View style={{ flexDirection:'row', gap:10, marginTop:4 }}>
               <TouchableOpacity
                 onPress={() => { onClose(); }}
-                style={{ flex:1, height:52, borderRadius:14, borderWidth:2, borderColor:C.accent,
+                style={{ flex:1, height:52, borderRadius:14, borderWidth:2, borderColor:L.accent,
                   alignItems:'center', justifyContent:'center' }}>
-                <Text style={{ color:C.accent, fontSize:15, fontWeight:'800' }}>Replace Meal</Text>
+                <Text style={{ color:L.accent, fontSize:15, fontWeight:'800' }}>Replace Meal</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => { onLogPress(food); onClose(); }}
-                style={{ flex:1, height:52, borderRadius:14, backgroundColor:C.accent,
+                style={{ flex:1, height:52, borderRadius:14, backgroundColor:L.accent,
                   alignItems:'center', justifyContent:'center' }}>
-                <Text style={{ color:C.accentText, fontSize:15, fontWeight:'900' }}>Log Meal</Text>
+                <Text style={{ color:'#fff', fontSize:15, fontWeight:'900' }}>Log Meal</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -770,6 +736,8 @@ export default function NutritionScreen({ navigation }) {
   const queryClient = useQueryClient();
   const [selected,      setSelected]      = useState([]);
   const [activeTab,     setActiveTab]     = useState('plan');   // plan | log | search
+  const [aiPlan,        setAiPlan]        = useState(null);     // saved AI doctor plan
+  const [aiPlanDay,     setAiPlanDay]     = useState(0);        // selected day index (0-6)
   const [searchQ,       setSearchQ]       = useState('');
   const [catFilter,     setCatFilter]     = useState('All');
   const [showLogModal,  setShowLogModal]  = useState(false);
@@ -1064,6 +1032,36 @@ export default function NutritionScreen({ navigation }) {
       : (f.goal||[]).includes('weight_loss')
   );
 
+  // ── Real "Classic Diet plan" content, pulled from the live food DB ──
+  // ── Load AI doctor plan from AsyncStorage ──────────────────────────────────
+  useEffect(() => {
+    AsyncStorage.getItem('@fitcore_ai_plan')
+      .then(raw => { if (raw) setAiPlan(JSON.parse(raw)); })
+      .catch(() => {});
+  }, []);
+
+  const todayMeals = useMemo(() => {
+    const pick = (time) =>
+      planFoods.find(f => (f.best_time||[]).includes(time)) ||
+      allFoods.find(f => (f.best_time||[]).includes(time));
+    return [
+      { type:'Breakfast', food: pick('breakfast') },
+      { type:'Lunch',     food: pick('lunch') },
+      { type:'Dinner',    food: pick('dinner') },
+    ].filter(m => m.food);
+  }, [allFoods, planFoods]);
+
+  const lazyFoods = useMemo(() => {
+    const cats = ['protein','carbs','shakes','fruits','nuts','dairy','drinks','meals'];
+    const out = [];
+    for (const c of cats) {
+      const f = allFoods.find(x => x.category === c);
+      if (f) out.push(f);
+      if (out.length >= 6) break;
+    }
+    return out.length ? out : allFoods.slice(0, 6);
+  }, [allFoods]);
+
   const filteredFoods = (activeTab === 'search' ? allFoods : planFoods).filter(f => {
     const matchQ   = f.name.toLowerCase().includes(searchQ.toLowerCase());
     const matchCat = catFilter === 'All' || f.category === catFilter;
@@ -1112,9 +1110,9 @@ export default function NutritionScreen({ navigation }) {
     <View style={s.root}>
       {/* ── TOP HEADER ─────────────────────────────────── */}
       <View style={[s.header, { paddingTop: insets.top + 12 }]}>
-        <View>
-          <Text style={s.secLabel}>TRACK</Text>
-          <Text style={s.title}>Nutrition</Text>
+        <View style={{ flex:1 }}>
+          <Text style={s.secLabel}>YOUR PLAN</Text>
+          <Text style={s.titleDisplay}>Classic{'\n'}Diet plan</Text>
         </View>
         <View style={s.calBubble}>
           <Text style={s.calBubbleNum}>{Math.round(con.calories||0)}</Text>
@@ -1171,6 +1169,157 @@ export default function NutritionScreen({ navigation }) {
         ═══════════════════════════════════════════════ */}
         {activeTab === 'plan' && (
           <>
+            {/* ── AI Doctor Plan section ── */}
+            {aiPlan && aiPlan.parsed?.days?.length > 0 && (() => {
+              const days = aiPlan.parsed.days;
+              const currentDay = days[Math.min(aiPlanDay, days.length - 1)];
+              return (
+                <View style={{ marginBottom: 20 }}>
+                  {/* Header */}
+                  <View style={{ flexDirection:'row', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+                    <View style={{ flexDirection:'row', alignItems:'center', gap:8 }}>
+                      <View style={{ width:36, height:36, borderRadius:18, backgroundColor:'#E9F7EF', alignItems:'center', justifyContent:'center' }}>
+                        <Text style={{ fontSize:18 }}>{aiPlan.isFemale ? '👩‍⚕️' : '👨‍⚕️'}</Text>
+                      </View>
+                      <View>
+                        <Text style={{ fontSize:14, fontWeight:'800', color:'#1A1A1A' }}>
+                          {aiPlan.doctorName} Plan
+                        </Text>
+                        {aiPlan.goal ? (
+                          <Text style={{ fontSize:11, color:'#8A8A8A' }}>{aiPlan.goal}</Text>
+                        ) : null}
+                      </View>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => { AsyncStorage.removeItem('@fitcore_ai_plan'); setAiPlan(null); setAiPlanDay(0); }}
+                      style={{ paddingHorizontal:10, paddingVertical:5, borderRadius:10, backgroundColor:C.surfaceAlt }}>
+                      <Text style={{ fontSize:11, color:C.muted, fontWeight:'600' }}>Clear</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Macro pills */}
+                  {(aiPlan.calories || aiPlan.protein) ? (
+                    <View style={{ flexDirection:'row', gap:8, marginBottom:10, flexWrap:'wrap' }}>
+                      {aiPlan.calories ? (
+                        <View style={{ flexDirection:'row', alignItems:'center', gap:4, backgroundColor:C.accentDim, borderRadius:10, paddingHorizontal:10, paddingVertical:5 }}>
+                          <Text style={{ fontSize:12 }}>🔥</Text>
+                          <Text style={{ fontSize:12, fontWeight:'700', color:C.accent }}>{aiPlan.calories} kcal/day</Text>
+                        </View>
+                      ) : null}
+                      {aiPlan.protein ? (
+                        <View style={{ flexDirection:'row', alignItems:'center', gap:4, backgroundColor:C.accentDim, borderRadius:10, paddingHorizontal:10, paddingVertical:5 }}>
+                          <Text style={{ fontSize:12 }}>💪</Text>
+                          <Text style={{ fontSize:12, fontWeight:'700', color:C.accent }}>{aiPlan.protein}g protein</Text>
+                        </View>
+                      ) : null}
+                    </View>
+                  ) : null}
+
+                  {/* Day selector */}
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ gap:8, paddingBottom:4, marginBottom:12 }}>
+                    {days.map((d, i) => (
+                      <TouchableOpacity key={i} onPress={() => setAiPlanDay(i)}
+                        style={{
+                          paddingHorizontal:14, paddingVertical:7, borderRadius:20,
+                          backgroundColor: aiPlanDay === i ? C.accent : C.surfaceAlt,
+                          borderWidth:1, borderColor: aiPlanDay === i ? C.accent : C.border,
+                        }}>
+                        <Text style={{ fontSize:12, fontWeight:'700', color: aiPlanDay === i ? C.accentText : C.muted }}>
+                          Day {i + 1}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+
+                  {/* Meals for selected day */}
+                  <View style={{ backgroundColor:C.surface, borderRadius:16, overflow:'hidden' }}>
+                    {currentDay.meals.map((meal, mi) => {
+                      const emoji = PLAN_MEAL_EMOJIS.find(e => meal.label.startsWith(e)) || '🍽️';
+                      const mealLabel = PLAN_MEAL_LABELS[emoji] || meal.label.replace(/[^\w\s()\-–—]/g, '').trim();
+                      const matched = matchFoodFromDB(meal.food, allFoods);
+                      const isLast = mi === currentDay.meals.length - 1;
+                      return (
+                        <TouchableOpacity key={`aiday-${mi}`} activeOpacity={matched ? 0.75 : 1}
+                          onPress={() => { if (matched) { setDetailFood(matched); setShowFoodDetail(true); } }}
+                          style={{ flexDirection:'row', alignItems:'center', padding:14,
+                            borderBottomWidth: isLast ? 0 : 1, borderBottomColor:C.border }}>
+                          {/* Food image or emoji */}
+                          <View style={{ width:52, height:52, borderRadius:26, overflow:'hidden',
+                            backgroundColor:C.surfaceAlt, alignItems:'center', justifyContent:'center', marginRight:12 }}>
+                            {matched?.image ? (
+                              <Image source={{ uri: matched.image }} style={{ width:52, height:52 }} contentFit="cover" />
+                            ) : (
+                              <Text style={{ fontSize:22 }}>{emoji}</Text>
+                            )}
+                          </View>
+                          {/* Text */}
+                          <View style={{ flex:1 }}>
+                            <Text style={{ fontSize:11, fontWeight:'700', color:C.muted, textTransform:'uppercase', letterSpacing:0.4, marginBottom:2 }}>
+                              {mealLabel}
+                            </Text>
+                            <Text style={{ fontSize:13, fontWeight:'600', color:C.text }} numberOfLines={2}>
+                              {meal.food}
+                            </Text>
+                            {matched ? (
+                              <Text style={{ fontSize:11, color:C.accent, marginTop:2 }}>
+                                {matched.calories} kcal · tap to view
+                              </Text>
+                            ) : null}
+                          </View>
+                          {matched && (
+                            <Ionicons name="chevron-forward" size={14} color={C.muted} style={{ marginLeft:6 }} />
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              );
+            })()}
+
+            {/* ── Classic Diet plan — Today card (real foods) ── */}
+            {todayMeals.length > 0 && (
+              <View style={s.todayCardNew}>
+                <Text style={s.todayCardTitle}>Today</Text>
+                {todayMeals.map((meal, i) => (
+                  <MealRow
+                    key={`today-${meal.type}`}
+                    image={meal.food.image}
+                    type={meal.type}
+                    name={meal.food.name}
+                    showDivider={i < todayMeals.length - 1}
+                    onPress={() => { setDetailFood(meal.food); setShowFoodDetail(true); }}
+                  />
+                ))}
+              </View>
+            )}
+
+            {/* ── Lazy Diet Bag (real foods) ── */}
+            {lazyFoods.length > 0 && (
+              <>
+                <View style={s.lazyHeader}>
+                  <View>
+                    <Text style={s.lazyTitle}>Lazy Diet Bag</Text>
+                    <Text style={s.lazyLabel}>QUICK PICKS</Text>
+                  </View>
+                  <TouchableOpacity style={{ flexDirection:'row', alignItems:'center', gap:3 }}
+                    onPress={() => setActiveTab('search')}>
+                    <Text style={{ color:DIET.accent, fontSize:13, fontWeight:'700' }}>See all</Text>
+                    <Ionicons name="chevron-forward" size={14} color={DIET.accent} />
+                  </TouchableOpacity>
+                </View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ gap:12, paddingBottom:4, paddingRight:8 }} style={{ marginBottom:16 }}>
+                  {lazyFoods.map((food, i) => (
+                    <PlanCard key={`lazy-${food.id ?? i}`} title={food.name} subtitle={`${food.calories} kcal`}
+                      color={pastelForCategory(food.category)} image={food.image} height={150} style={{ width:240 }}
+                      onPress={() => { setDetailFood(food); setShowFoodDetail(true); }} />
+                  ))}
+                </ScrollView>
+              </>
+            )}
+
             {/* Body transformation banner */}
             <GoalBanner goal={activeGoal} gender={user?.gender} C={C} />
 
@@ -1325,7 +1474,7 @@ export default function NutritionScreen({ navigation }) {
               activeOpacity={0.85}
             >
               <LinearGradient
-                colors={['#0D1A14', '#111122']}
+                colors={[C.accentDim, C.surfaceAlt]}
                 style={aiStyles.doctorBannerGrad}
                 start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
               >
@@ -1333,15 +1482,15 @@ export default function NutritionScreen({ navigation }) {
                   {(user?.gender === 'female') ? '👩‍⚕️' : '👨‍⚕️'}
                 </Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: '#C8F135', fontWeight: '800', fontSize: 13 }}>
+                  <Text style={{ color: C.accent, fontWeight: '800', fontSize: 13 }}>
                     AI Diet Doctor
                   </Text>
-                  <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, marginTop: 1 }}>
+                  <Text style={{ color: C.muted, fontSize: 11, marginTop: 1 }}>
                     Personalized diet plan — answers your questions first
                   </Text>
                 </View>
                 <View style={aiStyles.doctorBannerArrow}>
-                  <Ionicons name="chevron-forward" size={16} color="#C8F135" />
+                  <Ionicons name="chevron-forward" size={16} color={C.accent} />
                 </View>
               </LinearGradient>
             </TouchableOpacity>
@@ -1352,14 +1501,14 @@ export default function NutritionScreen({ navigation }) {
                 style={[aiStyles.modeBtn, scanMode === 'single' && aiStyles.modeBtnOn]}
                 onPress={() => { setScanMode('single'); resetAiGesture(); }}
               >
-                <Ionicons name="scan-outline" size={14} color={scanMode === 'single' ? '#0A0A0F' : C.dim} />
+                <Ionicons name="scan-outline" size={14} color={scanMode === 'single' ? C.accentText : C.dim} />
                 <Text style={[aiStyles.modeTxt, scanMode === 'single' && aiStyles.modeTxtOn]}>Single Item</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[aiStyles.modeBtn, scanMode === 'scan_all' && aiStyles.modeBtnOn]}
                 onPress={() => { setScanMode('scan_all'); resetAiGesture(); }}
               >
-                <Ionicons name="grid-outline" size={14} color={scanMode === 'scan_all' ? '#0A0A0F' : C.dim} />
+                <Ionicons name="grid-outline" size={14} color={scanMode === 'scan_all' ? C.accentText : C.dim} />
                 <Text style={[aiStyles.modeTxt, scanMode === 'scan_all' && aiStyles.modeTxtOn]}>Full Plate</Text>
               </TouchableOpacity>
             </View>
@@ -1391,7 +1540,7 @@ export default function NutritionScreen({ navigation }) {
                       <Text style={aiStyles.favChipCal}>{fav.calories} kcal</Text>
                       {fav.count > 1 && (
                         <View style={aiStyles.favCount}>
-                          <Text style={{ color: '#0A0A0F', fontSize: 8, fontWeight: '800' }}>{fav.count}x</Text>
+                          <Text style={{ color: C.accentText, fontSize: 8, fontWeight: '800' }}>{fav.count}x</Text>
                         </View>
                       )}
                     </TouchableOpacity>
@@ -1436,7 +1585,7 @@ export default function NutritionScreen({ navigation }) {
                           x={aiBox.px.x} y={aiBox.px.y}
                           width={aiBox.px.w} height={aiBox.px.h}
                           rx={14} ry={14}
-                          fill="rgba(200,241,53,0.10)"
+                          fill="rgba(0,200,83,0.10)"
                           stroke={C.accent} strokeWidth={2.5} strokeDasharray="9 5"
                         />
                       )}
@@ -1457,7 +1606,7 @@ export default function NutritionScreen({ navigation }) {
                   )}
                   {aiBox && scanMode === 'single' && (
                     <View style={[aiStyles.selBadge, { flexDirection:'row', alignItems:'center', gap:5 }]}>
-                      <Ionicons name="checkmark-circle" size={13} color="#0A0A0F" />
+                      <Ionicons name="checkmark-circle" size={13} color={C.accentText} />
                       <Text style={aiStyles.selTxt}>Item selected</Text>
                     </View>
                   )}
@@ -1474,10 +1623,10 @@ export default function NutritionScreen({ navigation }) {
                     disabled={aiLoading}
                   >
                     {aiLoading
-                      ? <ActivityIndicator color="#0A0A0F" />
+                      ? <ActivityIndicator color={C.accentText} />
                       : (
                         <View style={{ flexDirection:'row', alignItems:'center', gap:6 }}>
-                          <Ionicons name="sparkles" size={15} color="#0A0A0F" />
+                          <Ionicons name="sparkles" size={15} color={C.accentText} />
                           <Text style={aiStyles.analyzeBtnTxt}>
                             {scanMode === 'scan_all' ? 'Scan Full Plate' : aiBox ? 'Analyze Selected' : 'Analyze Item'}
                           </Text>
@@ -1517,7 +1666,7 @@ export default function NutritionScreen({ navigation }) {
                     </View>
                     {!!aiResult.note && <Text style={aiStyles.resNote}>{aiResult.note}</Text>}
                     <TouchableOpacity style={aiStyles.logResBtn} onPress={logAiFood}>
-                      <Ionicons name="add-circle" size={16} color="#0A0A0F" />
+                      <Ionicons name="add-circle" size={16} color={C.accentText} />
                       <Text style={aiStyles.logResBtnTxt}>Log this Food</Text>
                     </TouchableOpacity>
                   </View>
@@ -1548,7 +1697,7 @@ export default function NutritionScreen({ navigation }) {
                           style={[aiStyles.checkbox, checkedItems[i] && aiStyles.checkboxOn]}
                           onPress={() => setCheckedItems(p => ({ ...p, [i]: !p[i] }))}
                         >
-                          {checkedItems[i] && <Ionicons name="checkmark" size={12} color="#0A0A0F" />}
+                          {checkedItems[i] && <Ionicons name="checkmark" size={12} color={C.accentText} />}
                         </TouchableOpacity>
                         <View style={{ flex: 1 }}>
                           <Text style={{ color: C.text, fontWeight:'700', fontSize: 13 }}>{item.name}</Text>
@@ -1581,7 +1730,7 @@ export default function NutritionScreen({ navigation }) {
                       onPress={logCheckedItems}
                       disabled={!Object.values(checkedItems).some(Boolean)}
                     >
-                      <Ionicons name="add-circle" size={16} color="#0A0A0F" />
+                      <Ionicons name="add-circle" size={16} color={C.accentText} />
                       <Text style={aiStyles.logResBtnTxt}>
                         Log First Selected Item
                       </Text>
@@ -1632,6 +1781,18 @@ export default function NutritionScreen({ navigation }) {
 
       </ScrollView>
 
+      {/* ── AI DIET DOCTOR — floating button (bottom-right) ── */}
+      <TouchableOpacity
+        style={[s.aiDocFab, { bottom: (selected.length > 0 ? 162 : 92) }]}
+        activeOpacity={0.85}
+        onPress={() => navigation.navigate('DietDoctor')}
+      >
+        <Text style={{ fontSize: 26 }}>{user?.gender === 'female' ? '👩‍⚕️' : '👨‍⚕️'}</Text>
+        <View style={s.aiDocFabBadge}>
+          <Ionicons name="chatbubble-ellipses" size={11} color="#fff" />
+        </View>
+      </TouchableOpacity>
+
       {/* ── FLOATING PLAN SUMMARY ──────────────────────── */}
       {selected.length > 0 && (
         <TouchableOpacity style={s.floatBtn} onPress={() => setShowSummary(true)}>
@@ -1658,79 +1819,92 @@ export default function NutritionScreen({ navigation }) {
       />
 
       {/* ── LOG MEAL MODAL ────────────────────────────── */}
-      <Modal visible={showLogModal} animationType="slide" transparent>
-        <View style={s.modalBg}>
-          <View style={s.modalCard}>
-            <Text style={s.modalTitle}>Log a Meal</Text>
+      <Modal visible={showLogModal} animationType="slide" transparent statusBarTranslucent>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        >
+          <TouchableOpacity
+            style={s.modalBg}
+            activeOpacity={1}
+            onPress={() => { setShowLogModal(false); setLogFood(null); setSearchQ(''); }}
+          >
+            <TouchableOpacity activeOpacity={1} onPress={() => {}} style={s.modalCard}>
+              <Text style={s.modalTitle}>Log a Meal</Text>
 
-            <TextInput
-              style={s.input}
-              placeholder="Search food..."
-              placeholderTextColor={C.dim}
-              value={searchQ}
-              onChangeText={v => { setSearchQ(v); setLogFood(null); }}
-            />
+              <TextInput
+                style={s.input}
+                placeholder="Search food..."
+                placeholderTextColor={C.dim}
+                value={searchQ}
+                onChangeText={v => { setSearchQ(v); setLogFood(null); }}
+              />
 
-            {allFoods.filter(f => f.name.toLowerCase().includes(searchQ.toLowerCase())).slice(0,5).map(f => (
-              <TouchableOpacity key={f.id}
-                style={[s.foodPickRow, logFood?.id===f.id && s.foodPickRowSel]}
-                onPress={() => { setLogFood(f); setLogQty(String(f.serving_size_g)); }}>
-                <Image source={{ uri:f.image }} style={s.foodPickImg} onError={()=>{}} />
-                <View style={{ flex:1 }}>
-                  <Text style={s.foodPickName}>{f.name}</Text>
-                  <Text style={s.foodPickMeta}>{f.calories} kcal / {f.serving_size_g}g</Text>
-                </View>
-                {logFood?.id===f.id && <Ionicons name="checkmark-circle" size={20} color={C.accent} />}
-              </TouchableOpacity>
-            ))}
+              <ScrollView style={{ maxHeight: 180 }} showsVerticalScrollIndicator={false}>
+                {allFoods.filter(f => f.name.toLowerCase().includes(searchQ.toLowerCase())).slice(0,5).map(f => (
+                  <TouchableOpacity key={f.id}
+                    style={[s.foodPickRow, logFood?.id===f.id && s.foodPickRowSel]}
+                    onPress={() => { setLogFood(f); setLogQty(String(f.serving_size_g)); }}>
+                    <Image source={{ uri:f.image }} style={s.foodPickImg} onError={()=>{}} />
+                    <View style={{ flex:1 }}>
+                      <Text style={s.foodPickName}>{f.name}</Text>
+                      <Text style={s.foodPickMeta}>{f.calories} kcal / {f.serving_size_g}g</Text>
+                    </View>
+                    {logFood?.id===f.id && <Ionicons name="checkmark-circle" size={20} color={C.accent} />}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
 
-            {logFood && (
-              <>
-                <View style={s.rowInputs}>
-                  <View style={{ flex:1 }}>
-                    <Text style={s.inputLabel}>Quantity (g)</Text>
-                    <TextInput style={s.input} value={logQty}
-                      onChangeText={setLogQty} keyboardType="numeric" />
+              {logFood && (
+                <>
+                  <View style={s.rowInputs}>
+                    <View style={{ flex:1 }}>
+                      <Text style={s.inputLabel}>Quantity (g)</Text>
+                      <TextInput style={s.input} value={logQty}
+                        onChangeText={setLogQty} keyboardType="number-pad"
+                        returnKeyType="done" />
+                    </View>
+                    <View style={{ flex:1 }}>
+                      <Text style={s.inputLabel}>Meal Type</Text>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                        {Object.entries(MEAL_TIMES).map(([k,v]) => (
+                          <TouchableOpacity key={k}
+                            style={[s.mealPill, logMealType===k && { backgroundColor:C.accentDim, borderColor:C.accent }]}
+                            onPress={() => setLogMealType(k)}>
+                            <MealIcon mealKey={k} size={11} />
+                            <Text style={[s.mealPillTxt, logMealType===k && { color:C.accent }]}>{v.label}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    </View>
                   </View>
-                  <View style={{ flex:1 }}>
-                    <Text style={s.inputLabel}>Meal Type</Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                      {Object.entries(MEAL_TIMES).map(([k,v]) => (
-                        <TouchableOpacity key={k}
-                          style={[s.mealPill, logMealType===k && { backgroundColor:C.accentDim, borderColor:C.accent }]}
-                          onPress={() => setLogMealType(k)}>
-                          <MealIcon mealKey={k} size={11} />
-                          <Text style={[s.mealPillTxt, logMealType===k && { color:C.accent }]}>{v.label}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </View>
-                </View>
-                <View style={s.calcBox}>
-                  <Text style={s.calcTxt}>
-                    {logFood.name} • {logQty}g = {' '}
-                    <Text style={{ color:C.accent, fontWeight:'900' }}>
-                      {Math.round((logFood.calories*(+logQty))/(logFood.serving_size_g||100))} kcal
+                  <View style={s.calcBox}>
+                    <Text style={s.calcTxt}>
+                      {logFood.name} • {logQty}g = {' '}
+                      <Text style={{ color:C.accent, fontWeight:'900' }}>
+                        {Math.round((logFood.calories*(+logQty))/(logFood.serving_size_g||100))} kcal
+                      </Text>
                     </Text>
-                  </Text>
-                </View>
-              </>
-            )}
+                  </View>
+                </>
+              )}
 
-            <View style={s.modalBtns}>
-              <TouchableOpacity style={s.cancelBtn} onPress={() => { setShowLogModal(false); setLogFood(null); setSearchQ(''); }}>
-                <Text style={s.cancelTxt}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[s.confirmBtn, !logFood && { opacity:0.4 }]}
-                onPress={handleLogFood} disabled={!logFood || logging}>
-                {logging
-                  ? <ActivityIndicator color="#000" size="small" />
-                  : <Text style={s.confirmTxt}>Log Meal</Text>
-                }
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
+              <View style={s.modalBtns}>
+                <TouchableOpacity style={s.cancelBtn} onPress={() => { setShowLogModal(false); setLogFood(null); setSearchQ(''); }}>
+                  <Text style={s.cancelTxt}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[s.confirmBtn, !logFood && { opacity:0.4 }]}
+                  onPress={handleLogFood} disabled={!logFood || logging}>
+                  {logging
+                    ? <ActivityIndicator color="#000" size="small" />
+                    : <Text style={s.confirmTxt}>Log Meal</Text>
+                  }
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* ── PLAN SUMMARY MODAL ───────────────────────── */}
@@ -1796,10 +1970,10 @@ export default function NutritionScreen({ navigation }) {
 const makeAiStyles = (C) => StyleSheet.create({
   uploadBtn: { height: 200, backgroundColor: `${C.accent}0D`, borderRadius: 16, borderWidth: 2, borderColor: `${C.accent}33`, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', marginVertical: 20 },
   uploadBtnTxt: { color: C.accent, fontSize: 16, fontWeight: '700' },
-  imgContainer: { width: '100%', height: 300, borderRadius: 16, overflow: 'hidden', backgroundColor: '#000', marginVertical: 20, position: 'relative' },
+  imgContainer: { width: '100%', height: 300, borderRadius: 16, overflow: 'hidden', backgroundColor: C.surfaceAlt, marginVertical: 20, position: 'relative' },
   previewImg: { width: '100%', height: '100%' },
-  hintBadge: { position: 'absolute', alignSelf: 'center', top: 14, backgroundColor: 'rgba(0,0,0,0.7)', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 7, borderWidth: 1, borderColor: 'rgba(200,241,53,0.4)' },
-  hintTxt: { color: C.accent, fontSize: 12, fontWeight: '700' },
+  hintBadge: { position: 'absolute', alignSelf: 'center', top: 14, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 7, borderWidth: 1, borderColor: C.accentDim },
+  hintTxt: { color: '#fff', fontSize: 12, fontWeight: '700' },
   selBadge: { position: 'absolute', alignSelf: 'center', bottom: 14, backgroundColor: C.accent, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 7 },
   selTxt: { color: C.accentText, fontSize: 12, fontWeight: '800' },
   controls: { flexDirection: 'row', gap: 12, marginBottom: 12 },
@@ -1828,7 +2002,7 @@ const makeAiStyles = (C) => StyleSheet.create({
   modeBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 9, paddingVertical: 9 },
   modeBtnOn: { backgroundColor: C.accent },
   modeTxt: { color: C.dim, fontSize: 12, fontWeight: '700' },
-  modeTxtOn: { color: '#0A0A0F' },
+  modeTxtOn: { color: C.accentText },
   // Favorites
   favChip: { backgroundColor: C.card, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: C.border, minWidth: 90, position: 'relative' },
   favChipName: { color: C.text, fontSize: 12, fontWeight: '700', marginBottom: 2, maxWidth: 100 },
@@ -1841,9 +2015,9 @@ const makeAiStyles = (C) => StyleSheet.create({
   itemLogBtn: { width: 32, height: 32, borderRadius: 16, borderWidth: 1, borderColor: C.accent, alignItems: 'center', justifyContent: 'center' },
   multiTotal: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, marginTop: 4 },
   // Diet Doctor banner
-  doctorBanner: { borderRadius: 16, overflow: 'hidden', marginBottom: 12, borderWidth: 1, borderColor: 'rgba(200,241,53,0.2)' },
+  doctorBanner: { borderRadius: 16, overflow: 'hidden', marginBottom: 12, borderWidth: 1, borderColor: C.accentDim },
   doctorBannerGrad: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
-  doctorBannerArrow: { width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(200,241,53,0.15)', alignItems: 'center', justifyContent: 'center' },
+  doctorBannerArrow: { width: 28, height: 28, borderRadius: 14, backgroundColor: C.accentDim, alignItems: 'center', justifyContent: 'center' },
 });
 
 const makeS = (C) => StyleSheet.create({
@@ -1855,6 +2029,22 @@ const makeS = (C) => StyleSheet.create({
                     paddingHorizontal:16, paddingTop:16, marginBottom:10 },
   secLabel:       { color:C.muted, fontSize:10, fontWeight:'700', letterSpacing:1.2, textTransform:'uppercase' },
   title:          { color:C.text, fontSize:24, fontWeight:'900' },
+  titleDisplay:   { color:C.text, fontSize:30, fontWeight:'800', lineHeight:34 },
+  // Classic Diet plan landing (embedded new design)
+  todayCardNew:   { backgroundColor:C.surface, borderRadius:16, padding:16, marginBottom:16 },
+  todayCardTitle: { color:C.text, fontSize:18, fontWeight:'800', marginBottom:4 },
+  lazyHeader:     { flexDirection:'row', alignItems:'flex-end', justifyContent:'space-between', marginBottom:12 },
+  lazyTitle:      { color:C.text, fontSize:22, fontWeight:'800' },
+  lazyLabel:      { color:DIET.label, fontSize:12, fontWeight:'700', letterSpacing:1.5, marginTop:4 },
+  // AI Diet Doctor floating button
+  aiDocFab:       { position:'absolute', right:16, width:58, height:58, borderRadius:29,
+                    backgroundColor:'#fff', borderWidth:2, borderColor:C.accent,
+                    alignItems:'center', justifyContent:'center',
+                    shadowColor:'#000', shadowOpacity:0.18, shadowRadius:10,
+                    shadowOffset:{ width:0, height:4 }, elevation:6 },
+  aiDocFabBadge:  { position:'absolute', bottom:-2, right:-2, width:22, height:22, borderRadius:11,
+                    backgroundColor:C.accent, alignItems:'center', justifyContent:'center',
+                    borderWidth:2, borderColor:'#fff' },
   calBubble:      { backgroundColor:C.card, borderRadius:12, borderWidth:1, borderColor:C.border,
                     paddingHorizontal:12, paddingVertical:6, alignItems:'center' },
   calBubbleNum:   { color:C.accent, fontSize:16, fontWeight:'900' },
@@ -1878,10 +2068,10 @@ const makeS = (C) => StyleSheet.create({
   tabTxtActive:   { color:C.accent },
   // Goal card
   goalCard:       { borderRadius:16, borderWidth:1.5, padding:14, marginBottom:12,
-                    backgroundColor:'rgba(200,241,53,0.05)' },
+                    backgroundColor:C.accentDim },
   goalCardTitle:  { color:C.text, fontSize:15, fontWeight:'800', marginBottom:4 },
   goalCardSub:    { color:C.muted, fontSize:12, marginBottom:8 },
-  goalPill:       { backgroundColor:'rgba(200,241,53,0.12)', borderRadius:8,
+  goalPill:       { backgroundColor:C.accentDim, borderRadius:8,
                     paddingHorizontal:10, paddingVertical:4 },
   goalPillTxt:    { color:C.accent, fontSize:11, fontWeight:'700' },
   // Info card
@@ -1932,10 +2122,10 @@ const makeS = (C) => StyleSheet.create({
   pillTxt:        { color:C.muted, fontSize:11, fontWeight:'700' },
   pillTxtOn:      { color:C.accentText },
   // Float button
-  floatBtn:       { position:'absolute', bottom:88, left:16, right:16, backgroundColor:C.card2,
+  floatBtn:       { position:'absolute', bottom:88, left:16, right:16, backgroundColor:C.surface,
                     borderRadius:16, borderWidth:1.5, borderColor:C.accent, padding:14,
                     flexDirection:'row', alignItems:'center', gap:10,
-                    shadowColor:'#C8F135', shadowOpacity:0.3, shadowRadius:12, elevation:8 },
+                    shadowColor:C.accent, shadowOpacity:0.2, shadowRadius:12, elevation:8 },
   floatBtnIcon:   { fontSize:22 },
   floatBtnTitle:  { color:C.text, fontSize:13, fontWeight:'800' },
   floatBtnSub:    { color:C.muted, fontSize:11 },
@@ -1943,7 +2133,7 @@ const makeS = (C) => StyleSheet.create({
   // Modal
   modalBg:        { flex:1, backgroundColor:'rgba(0,0,0,0.78)', justifyContent:'flex-end' },
   modalCard:      { backgroundColor:C.card2, borderTopLeftRadius:24, borderTopRightRadius:24,
-                    padding:24, borderTopWidth:1, borderColor:C.border },
+                    padding:24, borderTopWidth:1, borderColor:C.border, maxHeight:'90%' },
   modalTitle:     { color:C.text, fontSize:18, fontWeight:'900', marginBottom:16 },
   input:          { backgroundColor:C.bg, borderRadius:12, borderWidth:1, borderColor:C.border,
                     padding:12, color:C.text, fontSize:14, marginBottom:10 },
@@ -1951,7 +2141,7 @@ const makeS = (C) => StyleSheet.create({
                     textTransform:'uppercase', letterSpacing:0.5 },
   foodPickRow:    { flexDirection:'row', alignItems:'center', gap:10, padding:8,
                     borderRadius:10, borderWidth:1, borderColor:C.border, marginBottom:6 },
-  foodPickRowSel: { borderColor:C.accent, backgroundColor:'rgba(200,241,53,0.08)' },
+  foodPickRowSel: { borderColor:C.accent, backgroundColor:'rgba(0,200,83,0.08)' },
   foodPickImg:    { width:44, height:44, borderRadius:8 },
   foodPickName:   { color:C.text, fontSize:13, fontWeight:'700' },
   foodPickMeta:   { color:C.muted, fontSize:11 },
@@ -1960,14 +2150,14 @@ const makeS = (C) => StyleSheet.create({
                     borderWidth:1, borderColor:C.border, paddingHorizontal:8, paddingVertical:5,
                     marginRight:6, backgroundColor:C.bg },
   mealPillTxt:    { color:C.muted, fontSize:10, fontWeight:'700' },
-  calcBox:        { backgroundColor:'rgba(200,241,53,0.08)', borderRadius:10, padding:10,
-                    borderWidth:1, borderColor:'rgba(200,241,53,0.25)', marginBottom:8 },
+  calcBox:        { backgroundColor:'rgba(0,200,83,0.08)', borderRadius:10, padding:10,
+                    borderWidth:1, borderColor:'rgba(0,200,83,0.25)', marginBottom:8 },
   calcTxt:        { color:C.text, fontSize:13, fontWeight:'600' },
   modalBtns:      { flexDirection:'row', gap:10, marginTop:8 },
   cancelBtn:      { flex:1, backgroundColor:C.border, borderRadius:12, paddingVertical:13, alignItems:'center' },
   cancelTxt:      { color:C.text, fontWeight:'700' },
   confirmBtn:     { flex:2, backgroundColor:C.accent, borderRadius:12, paddingVertical:13, alignItems:'center' },
-  confirmTxt:     { color:'#000', fontWeight:'900', fontSize:15 },
+  confirmTxt:     { color:C.accentText, fontWeight:'900', fontSize:15 },
   // Summary modal
   summaryBox:     { backgroundColor:C.bg, borderRadius:14, padding:14, marginBottom:16 },
   summaryRow:     { flexDirection:'row', justifyContent:'space-between', paddingVertical:8,
