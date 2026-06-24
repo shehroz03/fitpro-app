@@ -34,9 +34,26 @@ Deno.serve(async (req) => {
     // ── PROMPT SELECTION ──────────────────────────────────────────────────────
     let prompt: string;
 
+    // Shared guidance so the model names dishes specifically (esp. South Asian / desi food)
+    const CUISINE_GUIDE =
+      `IMPORTANT — be SPECIFIC with food names. This app is used mainly in Pakistan/India, ` +
+      `so the food is often South Asian / desi cuisine. Identify the exact dish, NOT a generic ` +
+      `category. Never answer with vague words like "meat", "curry", "bread", "rice dish" or ` +
+      `"grilled food" if a more specific name fits.\n` +
+      `Use visual cues to tell dishes apart:\n` +
+      `- Chicken tikka: red/orange marinated bone-in or boneless chicken chunks, char-grilled.\n` +
+      `- Malai boti / malai tikka: pale/cream-colored, mild, creamy marinated boneless chicken.\n` +
+      `- Seekh kabab: minced-meat cylinders on skewers.\n` +
+      `- Chapli kabab: flat round minced patties. Shami kabab: small round patties.\n` +
+      `- Biryani vs pulao vs plain rice; naan vs roti vs paratha; daal, haleem, nihari, karahi, qeema.\n` +
+      `If meat is on skewers and looks like chunks of marinated chicken, prefer "chicken tikka" or ` +
+      `"malai boti" over generic "meat". State the protein type (chicken/beef/mutton) when visible.\n\n`;
+
     if (mode === "scan_all") {
       prompt =
-        `You are an expert nutritionist and food-portion estimator.\n\n` +
+        `You are an expert nutritionist and food-portion estimator with deep knowledge of ` +
+        `Pakistani, Indian and Middle-Eastern cuisine.\n\n` +
+        CUISINE_GUIDE +
         `Carefully examine this image and identify EVERY distinct food item visible.\n` +
         `Estimate each item's portion size using visual cues (plate size, utensils, typical serving sizes).\n\n` +
         `Respond with STRICT JSON only, no markdown, no commentary:\n` +
@@ -69,7 +86,9 @@ Deno.serve(async (req) => {
       }
 
       prompt =
-        `You are an expert nutritionist and food-portion estimator. ${regionHint}\n\n` +
+        `You are an expert nutritionist and food-portion estimator with deep knowledge of ` +
+        `Pakistani, Indian and Middle-Eastern cuisine. ${regionHint}\n\n` +
+        CUISINE_GUIDE +
         `Estimate the visible portion as accurately as possible (aim for 90-95% accuracy).\n\n` +
         `Respond with STRICT JSON only, no markdown, no commentary:\n` +
         `{\n` +

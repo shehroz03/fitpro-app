@@ -922,7 +922,7 @@ export default function NutritionScreen({ navigation }) {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: false,
-      quality: 0.45,
+      quality: 0.7,   // higher quality → AI identifies dishes more accurately
       base64: true,
     });
     if (!result.canceled) {
