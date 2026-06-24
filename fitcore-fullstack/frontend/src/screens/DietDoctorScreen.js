@@ -544,6 +544,10 @@ function MessageBubble({ msg, doctorName, doctorColor, doctorEmoji, isFemale, is
 // ─────────────────────────────────────────────────────────────────────────────
 function QuickChip({ label, icon, onPress, color }) {
   const scale = useRef(new Animated.Value(1)).current;
+  // Parse hex to rgb so rgba() works reliably (avoids 8-digit hex parsing issues)
+  const r = parseInt(color.slice(1, 3), 16);
+  const g = parseInt(color.slice(3, 5), 16);
+  const b = parseInt(color.slice(5, 7), 16);
   const press = () => {
     Animated.sequence([
       Animated.timing(scale, { toValue: 0.93, duration: 80, useNativeDriver: true }),
@@ -554,11 +558,14 @@ function QuickChip({ label, icon, onPress, color }) {
   return (
     <Animated.View style={{ transform: [{ scale }] }}>
       <TouchableOpacity
-        style={[st.chip, { borderColor: color + '50', backgroundColor: color + '10' }]}
-        onPress={press} activeOpacity={1}
+        style={[st.chip, {
+          borderColor: `rgba(${r},${g},${b},0.85)`,
+          backgroundColor: `rgba(${r},${g},${b},0.18)`,
+        }]}
+        onPress={press} activeOpacity={0.75}
       >
         {icon ? <Text style={{ fontSize: 13 }}>{icon}</Text> : null}
-        <Text style={{ color, fontSize: 12, fontWeight: '700' }}>{label}</Text>
+        <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>{label}</Text>
       </TouchableOpacity>
     </Animated.View>
   );
