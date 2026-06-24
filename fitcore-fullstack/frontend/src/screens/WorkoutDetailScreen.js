@@ -282,8 +282,10 @@ const MOVE_INFO = {
 
 // ── Paused video thumbnail for exercise list ──────────────────
 function ExThumb({ move, gender, accentColor, localUri }) {
+  const C    = useC();
   const info = MOVE_INFO[move] || { icon:'barbell-outline', color: accentColor };
   const src  = localUri ? { uri: localUri } : (VIDEOS[gender]?.[move] || VIDEOS['male']?.[move]);
+  const accentTextColor = gender === 'female' ? '#000' : C.accentText;
 
   if (!src) {
     return (
