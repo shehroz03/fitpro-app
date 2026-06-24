@@ -794,6 +794,17 @@ export default function NutritionScreen({ navigation }) {
 
   useEffect(() => { loadFavorites(); }, [loadFavorites]);
 
+  // Doctor FAB slides up smoothly when the "selected foods" bar appears (no hard jump)
+  const fabBottom = useRef(new Animated.Value(92)).current;
+  useEffect(() => {
+    Animated.spring(fabBottom, {
+      toValue: selected.length > 0 ? 162 : 92,
+      useNativeDriver: false,   // animating `bottom` (layout) — native driver not allowed
+      friction: 9,
+      tension: 60,
+    }).start();
+  }, [selected.length > 0, fabBottom]);
+
   // refs for the circle-to-select gesture (read inside PanResponder closures)
   const imgLayout  = useRef({ width: 1, height: 1 });   // rendered container size
   const imgNatural = useRef({ width: 1, height: 1 });   // source image size
@@ -1807,17 +1818,19 @@ export default function NutritionScreen({ navigation }) {
 
       </ScrollView>
 
-      {/* ── AI DIET DOCTOR — floating button (bottom-right) ── */}
-      <TouchableOpacity
-        style={[s.aiDocFab, { bottom: (selected.length > 0 ? 162 : 92) }]}
-        activeOpacity={0.85}
-        onPress={() => navigation.navigate('DietDoctor')}
-      >
-        <Text style={{ fontSize: 26 }}>{user?.gender === 'female' ? '👩‍⚕️' : '👨‍⚕️'}</Text>
-        <View style={s.aiDocFabBadge}>
-          <Ionicons name="chatbubble-ellipses" size={11} color="#fff" />
-        </View>
-      </TouchableOpacity>
+      {/* ── AI DIET DOCTOR — floating button (bottom-right, slides smoothly) ── */}
+      <Animated.View style={[s.aiDocFab, { bottom: fabBottom }]}>
+        <TouchableOpacity
+          style={s.aiDocFabInner}
+          activeOpacity={0.85}
+          onPress={() => navigation.navigate('DietDoctor')}
+        >
+          <Text style={{ fontSize: 26 }}>{user?.gender === 'female' ? '👩‍⚕️' : '👨‍⚕️'}</Text>
+          <View style={s.aiDocFabBadge}>
+            <Ionicons name="chatbubble-ellipses" size={11} color="#fff" />
+          </View>
+        </TouchableOpacity>
+      </Animated.View>
 
       {/* ── FLOATING PLAN SUMMARY ──────────────────────── */}
       {selected.length > 0 && (
@@ -2068,6 +2081,8 @@ const makeS = (C) => StyleSheet.create({
                     alignItems:'center', justifyContent:'center',
                     shadowColor:'#000', shadowOpacity:0.18, shadowRadius:10,
                     shadowOffset:{ width:0, height:4 }, elevation:6 },
+  aiDocFabInner:  { width:'100%', height:'100%', borderRadius:29,
+                    alignItems:'center', justifyContent:'center' },
   aiDocFabBadge:  { position:'absolute', bottom:-2, right:-2, width:22, height:22, borderRadius:11,
                     backgroundColor:C.accent, alignItems:'center', justifyContent:'center',
                     borderWidth:2, borderColor:'#fff' },
