@@ -328,7 +328,7 @@ function ExerciseVideo({ src, active, accentColor }) {
 
   if (!src) {
     return (
-      <View style={{ width:200, height:300, borderRadius:14, overflow:'hidden',
+      <View style={{ width:'100%', height:'100%', borderRadius:14, overflow:'hidden',
         backgroundColor:'#111118', alignItems:'center', justifyContent:'center', gap:12 }}>
         <View style={{ width:80, height:80, borderRadius:40,
           backgroundColor:`${accentColor}20`, alignItems:'center', justifyContent:'center' }}>
@@ -340,7 +340,7 @@ function ExerciseVideo({ src, active, accentColor }) {
   }
 
   return (
-    <View style={{ width:200, height:300, borderRadius:14, overflow:'hidden', backgroundColor:'#111118' }}>
+    <View style={{ width:'100%', height:'100%', borderRadius:14, overflow:'hidden', backgroundColor:'#111118' }}>
       {!ready && (
         <View style={{ position:'absolute', inset:0, alignItems:'center', justifyContent:'center', zIndex:1 }}>
           <ActivityIndicator color={accentColor} size="large" />
@@ -348,7 +348,7 @@ function ExerciseVideo({ src, active, accentColor }) {
       )}
       <Video source={src}
         style={{ width:'100%', height:'100%', opacity: ready ? 1 : 0 }}
-        resizeMode={ResizeMode.COVER}
+        resizeMode={ResizeMode.CONTAIN}
         shouldPlay={active} isLooping isMuted
         onReadyForDisplay={onReady}
         onPlaybackStatusUpdate={st => { if (st.isPlaying && !readyRef.current) onReady(); }}
@@ -800,7 +800,7 @@ export default function WorkoutDetailScreen({ route, navigation }) {
   return (
     <SafeAreaView style={s.root}>
       <View style={s.topBar}>
-        <TouchableOpacity onPress={()=>Alert.alert('Quit?','End workout?',[{text:'Keep Going',style:'cancel'},{text:'Quit',style:'destructive',onPress:()=>navigation.goBack()}])} style={s.quitBtn}><Ionicons name="close" size={20} color={C.muted} /></TouchableOpacity>
+        <TouchableOpacity onPress={()=>Alert.alert('Quit?','End workout?',[{text:'Keep Going',style:'cancel'},{text:'Quit',style:'destructive',onPress:()=>{stopAgent();if(navigation.canGoBack())navigation.goBack();else setPhase('overview');}}])} style={s.quitBtn}><Ionicons name="close" size={20} color={C.muted} /></TouchableOpacity>
         <View style={{flex:1,marginHorizontal:12}}>
           <View style={s.progBg}><Animated.View style={[s.progFill,{width:progWidth,backgroundColor:accentColor}]}/></View>
           <Text style={s.progTxt}>{doneSets} / {totalSets} sets</Text>
@@ -994,7 +994,7 @@ const makeS=(C)=>StyleSheet.create({
   tipsBtn:{borderRadius:10,borderWidth:1,paddingHorizontal:12,paddingVertical:7},
   tipsBtnTxt:{fontSize:12,fontWeight:'700'},
   figPanel:{backgroundColor:C.card,borderRadius:20,borderWidth:1.5,padding:12,marginBottom:14,alignItems:'center'},
-  figStage:{width:200,height:300,borderRadius:14,alignItems:'center',justifyContent:'center',marginBottom:10,position:'relative'},
+  figStage:{width:'100%',height:320,borderRadius:14,alignItems:'center',justifyContent:'center',marginBottom:10,position:'relative',overflow:'hidden'},
   setBadge:{position:'absolute',top:8,left:10,backgroundColor:'rgba(0,0,0,0.65)',borderRadius:8,paddingHorizontal:8,paddingVertical:3,zIndex:10},
   setBadgeTxt:{color:'#fff',fontSize:13,fontWeight:'900'},
   setDots:{flexDirection:'row',gap:8,flexWrap:'wrap',justifyContent:'center',marginBottom:6},
@@ -1020,7 +1020,7 @@ const makeS=(C)=>StyleSheet.create({
   logTxt:{color:C.muted,fontSize:12},
   tipsModalBg:{flex:1,backgroundColor:'rgba(0,0,0,0.78)',justifyContent:'flex-end'},
   tipsModalCard:{backgroundColor:C.card2,borderTopLeftRadius:24,borderTopRightRadius:24,padding:24,borderTopWidth:1,borderColor:C.border},
-  tipsModalFig:{alignItems:'center',marginBottom:12,borderRadius:16,paddingVertical:6},
+  tipsModalFig:{width:'100%',height:300,alignItems:'center',justifyContent:'center',marginBottom:12,borderRadius:16,paddingVertical:6,overflow:'hidden'},
   tipTitle:{color:C.text,fontSize:20,fontWeight:'900',marginBottom:4},
   tipMuscle:{color:C.muted,fontSize:13,marginBottom:12},
   tipPlanCard:{borderRadius:14,borderWidth:1.5,padding:14,marginBottom:16},

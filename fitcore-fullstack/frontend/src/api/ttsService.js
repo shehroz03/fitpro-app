@@ -34,7 +34,12 @@ export async function speakAsAgent(text, gender = 'female', { onStart, onEnd } =
       const { data, error } = await supabase.functions.invoke('tts-coach', {
         body: { text: text.trim(), voice },
       });
-      if (error || !data?.audio) { onEnd?.(); return; }
+      // Surface the real reason instead of failing silently (deploy issue, missing key, etc.)
+      if (error || !data?.audio) {
+        console.warn('[TTS] coach voice failed:', error?.message || data?.error || 'tts-coach returned no audio — is the edge function deployed?');
+        onEnd?.();
+        return;
+      }
       base64 = data.audio;
 
       // Evict oldest entry if cache is full
