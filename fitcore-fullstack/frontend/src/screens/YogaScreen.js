@@ -15,7 +15,7 @@ import { POSES, POSE_MAP, WEEKLY, DAY_NAMES, YOGA_MUSIC_URI } from '../utils/yog
 const { width: W } = Dimensions.get('window');
 
 // ── Music bars ────────────────────────────────────────────────────────────────
-function MusicBars({ active }) {
+function MusicBars({ active, color = '#C8F135' }) {
   const bars = [
     useRef(new Animated.Value(0.3)).current,
     useRef(new Animated.Value(0.7)).current,
@@ -38,7 +38,7 @@ function MusicBars({ active }) {
       {bars.map((v, i) => (
         <Animated.View key={i} style={{
           width: 3, height: 14, borderRadius: 2,
-          backgroundColor: '#C8F135', transform: [{ scaleY: v }],
+          backgroundColor: color, transform: [{ scaleY: v }],
         }} />
       ))}
     </View>
@@ -57,7 +57,7 @@ function PoseCardFull({ pose, C, isDark, navigation }) {
       <View style={st.fullVideoBox}>
         {!ready && (
           <View style={[StyleSheet.absoluteFill, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#0a0a14' }]}>
-            <Ionicons name="leaf-outline" size={28} color="rgba(200,241,53,0.4)" />
+            <Ionicons name="leaf-outline" size={28} color={`${C.accent}66`} />
           </View>
         )}
         <Video source={pose.src} style={StyleSheet.absoluteFill}
@@ -67,7 +67,9 @@ function PoseCardFull({ pose, C, isDark, navigation }) {
           style={[StyleSheet.absoluteFill, { justifyContent: 'flex-end', padding: 12 }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>{pose.label}</Text>
-            <View style={st.yogaTag}><Text style={st.yogaTagTxt}>YOGA</Text></View>
+            <View style={[st.yogaTag, { backgroundColor: `${C.accent}38` }]}>
+              <Text style={[st.yogaTagTxt, { color: C.accent }]}>YOGA</Text>
+            </View>
           </View>
         </LinearGradient>
         {/* Tap hint */}
@@ -79,8 +81,8 @@ function PoseCardFull({ pose, C, isDark, navigation }) {
       <View style={{ padding: 14 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 10 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-            <Ionicons name="time-outline" size={13} color="#C8F135" />
-            <Text style={{ color: '#C8F135', fontWeight: '700', fontSize: 13 }}>{pose.dur}</Text>
+            <Ionicons name="time-outline" size={13} color={C.accent} />
+            <Text style={{ color: C.accent, fontWeight: '700', fontSize: 13 }}>{pose.dur}</Text>
           </View>
           <View style={{ width: 1, height: 12, backgroundColor: C.border }} />
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
@@ -90,8 +92,8 @@ function PoseCardFull({ pose, C, isDark, navigation }) {
         </View>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
           {pose.benefits.map((b, i) => (
-            <View key={i} style={st.benefitPill}>
-              <Text style={st.benefitTxt}>✦ {b}</Text>
+            <View key={i} style={[st.benefitPill, { backgroundColor: `${C.accent}1F`, borderColor: `${C.accent}47` }]}>
+              <Text style={[st.benefitTxt, { color: C.accent }]}>✦ {b}</Text>
             </View>
           ))}
         </View>
@@ -116,7 +118,7 @@ function PoseCardCompact({ pose, C, isDark, navigation }) {
           onReadyForDisplay={() => setReady(true)} />
         {!ready && (
           <View style={[StyleSheet.absoluteFill, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#0a0a14' }]}>
-            <Ionicons name="leaf-outline" size={18} color="rgba(200,241,53,0.4)" />
+            <Ionicons name="leaf-outline" size={18} color={`${C.accent}66`} />
           </View>
         )}
         {/* Watermark cover */}
@@ -131,15 +133,15 @@ function PoseCardCompact({ pose, C, isDark, navigation }) {
         <Text style={{ color: C.text, fontWeight: '700', fontSize: 14, marginBottom: 3 }}>{pose.label}</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 7 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-            <Ionicons name="time-outline" size={11} color="#C8F135" />
-            <Text style={{ color: '#C8F135', fontWeight: '700', fontSize: 11 }}>{pose.dur}</Text>
+            <Ionicons name="time-outline" size={11} color={C.accent} />
+            <Text style={{ color: C.accent, fontWeight: '700', fontSize: 11 }}>{pose.dur}</Text>
           </View>
           <Text style={{ color: C.dim, fontSize: 11 }}>{pose.reps}</Text>
         </View>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>
           {pose.benefits.slice(0, 2).map((b, i) => (
-            <View key={i} style={[st.benefitPill, { paddingHorizontal: 6, paddingVertical: 2 }]}>
-              <Text style={[st.benefitTxt, { fontSize: 9 }]}>✦ {b}</Text>
+            <View key={i} style={[st.benefitPill, { paddingHorizontal: 6, paddingVertical: 2, backgroundColor: `${C.accent}1F`, borderColor: `${C.accent}47` }]}>
+              <Text style={[st.benefitTxt, { fontSize: 9, color: C.accent }]}>✦ {b}</Text>
             </View>
           ))}
         </View>
@@ -159,8 +161,8 @@ function TodayTab({ C, isDark, navigation }) {
   return (
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
       <LinearGradient
-        colors={[session.color + '33', session.color + '11']}
-        style={[st.sessionBanner, { borderColor: session.color + '44' }]}
+        colors={[`${C.accent}33`, `${C.accent}11`]}
+        style={[st.sessionBanner, { borderColor: `${C.accent}44` }]}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
       >
         <View style={{ flex: 1 }}>
@@ -169,17 +171,17 @@ function TodayTab({ C, isDark, navigation }) {
           <Text style={{ color: C.dim, fontSize: 12, lineHeight: 18 }}>{session.desc}</Text>
           <View style={{ flexDirection: 'row', gap: 14, marginTop: 12 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-              <Ionicons name="time-outline" size={13} color={session.color} />
-              <Text style={{ color: session.color, fontWeight: '700', fontSize: 13 }}>{session.dur}</Text>
+              <Ionicons name="time-outline" size={13} color={C.accent} />
+              <Text style={{ color: C.accent, fontWeight: '700', fontSize: 13 }}>{session.dur}</Text>
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-              <Ionicons name="body-outline" size={13} color={session.color} />
-              <Text style={{ color: session.color, fontWeight: '700', fontSize: 13 }}>{poses.length} Poses</Text>
+              <Ionicons name="body-outline" size={13} color={C.accent} />
+              <Text style={{ color: C.accent, fontWeight: '700', fontSize: 13 }}>{poses.length} Poses</Text>
             </View>
           </View>
         </View>
-        <View style={[st.sessionDot, { backgroundColor: session.color }]}>
-          <Ionicons name="leaf" size={22} color="#fff" />
+        <View style={[st.sessionDot, { backgroundColor: C.accent }]}>
+          <Ionicons name="leaf" size={22} color={C.accentText} />
         </View>
       </LinearGradient>
 
@@ -187,8 +189,8 @@ function TodayTab({ C, isDark, navigation }) {
       {poses.map((pose, i) => (
         <View key={pose.id}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-            <View style={[st.stepDot, { backgroundColor: session.color }]}>
-              <Text style={{ color: '#fff', fontSize: 11, fontWeight: '800' }}>{i + 1}</Text>
+            <View style={[st.stepDot, { backgroundColor: C.accent }]}>
+              <Text style={{ color: C.accentText, fontSize: 11, fontWeight: '800' }}>{i + 1}</Text>
             </View>
             <View style={{ height: 1, flex: 1, backgroundColor: C.border }} />
           </View>
@@ -198,11 +200,11 @@ function TodayTab({ C, isDark, navigation }) {
       ))}
 
       <LinearGradient
-        colors={['rgba(200,241,53,0.08)', 'rgba(200,241,53,0.03)']}
-        style={[st.totalBanner, { borderColor: 'rgba(200,241,53,0.2)' }]}
+        colors={[`${C.accent}14`, `${C.accent}08`]}
+        style={[st.totalBanner, { borderColor: `${C.accent}33` }]}
       >
-        <Ionicons name="checkmark-circle-outline" size={20} color="#C8F135" />
-        <Text style={{ color: '#C8F135', fontWeight: '700', fontSize: 14 }}>
+        <Ionicons name="checkmark-circle-outline" size={20} color={C.accent} />
+        <Text style={{ color: C.accent, fontWeight: '700', fontSize: 14 }}>
           Total Session: {totalMins} minutes
         </Text>
       </LinearGradient>
@@ -229,13 +231,13 @@ function WeeklyTab({ C, isDark, navigation }) {
             <TouchableOpacity key={w.day}
               onPress={() => { Haptics.selectionAsync(); setSelected(i); }}
               style={[st.dayPill, {
-                backgroundColor: isActive ? w.color : (isDark ? '#1a1a25' : '#F0F0F5'),
-                borderColor: isToday && !isActive ? w.color : 'transparent',
+                backgroundColor: isActive ? C.accent : (isDark ? '#1a1a25' : '#F0F0F5'),
+                borderColor: isToday && !isActive ? C.accent : 'transparent',
                 borderWidth: isToday && !isActive ? 1.5 : 0,
               }]}>
-              {isToday && !isActive && <View style={[st.todayDot, { backgroundColor: w.color }]} />}
-              <Text style={{ color: isActive ? '#0A0A0F' : C.dim, fontWeight: '800', fontSize: 11 }}>{w.day}</Text>
-              <Text style={{ color: isActive ? '#0A0A0F' : C.text, fontWeight: '700', fontSize: 10, marginTop: 1 }}>{w.name.split(' ')[0]}</Text>
+              {isToday && !isActive && <View style={[st.todayDot, { backgroundColor: C.accent }]} />}
+              <Text style={{ color: isActive ? C.accentText : C.dim, fontWeight: '800', fontSize: 11 }}>{w.day}</Text>
+              <Text style={{ color: isActive ? C.accentText : C.text, fontWeight: '700', fontSize: 10, marginTop: 1 }}>{w.name.split(' ')[0]}</Text>
             </TouchableOpacity>
           );
         })}
@@ -243,19 +245,19 @@ function WeeklyTab({ C, isDark, navigation }) {
 
       <View style={{ paddingHorizontal: 16 }}>
         <LinearGradient
-          colors={[session.color + '28', session.color + '0A']}
-          style={[st.weeklyBanner, { borderColor: session.color + '40' }]}
+          colors={[`${C.accent}28`, `${C.accent}0A`]}
+          style={[st.weeklyBanner, { borderColor: `${C.accent}40` }]}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         >
           <View>
-            <Text style={{ color: session.color, fontSize: 11, fontWeight: '700', letterSpacing: 1 }}>{session.day.toUpperCase()}</Text>
+            <Text style={{ color: C.accent, fontSize: 11, fontWeight: '700', letterSpacing: 1 }}>{session.day.toUpperCase()}</Text>
             <Text style={{ color: C.text, fontSize: 18, fontWeight: '800', marginTop: 2 }}>{session.name}</Text>
             <Text style={{ color: C.dim, fontSize: 12, marginTop: 4, lineHeight: 18 }}>{session.desc}</Text>
           </View>
           <View style={{ alignItems: 'flex-end', gap: 6 }}>
-            <View style={[st.durationBadge, { backgroundColor: session.color + '22', borderColor: session.color + '44' }]}>
-              <Ionicons name="time-outline" size={12} color={session.color} />
-              <Text style={{ color: session.color, fontWeight: '700', fontSize: 12 }}>{session.dur}</Text>
+            <View style={[st.durationBadge, { backgroundColor: `${C.accent}22`, borderColor: `${C.accent}44` }]}>
+              <Ionicons name="time-outline" size={12} color={C.accent} />
+              <Text style={{ color: C.accent, fontWeight: '700', fontSize: 12 }}>{session.dur}</Text>
             </View>
             <Text style={{ color: C.dim, fontSize: 11 }}>{poses.length} poses</Text>
           </View>
@@ -333,13 +335,13 @@ export default function YogaScreen({ navigation }) {
   return (
     <View style={[st.root, { backgroundColor: C.bg }]}>
       <LinearGradient
-        colors={isDark ? ['#0D1A05', '#0A0A0F'] : ['#1A2A0A', '#0E1117']}
+        colors={['#15171C', '#0A0A0F']}
         style={[st.header, { paddingTop: insets.top + 12 }]}
       >
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <View style={st.leafBadge}>
-              <Ionicons name="leaf" size={14} color="#C8F135" />
+            <View style={[st.leafBadge, { backgroundColor: `${C.accent}26` }]}>
+              <Ionicons name="leaf" size={14} color={C.accent} />
             </View>
             <Text style={st.headerTitle}>Yoga Studio</Text>
           </View>
@@ -347,11 +349,11 @@ export default function YogaScreen({ navigation }) {
         </View>
         <TouchableOpacity onPress={toggleMusic} activeOpacity={0.8}
           style={[st.musicBtn, {
-            backgroundColor: musicOn ? 'rgba(200,241,53,0.18)' : 'rgba(255,255,255,0.08)',
-            borderColor: musicOn ? 'rgba(200,241,53,0.55)' : 'rgba(255,255,255,0.15)',
+            backgroundColor: musicOn ? `${C.accent}2E` : 'rgba(255,255,255,0.08)',
+            borderColor: musicOn ? `${C.accent}8C` : 'rgba(255,255,255,0.15)',
           }]}>
           {musicOn
-            ? <><MusicBars active /><Ionicons name="musical-notes" size={15} color="#C8F135" /></>
+            ? <><MusicBars active color={C.accent} /><Ionicons name="musical-notes" size={15} color={C.accent} /></>
             : <><Ionicons name="musical-notes-outline" size={15} color="rgba(255,255,255,0.6)" />
                 <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: '600' }}>
                   {musicLoading ? 'Loading…' : 'Music'}
@@ -365,8 +367,8 @@ export default function YogaScreen({ navigation }) {
           <TouchableOpacity key={t}
             onPress={() => { Haptics.selectionAsync(); setActiveTab(i); }}
             style={[st.tabBtn, activeTab === i && st.tabBtnActive]}>
-            <Text style={[st.tabTxt, { color: activeTab === i ? '#C8F135' : C.dim }]}>{t}</Text>
-            {activeTab === i && <View style={st.tabUnderline} />}
+            <Text style={[st.tabTxt, { color: activeTab === i ? C.accent : C.dim }]}>{t}</Text>
+            {activeTab === i && <View style={[st.tabUnderline, { backgroundColor: C.accent }]} />}
           </TouchableOpacity>
         ))}
       </View>
