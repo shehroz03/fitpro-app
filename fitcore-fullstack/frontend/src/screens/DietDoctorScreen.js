@@ -529,6 +529,7 @@ function MessageBubble({ msg, doctorName, doctorColor, doctorEmoji, isFemale, is
                 message={msg.content}
                 allPlans={allPlans}
                 navigation={navigation}
+                isFemale={isFemale}
               />
             )}
           </View>
@@ -588,6 +589,58 @@ const EXERCISE_CAT_MAP = [
   [/full.?body|total.?body|circuit/i, 'full_body'],
 ];
 
+const FEMALE_BANNER = {
+  strength:    require('../../assets/images/female/female_banner_strength.png'),
+  cardio:      require('../../assets/images/female/female_banner_cardio.png'),
+  hiit:        require('../../assets/images/female/female_banner_hiit.png'),
+  core:        require('../../assets/images/female/female_banner_core.png'),
+  flexibility: require('../../assets/images/female/female_banner_flexibility.png'),
+  recovery:    require('../../assets/images/female/female_banner_recovery.png'),
+  yoga:        require('../../assets/images/female/female_banner_yoga.png'),
+};
+
+const strHash = (s = '') => {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+};
+
+const FEMALE_IMG_POOL = [
+  'https://images.pexels.com/photos/3768916/pexels-photo-3768916.jpeg?auto=compress&cs=tinysrgb&w=600',
+  'https://images.pexels.com/photos/3822356/pexels-photo-3822356.jpeg?auto=compress&cs=tinysrgb&w=600',
+  'https://images.pexels.com/photos/3775566/pexels-photo-3775566.jpeg?auto=compress&cs=tinysrgb&w=600',
+  'https://images.pexels.com/photos/4498606/pexels-photo-4498606.jpeg?auto=compress&cs=tinysrgb&w=600',
+  'https://images.pexels.com/photos/3823039/pexels-photo-3823039.jpeg?auto=compress&cs=tinysrgb&w=600',
+  'https://images.pexels.com/photos/3757376/pexels-photo-3757376.jpeg?auto=compress&cs=tinysrgb&w=600',
+  'https://images.pexels.com/photos/4662344/pexels-photo-4662344.jpeg?auto=compress&cs=tinysrgb&w=600',
+  'https://images.pexels.com/photos/3823488/pexels-photo-3823488.jpeg?auto=compress&cs=tinysrgb&w=600',
+  'https://images.pexels.com/photos/4056723/pexels-photo-4056723.jpeg?auto=compress&cs=tinysrgb&w=600',
+  'https://images.pexels.com/photos/3757954/pexels-photo-3757954.jpeg?auto=compress&cs=tinysrgb&w=600',
+];
+
+const MALE_IMG_POOL = [
+  'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&q=80',
+  'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&q=80',
+  'https://images.unsplash.com/photo-1549060279-7e168fcee0c2?w=600&q=80',
+  'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&q=80',
+  'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&q=80',
+  'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=600&q=80',
+  'https://images.unsplash.com/photo-1581009137042-c552e485697a?w=600&q=80',
+  'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=600&q=80',
+  'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=600&q=80',
+  'https://images.unsplash.com/photo-1599058945522-28d584b6f0ff?w=600&q=80',
+];
+
+function getWorkoutThumb(plan, isFemale) {
+  if (isFemale) {
+    const cat = (plan?.category || '').toLowerCase();
+    const local = FEMALE_BANNER[cat];
+    if (local) return local;
+    return FEMALE_IMG_POOL[strHash(plan?.name || plan?.id || plan?.category || '') % FEMALE_IMG_POOL.length];
+  }
+  return plan?.image || LOCAL_IMG_BY_ID[plan?.id] || LOCAL_IMG_BY_NAME[plan?.name?.toLowerCase()] || MALE_IMG_POOL[strHash(plan?.name || plan?.id || plan?.category || '') % MALE_IMG_POOL.length];
+}
+
 function detectWorkoutSuggestion(text) {
   if (!text) return false;
   return /\b(exercise|workout|cardio|strength|yoga|hiit|squats?|push.?up|plank|lunges?|running|cycling|abs|core|training|gym|fitness routine)\b/i.test(text);
@@ -605,7 +658,7 @@ function matchWorkoutsToMessage(text, allPlans) {
   return pool.slice(0, 4);
 }
 
-function WorkoutSuggestionCards({ message, allPlans, navigation }) {
+function WorkoutSuggestionCards({ message, allPlans, navigation, isFemale }) {
   const matches = matchWorkoutsToMessage(message, allPlans);
   if (!matches.length) return null;
   return (
@@ -620,10 +673,7 @@ function WorkoutSuggestionCards({ message, allPlans, navigation }) {
         {matches.map(plan => {
           const thumb  = CAT_THUMB[plan.category] || DEFAULT_THUMB;
           const accent = thumb.accent;
-          // Resolve image: API plan first, then local JSON lookup by id, then by name
-          const resolvedImage = plan.image
-            || LOCAL_IMG_BY_ID[plan.id]
-            || LOCAL_IMG_BY_NAME[plan.name?.toLowerCase()];
+          const resolvedImage = getWorkoutThumb(plan, isFemale);
           return (
             <TouchableOpacity
               key={plan.id}
@@ -636,7 +686,7 @@ function WorkoutSuggestionCards({ message, allPlans, navigation }) {
               <View style={{ width: 155, height: 95 }}>
                 {resolvedImage ? (
                   <Image
-                    source={{ uri: resolvedImage }}
+                    source={typeof resolvedImage === 'string' ? { uri: resolvedImage } : resolvedImage}
                     style={{ width: 155, height: 95 }}
                     contentFit="cover"
                     transition={300}
