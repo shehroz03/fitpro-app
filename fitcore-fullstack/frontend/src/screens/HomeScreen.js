@@ -227,7 +227,7 @@ function MacroRing({ value, max, color, size = 56, stroke = 6, label, unit, C, i
           </Svg>
         </Animated.View>
         <View style={{ flex:1, alignItems:'center', justifyContent:'center' }}>
-          <Text style={{ color, fontSize: 11, fontWeight: '900', lineHeight: 12 }}>{displayVal}</Text>
+          <Text style={{ color: C.text, fontSize: 11, fontWeight: '900', lineHeight: 12 }}>{displayVal}</Text>
           <Text style={{ color: C.dim, fontSize: 7, fontWeight: '700' }}>{unit}</Text>
         </View>
       </View>
@@ -241,7 +241,7 @@ const AnimatedCircle = Animated.createAnimatedComponent(SvgCircle);
 // â"€â"€ Featured workout video card â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 const YOGA_MUSIC_URI = 'https://archive.org/download/yoga-music/A%20Song%20of%20Rain%2C%20Calming%20Yoga%20Music.mp3';
 
-function MusicBars({ active }) {
+function MusicBars({ active, accentColor = '#C8F135' }) {
   const b = [useRef(new Animated.Value(0.3)).current,
              useRef(new Animated.Value(0.7)).current,
              useRef(new Animated.Value(0.5)).current];
@@ -259,7 +259,7 @@ function MusicBars({ active }) {
     <View style={{ flexDirection:'row', alignItems:'flex-end', gap:2, height:13 }}>
       {b.map((v, i) => (
         <Animated.View key={i} style={{
-          width:3, height:13, borderRadius:2, backgroundColor:'#C8F135',
+          width:3, height:13, borderRadius:2, backgroundColor: accentColor,
           transform:[{ scaleY: v }],
         }} />
       ))}
@@ -328,7 +328,7 @@ function WorkoutVideoCard({ gender, navigation, C, s }) {
       style={s.videoCard}>
       {!ready && (
         <View style={s.videoHolder}>
-          <Ionicons name="barbell-outline" size={32} color="rgba(200,241,53,0.4)" />
+          <Ionicons name="barbell-outline" size={32} color={`${C.accent}66`} />
         </View>
       )}
       <Video ref={vidRef} source={video.src}
@@ -346,8 +346,8 @@ function WorkoutVideoCard({ gender, navigation, C, s }) {
             {/* Duration + reps row */}
             <View style={{ flexDirection:'row', alignItems:'center', gap:10, marginTop:4 }}>
               <View style={{ flexDirection:'row', alignItems:'center', gap:4 }}>
-                <Ionicons name="time-outline" size={12} color="#C8F135" />
-                <Text style={{ color:'#C8F135', fontSize:12, fontWeight:'700' }}>{video.dur}</Text>
+                <Ionicons name="time-outline" size={12} color={C.accent} />
+                <Text style={{ color:C.accent, fontSize:12, fontWeight:'700' }}>{video.dur}</Text>
               </View>
               <View style={{ width:1, height:10, backgroundColor:'rgba(255,255,255,0.25)' }} />
               <View style={{ flexDirection:'row', alignItems:'center', gap:4 }}>
@@ -359,11 +359,11 @@ function WorkoutVideoCard({ gender, navigation, C, s }) {
             <View style={{ flexDirection:'row', flexWrap:'wrap', gap:5, marginTop:6 }}>
               {video.benefits.map((b, i) => (
                 <View key={i} style={{
-                  backgroundColor:'rgba(200,241,53,0.13)',
+                  backgroundColor:'rgba(255,255,255,0.14)',
                   borderRadius:20, paddingHorizontal:8, paddingVertical:3,
-                  borderWidth:1, borderColor:'rgba(200,241,53,0.3)',
+                  borderWidth:1, borderColor:'rgba(255,255,255,0.28)',
                 }}>
-                  <Text style={{ color:'#C8F135', fontSize:10, fontWeight:'600' }}>✦ {b}</Text>
+                  <Text style={{ color:'rgba(255,255,255,0.92)', fontSize:10, fontWeight:'600' }}>✦ {b}</Text>
                 </View>
               ))}
             </View>
@@ -385,13 +385,13 @@ function WorkoutVideoCard({ gender, navigation, C, s }) {
           style={{
             position:'absolute', top:12, right:12,
             flexDirection:'row', alignItems:'center', gap:6,
-            backgroundColor: musicOn ? 'rgba(200,241,53,0.18)' : 'rgba(0,0,0,0.52)',
+            backgroundColor: musicOn ? `${C.accent}30` : 'rgba(0,0,0,0.52)',
             borderRadius:22, paddingHorizontal:11, paddingVertical:7,
             borderWidth:1,
-            borderColor: musicOn ? 'rgba(200,241,53,0.55)' : 'rgba(255,255,255,0.18)',
+            borderColor: musicOn ? `${C.accent}88` : 'rgba(255,255,255,0.18)',
           }}>
           {musicOn
-            ? <><MusicBars active={true} /><Ionicons name="musical-notes" size={14} color="#C8F135" /></>
+            ? <><MusicBars active={true} accentColor={C.accent} /><Ionicons name="musical-notes" size={14} color={C.accent} /></>
             : <><Ionicons name="musical-notes-outline" size={14} color="rgba(255,255,255,0.65)" />
                 <Text style={{ color:'rgba(255,255,255,0.65)', fontSize:11, fontWeight:'600', letterSpacing:0.3 }}>
                   {musicLoading ? 'Loading…' : 'Music'}
@@ -405,14 +405,14 @@ function WorkoutVideoCard({ gender, navigation, C, s }) {
         flexDirection:'row', alignItems:'center', gap:5,
         backgroundColor:'rgba(0,0,0,0.52)',
         borderRadius:10, paddingHorizontal:9, paddingVertical:5,
-        borderWidth:1, borderColor:'rgba(200,241,53,0.25)',
+        borderWidth:1, borderColor:'rgba(255,255,255,0.20)',
       }}>
         <Animated.View style={{
           width:6, height:6, borderRadius:3,
-          backgroundColor:'#C8F135', opacity: ready ? dotAnim : 0,
+          backgroundColor: C.accent, opacity: ready ? dotAnim : 0,
         }} />
         <Text style={{
-          color:'#C8F135', fontSize:13, fontWeight:'700',
+          color: C.accent, fontSize:13, fontWeight:'700',
           letterSpacing:1.5, fontVariant:['tabular-nums'],
         }}>{timerStr}</Text>
       </View>
@@ -525,7 +525,7 @@ function FemaleFeaturedSlider({ C, navigation }) {
           <Text style={{ color: C.dim, fontSize: 11, marginTop:2 }}>Personalized workout picks ✨</Text>
         </View>
         <TouchableOpacity onPress={() => { Haptics.selectionAsync(); navigation.navigate('Workouts'); }}>
-          <Text style={{ color:'#C8F135', fontSize:12, fontWeight:'700' }}>See All ›</Text>
+          <Text style={{ color:C.accent, fontSize:12, fontWeight:'700' }}>See All ›</Text>
         </TouchableOpacity>
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}
@@ -548,19 +548,21 @@ const YOGA_DAY_MAP = {
 };
 const DAY_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
-function FemaleYogaBanner({ navigation, C }) {
+function FemaleYogaBanner({ navigation, C, isDark }) {
   const todayKey = DAY_SHORT[new Date().getDay()];
   const session = YOGA_DAY_MAP[todayKey];
+  // Zero lime in light mode: replace #C8F135 with theme accent; all other day colors pass through
+  const displayColor = !isDark && session.color === '#C8F135' ? C.accent : session.color;
   return (
     <TouchableOpacity
       onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); navigation.navigate('Yoga'); }}
       activeOpacity={0.87}
       style={{ marginHorizontal:16, marginBottom:14, borderRadius:20, overflow:'hidden',
-        shadowColor: session.color, shadowOpacity:0.3, shadowRadius:12, elevation:6 }}>
+        shadowColor: isDark ? displayColor : C.accent, shadowOpacity:0.3, shadowRadius:12, elevation:6 }}>
       <LinearGradient
-        colors={[session.color + '40', session.color + '18', '#0A0A0F']}
+        colors={isDark ? [displayColor + '40', displayColor + '18', '#0A0A0F'] : [C.accentDim, C.surfaceAlt]}
         start={{ x:0, y:0 }} end={{ x:1, y:1 }}
-        style={{ padding:18, borderWidth:1, borderColor: session.color + '35', borderRadius:20 }}>
+        style={{ padding:18, borderWidth:1, borderColor: isDark ? displayColor + '35' : C.border, borderRadius:20 }}>
         <View style={{ flexDirection:'row', alignItems:'center', justifyContent:'space-between' }}>
           <View style={{ flex:1 }}>
             <View style={{ flexDirection:'row', alignItems:'center', gap:8, marginBottom:7 }}>
@@ -568,24 +570,24 @@ function FemaleYogaBanner({ navigation, C }) {
                 style={{ width:30, height:30, borderRadius:15, justifyContent:'center', alignItems:'center' }}>
                 <Ionicons name="leaf" size={15} color={C.accentText} />
               </LinearGradient>
-              <Text style={{ color:'rgba(255,255,255,0.5)', fontSize:10, fontWeight:'800', letterSpacing:1.2 }}>TODAY'S YOGA SESSION</Text>
+              <Text style={{ color: isDark ? 'rgba(255,255,255,0.5)' : C.muted, fontSize:10, fontWeight:'800', letterSpacing:1.2 }}>TODAY'S YOGA SESSION</Text>
             </View>
-            <Text style={{ color:'#fff', fontSize:22, fontWeight:'900', marginBottom:5, letterSpacing:-0.3 }}>{session.name}</Text>
+            <Text style={{ color: isDark ? '#fff' : C.text, fontSize:22, fontWeight:'900', marginBottom:5, letterSpacing:-0.3 }}>{session.name}</Text>
             <View style={{ flexDirection:'row', alignItems:'center', gap:12 }}>
               <View style={{ flexDirection:'row', alignItems:'center', gap:5 }}>
-                <Ionicons name="time-outline" size={12} color={session.color} />
-                <Text style={{ color:session.color, fontWeight:'700', fontSize:12 }}>{session.dur}</Text>
+                <Ionicons name="time-outline" size={12} color={isDark ? displayColor : C.accent} />
+                <Text style={{ color: isDark ? displayColor : C.accent, fontWeight:'700', fontSize:12 }}>{session.dur}</Text>
               </View>
               <View style={{ flexDirection:'row', alignItems:'center', gap:5 }}>
-                <Ionicons name="body-outline" size={12} color="rgba(255,255,255,0.4)" />
-                <Text style={{ color:'rgba(255,255,255,0.4)', fontSize:12 }}>3 poses</Text>
+                <Ionicons name="body-outline" size={12} color={isDark ? 'rgba(255,255,255,0.4)' : C.dim} />
+                <Text style={{ color: isDark ? 'rgba(255,255,255,0.4)' : C.muted, fontSize:12 }}>3 poses</Text>
               </View>
             </View>
           </View>
-          <LinearGradient colors={[session.color, session.color + 'BB']}
+          <LinearGradient colors={[C.accent, C.accent + 'BB']}
             style={{ width:54, height:54, borderRadius:27, justifyContent:'center', alignItems:'center',
-              shadowColor: session.color, shadowOpacity:0.6, shadowRadius:10 }}>
-            <Ionicons name="play" size={22} color="#fff" />
+              shadowColor: C.accent, shadowOpacity:0.6, shadowRadius:10 }}>
+            <Ionicons name="play" size={22} color={C.accentText} />
           </LinearGradient>
         </View>
       </LinearGradient>
@@ -641,11 +643,11 @@ function WorkoutCardAnimated({ plan, planName, planMins, planCals, planExs, gend
         {bgImg ? (
           <>
             <Image source={bgImg} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition="center top" />
-            <LinearGradient colors={isDark ? ['rgba(26,42,10,0.85)','rgba(10,26,10,0.95)'] : ['rgba(26,31,23,0.8)','rgba(14,17,23,0.95)']}
+            <LinearGradient colors={isDark ? ['rgba(26,42,10,0.85)','rgba(10,26,10,0.95)'] : ['rgba(0,0,0,0.40)','rgba(0,0,0,0.82)']}
               style={StyleSheet.absoluteFill} start={{x:0,y:0}} end={{x:1,y:1}} />
           </>
         ) : (
-          <LinearGradient colors={isDark ? ['#1A2A0A','#0A1A0A'] : ['#1A1F17','#0E1117']}
+          <LinearGradient colors={isDark ? ['#1A2A0A','#0A1A0A'] : [C.surfaceAlt, C.bg]}
             style={StyleSheet.absoluteFill} start={{x:0,y:0}} end={{x:1,y:1}} />
         )}
         <View style={{ flex:1 }}>
@@ -772,7 +774,7 @@ function DailyRoutineSection({ gender, C, isDark, navigation }) {
 
       {/* Today's card */}
       <View style={[{
-        backgroundColor: isDark ? '#121A00' : '#F6FDE6',
+        backgroundColor: isDark ? '#121A00' : C.surface,
         borderRadius:18, borderWidth:1, borderColor:`${C.accent}40`,
         overflow:'hidden',
       }, todayGlow]}>
@@ -794,7 +796,7 @@ function DailyRoutineSection({ gender, C, isDark, navigation }) {
             <Text style={{ color:C.muted, fontSize:11, fontWeight:'600', marginTop:2 }}>{today.sub}</Text>
           </View>
           <View style={{ backgroundColor:`${C.accent}22`, borderRadius:10, paddingHorizontal:10, paddingVertical:6, alignItems:'center' }}>
-            <Text style={{ color:C.accent, fontSize:14, fontWeight:'900' }}>{exercises.length}</Text>
+            <Text style={{ color:C.text, fontSize:14, fontWeight:'900' }}>{exercises.length}</Text>
             <Text style={{ color:C.muted, fontSize:8, fontWeight:'800', letterSpacing:0.4 }}>EXCS</Text>
           </View>
         </View>
@@ -811,7 +813,7 @@ function DailyRoutineSection({ gender, C, isDark, navigation }) {
               }}>
               <View style={{ width:28, height:28, borderRadius:8, backgroundColor:`${C.accent}22`,
                 alignItems:'center', justifyContent:'center' }}>
-                <Text style={{ color:C.accent, fontSize:12, fontWeight:'900' }}>{i + 1}</Text>
+                <Text style={{ color:C.text, fontSize:12, fontWeight:'900' }}>{i + 1}</Text>
               </View>
               <Text style={{ flex:1, color:C.text, fontSize:13, fontWeight:'700' }}>{ex.label}</Text>
               <View style={{ backgroundColor:`${C.accent}18`, borderRadius:8, paddingHorizontal:8, paddingVertical:4,
@@ -842,73 +844,6 @@ function DailyRoutineSection({ gender, C, isDark, navigation }) {
         </TouchableOpacity>
       </View>
     </View>
-  );
-}
-
-// ── Male Today's Progress Card (matches reference design) ─────────────────────
-
-function MiniStatRing({ pct, color, icon, val, sub }) {
-  const R = 30; const STROKE = 5;
-  const circumference = 2 * Math.PI * R;
-  const dash = Math.max((pct / 100) * circumference, 1);
-  return (
-    <View style={{ alignItems: 'center', flex: 1 }}>
-      <View style={{ width: 76, height: 76, alignItems: 'center', justifyContent: 'center' }}>
-        <Svg width={76} height={76} style={{ position: 'absolute' }}>
-          <SvgCircle cx={38} cy={38} r={R} stroke="rgba(255,255,255,0.12)"
-            strokeWidth={STROKE} fill="none" />
-          <SvgCircle cx={38} cy={38} r={R} stroke={color}
-            strokeWidth={STROKE} fill="none"
-            strokeDasharray={`${dash} ${circumference}`}
-            strokeDashoffset={-(circumference * 0.25)}
-            strokeLinecap="round" />
-        </Svg>
-        <View style={{ alignItems: 'center', gap: 1 }}>
-          <Ionicons name={icon} size={14} color={color} />
-          <Text style={{ color: '#fff', fontSize: 15, fontWeight: '900', lineHeight: 17 }}>{val}</Text>
-        </View>
-      </View>
-      <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 9, fontWeight: '700',
-        textAlign: 'center', marginTop: 4, lineHeight: 12 }} numberOfLines={2}>{sub}</Text>
-    </View>
-  );
-}
-
-function MaleTodayProgressCard({ calDisplay, calTarget, calPct, streak, activeDays, totalWkts, C, navigation }) {
-  const weekPct = Math.min((activeDays / 7) * 100, 100);
-  const wktPct  = Math.min((totalWkts / 100) * 100, 100);
-  return (
-    <TouchableOpacity activeOpacity={0.92}
-      onPress={() => navigation.navigate("Nutrition")}
-      style={{ marginHorizontal: 16, marginBottom: 14, borderRadius: 20, overflow: "hidden",
-        shadowColor: "#7C5CFC", shadowOpacity: 0.4, shadowRadius: 16, elevation: 10 }}>
-      <LinearGradient
-        colors={["#3A1FA0", "#5B34CC", "#7C5CFC"]}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        style={{ paddingHorizontal: 18, paddingTop: 18, paddingBottom: 20 }}>
-
-        {/* Header */}
-        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-          <View>
-            <Text style={{ color: "#fff", fontSize: 16, fontWeight: "800", letterSpacing: -0.3 }}>Today's Progress</Text>
-            <Text style={{ color: "rgba(255,255,255,0.55)", fontSize: 11, marginTop: 3 }}>
-              {streak >= 3 ? `${streak}-day streak! Keep it up!` : "Lets crush todays goals!"}
-            </Text>
-          </View>
-          <View style={{ backgroundColor: "rgba(255,255,255,0.15)", borderRadius: 10,
-            paddingHorizontal: 10, paddingVertical: 5 }}>
-            <Text style={{ color: "#fff", fontSize: 11, fontWeight: "800" }}>{activeDays}/7 days</Text>
-          </View>
-        </View>
-
-        {/* 3 ring stats */}
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-          <MiniStatRing pct={calPct}  color="#FF6B6B" icon="flame"         val={String(calDisplay)} sub={`/ ${calTarget} kcal`} />
-          <MiniStatRing pct={weekPct} color="#FFC107" icon="calendar"      val={`${activeDays}/7`}  sub="Active Days" />
-          <MiniStatRing pct={wktPct}  color="#4ECDC4" icon="barbell"       val={String(totalWkts)}  sub="Workouts Total" />
-        </View>
-      </LinearGradient>
-    </TouchableOpacity>
   );
 }
 
@@ -967,92 +902,12 @@ function NutritionHomeCard({ calConsumed, calTarget, protConsumed, protTarget, c
   return (
     <View style={{ marginHorizontal: 16, marginBottom: 14 }}>
 
-      {/* Heading — BetterMe bold italic style */}
-      <View style={{ flexDirection:'row', justifyContent:'space-between', alignItems:'flex-end', marginBottom: 16 }}>
-        <View>
-          <Text style={{ color: C.muted, fontSize:10, fontWeight:'700', letterSpacing:1.5, marginBottom: 3 }}>TODAY'S PLAN</Text>
-          <Text style={{ color: C.text, fontSize:26, fontWeight:'900', fontStyle:'italic', lineHeight:30 }}>Meal Plan</Text>
-        </View>
-        <TouchableOpacity
-          onPress={() => navigation.navigate('Nutrition')}
-          style={{ flexDirection:'row', alignItems:'center', gap:5, backgroundColor:'rgba(200,241,53,0.1)', borderRadius:14, paddingHorizontal:12, paddingVertical:8, borderWidth:1, borderColor:'rgba(200,241,53,0.25)' }}>
-          <Ionicons name="restaurant-outline" size={13} color={C.accent} />
-          <Text style={{ color: C.accent, fontSize:12, fontWeight:'800' }}>Log Food</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Classic Meal Plan card — BetterMe style */}
-      <View style={{ backgroundColor:'#16161F', borderRadius:22, borderWidth:1, borderColor:'rgba(255,255,255,0.08)', overflow:'hidden', marginBottom:14 }}>
-        {/* Card header */}
-        <View style={{ flexDirection:'row', alignItems:'center', justifyContent:'space-between', paddingHorizontal:16, paddingTop:14, paddingBottom:12, borderBottomWidth:1, borderBottomColor:'rgba(255,255,255,0.06)' }}>
-          <Text style={{ color: C.muted, fontSize:10, fontWeight:'800', letterSpacing:1.2 }}>CLASSIC DIET PLAN</Text>
-          <View style={{ backgroundColor:'rgba(200,241,53,0.12)', borderRadius:8, paddingHorizontal:8, paddingVertical:3, borderWidth:1, borderColor:'rgba(200,241,53,0.25)' }}>
-            <Text style={{ color: C.accent, fontSize:10, fontWeight:'700' }}>{dateStr}</Text>
-          </View>
-        </View>
-
-        {/* Meal rows with circular food photos */}
-        {meals.map((meal, i) => (
-          <TouchableOpacity key={meal.type} onPress={() => navigation.navigate('Nutrition')} activeOpacity={0.75}
-            style={{ flexDirection:'row', alignItems:'center', gap:14, paddingHorizontal:16, paddingVertical:13,
-              borderTopWidth: i > 0 ? 1 : 0, borderTopColor:'rgba(255,255,255,0.05)' }}>
-            <Image source={{ uri: meal.img }}
-              style={{ width:56, height:56, borderRadius:28, borderWidth:2, borderColor:'rgba(255,255,255,0.1)' }}
-              contentFit="cover" />
-            <View style={{ flex:1 }}>
-              <Text style={{ color:'rgba(255,255,255,0.38)', fontSize:10, fontWeight:'800', letterSpacing:0.8, marginBottom:3 }}>
-                {meal.type.toUpperCase()}
-              </Text>
-              <Text style={{ color: C.text, fontSize:14, fontWeight:'700' }} numberOfLines={1}>{meal.name}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.2)" />
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Lazy Diet Bag heading — BetterMe bold italic */}
-      <View style={{ flexDirection:'row', justifyContent:'space-between', alignItems:'flex-end', marginBottom:12 }}>
-        <View>
-          <Text style={{ color: C.text, fontSize:22, fontWeight:'900', fontStyle:'italic' }}>Lazy Diet Bag</Text>
-          <Text style={{ color: C.muted, fontSize:10, fontWeight:'800', letterSpacing:1.2 }}>KETO</Text>
-        </View>
-        <TouchableOpacity onPress={() => navigation.navigate('Nutrition')}
-          style={{ flexDirection:'row', alignItems:'center', gap:3 }}>
-          <Text style={{ color: C.accent, fontSize:12, fontWeight:'700' }}>See all</Text>
-          <Ionicons name="chevron-forward" size={12} color={C.accent} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Diet plan category cards — horizontal scroll, BetterMe style */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap:10, paddingBottom:4 }}>
-        {DIET_PLAN_CARDS.map(plan => (
-          <TouchableOpacity key={plan.id} onPress={() => navigation.navigate('Nutrition')} activeOpacity={0.85}
-            style={{ width:200, height:108, borderRadius:18, overflow:'hidden', backgroundColor: plan.bg,
-              shadowColor: plan.color, shadowOpacity:0.3, shadowRadius:8, elevation:4 }}>
-            {/* Food photo right side */}
-            <Image source={{ uri: plan.img }}
-              style={{ position:'absolute', right:-8, bottom:0, width:118, height:118 }}
-              contentFit="cover" />
-            {/* Left-to-right gradient fade */}
-            <LinearGradient
-              colors={[plan.bg, plan.bg + 'EE', plan.bg + '99', 'transparent']}
-              start={{ x:0, y:0 }} end={{ x:1, y:0 }}
-              style={StyleSheet.absoluteFill} />
-            <View style={{ padding:14 }}>
-              <Text style={{ color:'rgba(255,255,255,0.45)', fontSize:9, fontWeight:'900', letterSpacing:1.5, marginBottom:5 }}>{plan.cat}</Text>
-              <Text style={{ color:'#fff', fontSize:15, fontWeight:'900', lineHeight:19 }}>{plan.label}</Text>
-              <Text style={{ color:'rgba(255,255,255,0.55)', fontSize:11, marginTop:4 }}>{plan.sub}</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
 
       {/* Macro summary card */}
-      <View style={{ backgroundColor:'#16161F', borderRadius:18, borderWidth:1, borderColor:'rgba(255,255,255,0.07)', padding:14, marginTop:12 }}>
+      <View style={{ backgroundColor: isDark ? '#16161F' : C.surface, borderRadius:18, borderWidth:1, borderColor: isDark ? 'rgba(255,255,255,0.07)' : C.border, padding:14, marginTop:12 }}>
         <View style={{ flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
           <Text style={{ color: C.muted, fontSize:11, fontWeight:'700' }}>Daily Calories</Text>
-          <Text style={{ color: C.accent, fontSize:13, fontWeight:'900' }}>
+          <Text style={{ color: C.text, fontSize:13, fontWeight:'900' }}>
             {calDisplay} <Text style={{ color: C.muted, fontWeight:'600', fontSize:11 }}>/ {calTarget} kcal</Text>
           </Text>
         </View>
@@ -1220,20 +1075,7 @@ export default function HomeScreen({ navigation }) {
       â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
 
       {gender === 'female' && <FemaleCategoryStrip C={C} isDark={isDark} navigation={navigation} />}
-
-      {/* Male: Today's Progress Card — Purple gradient with 3 ring stats */}
-      {gender === 'male' && (
-        <Animated.View style={e1}>
-          <MaleTodayProgressCard
-            calDisplay={calDisplay} calTarget={calTarget} calPct={calPct}
-            streak={streak} activeDays={activeDays} totalWkts={totalWkts}
-            C={C} navigation={navigation}
-          />
-        </Animated.View>
-      )}
-
-      {/* Female: Body transformation card */}
-      {gender === 'female' && (
+      {/* Female category strip */}
       <Animated.View style={[e1, { marginHorizontal:16, marginBottom:14 }, ...heroDepth]}>
       <View style={[s.heroCard, { marginHorizontal:0, marginBottom:0 }]}>
         <LinearGradient
@@ -1241,45 +1083,56 @@ export default function HomeScreen({ navigation }) {
           style={StyleSheet.absoluteFill}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
 
+        {/* Body images */}
         <View style={s.heroBodyRow}>
+          {/* Before */}
           <View style={s.heroBodyWrap}>
             <Text style={s.heroBodyLbl}>NOW</Text>
             <Image source={bodyImgs.before} style={s.heroBodyImg} contentFit="contain" />
           </View>
 
+          {/* Arrow + info center */}
           <View style={s.heroCenter}>
-            <View style={[s.goalBadge, { backgroundColor:`${C.accent}20`, borderColor:`${C.accent}44` }]}>
-              <Text style={[s.goalBadgeTxt, { color:C.accent }]}>
+            <View style={[s.goalBadge,
+              { backgroundColor: `${C.accent}20`, borderColor: `${C.accent}44` }]}>
+              <Text style={[s.goalBadgeTxt, { color: C.accent }]}>
                 {goalType === 'weight_gain' ? '💪 GAIN' : '🔥 LOSE'}
               </Text>
             </View>
-            <Ionicons name={goalType === 'weight_gain' ? 'trending-up' : 'trending-down'} size={28} color={C.accent} />
+
+            <Ionicons name={goalType === 'weight_gain' ? 'trending-up' : 'trending-down'}
+              size={28} color={C.accent} />
+
             {weightGoal?.target_value ? (
-              <View style={{ alignItems:'center' }}>
-                <Text style={[s.heroTargetNum, { color:C.accent }]}>{weightGoal.target_value}</Text>
+              <View style={{ alignItems: 'center' }}>
+                <Text style={[s.heroTargetNum, { color: C.accent }]}>
+                  {weightGoal.target_value}
+                </Text>
                 <Text style={s.heroTargetUnit}>kg goal</Text>
               </View>
             ) : (
               <TouchableOpacity onPress={() => navigation.navigate('Goals')}
-                style={[s.setGoalBtn, { borderColor:C.accent }]}>
-                <Text style={{ color:C.accent, fontSize:9, fontWeight:'800' }}>SET GOAL</Text>
+                style={[s.setGoalBtn, { borderColor: C.accent }]}>
+                <Text style={{ color: C.accent, fontSize: 9, fontWeight: '800' }}>SET GOAL</Text>
               </TouchableOpacity>
             )}
           </View>
 
+          {/* After */}
           <View style={s.heroBodyWrap}>
             <Text style={s.heroBodyLbl}>GOAL</Text>
             <Image source={bodyImgs.after} style={s.heroBodyImg} contentFit="contain" />
           </View>
         </View>
 
+        {/* Progress bar */}
         {weightGoal?.target_value && weightGoal?.current_value != null && (
-          <View style={{ paddingHorizontal:16, paddingBottom:14 }}>
-            <View style={{ flexDirection:'row', justifyContent:'space-between', marginBottom:5 }}>
-              <Text style={{ color:C.muted, fontSize:10, fontWeight:'700' }}>
+          <View style={{ paddingHorizontal: 16, paddingBottom: 14 }}>
+            <View style={{ flexDirection:'row', justifyContent:'space-between', marginBottom: 5 }}>
+              <Text style={{ color: C.muted, fontSize: 10, fontWeight: '700' }}>
                 {weightGoal.current_value || user?.weight_kg || 0} kg now
               </Text>
-              <Text style={{ color:C.accent, fontSize:10, fontWeight:'800' }}>
+              <Text style={{ color: C.accent, fontSize:10, fontWeight:'800' }}>
                 {weightGoal.progress_pct || 0}% complete
               </Text>
             </View>
@@ -1288,7 +1141,6 @@ export default function HomeScreen({ navigation }) {
         )}
       </View>
       </Animated.View>
-      )}
 
       {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
           3-STAT STRIP
@@ -1304,7 +1156,7 @@ export default function HomeScreen({ navigation }) {
             {i > 0 && <View style={s.statDivider} />}
             <View style={s.statItem}>
               <Ionicons name={item.icon} size={18} color={item.color} />
-              <Text style={[s.statNum, { color: item.color }]}>{item.val}</Text>
+              <Text style={[s.statNum, { color: C.text }]}>{item.val}</Text>
               <Text style={s.statSub}>{item.sub}</Text>
             </View>
           </React.Fragment>
@@ -1312,9 +1164,8 @@ export default function HomeScreen({ navigation }) {
       </View>
       </Animated.View>
 
-      {/* Female featured slider + wellness strip */}
+      {/* Female featured slider */}
       {gender === 'female' && <FemaleFeaturedSlider C={C} navigation={navigation} />}
-      {gender === 'female' && <FemaleWellnessStrip C={C} isDark={isDark} />}
 
 
       {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
@@ -1357,38 +1208,32 @@ export default function HomeScreen({ navigation }) {
           AI COACH BANNER
       â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
       {/* Female yoga quick banner */}
-      {gender === 'female' && <FemaleYogaBanner navigation={navigation} C={C} />}
+      {gender === 'female' && <FemaleYogaBanner navigation={navigation} C={C} isDark={isDark} />}
 
       <Animated.View style={e5}>
-      <TouchableOpacity style={s.aiCard}
-        onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigation.navigate("AICoach"); }}
-        activeOpacity={0.88}>
-        <LinearGradient
-          colors={gender === "male"
-            ? ["#0A2E1A", "#145C2F", "#1A7A3D"]
-            : [C.surfaceAlt ?? C.card2, C.bg]}
+      <TouchableOpacity style={[s.aiCard, glowStyle(isDark, C.accent, 10, 0.12)]}
+        onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigation.navigate('AICoach'); }}
+        activeOpacity={0.85}>
+        <LinearGradient colors={[C.surfaceAlt ?? C.card2, C.bg]}
           style={StyleSheet.absoluteFill} start={{x:0,y:0}} end={{x:1,y:1}} />
-        <View style={[s.aiIconWrap,
-          gender === "male" && { backgroundColor:"rgba(22,163,74,0.18)", borderColor:"rgba(22,163,74,0.3)" }]}>
-          <MaterialCommunityIcons name="robot-outline" size={24}
-            color={gender === "male" ? "#4ADE80" : C.accent} />
+        <View style={s.aiIconWrap}>
+          <MaterialCommunityIcons name="robot-outline" size={24} color={C.accent} />
         </View>
         <View style={{ flex:1 }}>
-          <View style={{ flexDirection:"row", alignItems:"center", gap:6, marginBottom:3 }}>
-            <Text style={[s.aiTitle, gender === "male" && { color:"#fff" }]}>AI Coach</Text>
-            <View style={{ backgroundColor: gender === "male" ? "rgba(74,222,128,0.2)" : C.accentDim,
-              borderRadius:6, paddingHorizontal:6, paddingVertical:2 }}>
-              <Text style={{ color: gender === "male" ? "#4ADE80" : C.accent, fontSize:9, fontWeight:"800" }}>GPT-4o</Text>
+          <View style={{ flexDirection:'row', alignItems:'center', gap:6, marginBottom:3 }}>
+            <Text style={s.aiTitle}>AI Coach</Text>
+            <View style={{ backgroundColor:C.accentDim, borderRadius:6, paddingHorizontal:6, paddingVertical:2 }}>
+              <Text style={{ color:C.accent, fontSize:9, fontWeight:'800' }}>GPT-4o</Text>
             </View>
           </View>
-          <Text style={[s.aiSub, gender === "male" && { color:"rgba(255,255,255,0.65)" }]}>
+          <Text style={s.aiSub}>
             {streak >= 3
-              ? `${streak}-day streak! Get personalized plan`
-              : "What should I do today? Ask Now"}
+              ? `${streak}-day streak! Get your personalized daily report →`
+              : 'Wellness score • Daily report • Custom plans →'}
           </Text>
         </View>
-        <View style={[s.aiArrow, { backgroundColor: gender === "male" ? "#16A34A" : C.accent }]}>
-          <Ionicons name="chevron-forward" size={16} color="#fff" />
+        <View style={[s.aiArrow, { backgroundColor:C.accent }]}>
+          <Ionicons name="chevron-forward" size={16} color={C.accentText} />
         </View>
       </TouchableOpacity>
       </Animated.View>
@@ -1445,7 +1290,7 @@ export default function HomeScreen({ navigation }) {
         <View style={s.cardHeader}>
           <Text style={s.cardTitle}>Active Goals</Text>
           <TouchableOpacity onPress={() => navigation.navigate('Goals')}>
-            <Text style={s.seeAll}>See all â€º</Text>
+            <Text style={s.seeAll}>See all ›</Text>
           </TouchableOpacity>
         </View>
 
@@ -1475,7 +1320,7 @@ export default function HomeScreen({ navigation }) {
                   <View style={{ flexDirection:'row', justifyContent:'space-between', marginBottom:5 }}>
                     <Text style={s.goalTitle} numberOfLines={1}>{goal.title}</Text>
                     {dLeft !== null && (
-                      <Text style={[s.goalDays, dLeft <= 7 && { color:'#FF453A' }]}>
+                      <Text style={[s.goalDays, dLeft <= 7 && { color: C.red }]}>
                         {dLeft === 0 ? 'Today!' : `${dLeft}d left`}
                       </Text>
                     )}
@@ -1486,7 +1331,7 @@ export default function HomeScreen({ navigation }) {
                         <View style={[s.goalBarFill, { width:`${pct}%`, backgroundColor:color }]} />
                       </View>
                       <View style={{ flexDirection:'row', justifyContent:'space-between', marginTop:4 }}>
-                        <Text style={[{ fontSize:10, fontWeight:'800', color }]}>{pct.toFixed(0)}%</Text>
+                        <Text style={[{ fontSize:10, fontWeight:'800', color: C.text }]}>{pct.toFixed(0)}%</Text>
                         <Text style={{ color:C.dim, fontSize:10 }}>{goal.current_value||0} / {goal.target_value} {goal.unit||''}</Text>
                       </View>
                     </>
@@ -1541,7 +1386,7 @@ export default function HomeScreen({ navigation }) {
           </View>
           <View style={{ flex:1 }}>
             <Text style={s.sleepLabel}>Sleep Tracker</Text>
-            <Text style={{ color:C.muted, fontSize:12 }}>Log last night's sleep â†’</Text>
+            <Text style={{ color:C.muted, fontSize:12 }}>Log last night's sleep →</Text>
           </View>
         </TouchableOpacity>
       )}

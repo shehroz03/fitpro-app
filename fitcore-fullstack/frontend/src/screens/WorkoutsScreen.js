@@ -278,7 +278,7 @@ export default function WorkoutsScreen({ navigation }) {
           <>
             <View style={[s.sectionRow, { marginTop: rs(22) }]}>
               <View>
-                <Text style={[s.secLabel, { color: '#C8F135' }]}>NEW UPDATE</Text>
+                <Text style={[s.secLabel, { color: C.accent }]}>NEW UPDATE</Text>
                 <Text style={s.sectionTitle}>Featured Plans</Text>
               </View>
               <View style={s.countBadge}>
@@ -340,7 +340,7 @@ export default function WorkoutsScreen({ navigation }) {
           <>
             <View style={[s.sectionRow, { marginTop: rs(26) }]}>
               <View>
-                <Text style={[s.secLabel, { color: '#FF6B35' }]}>TRENDING NOW</Text>
+                <Text style={[s.secLabel, { color: C.accent }]}>TRENDING NOW</Text>
                 <Text style={s.sectionTitle}>Fat Burning</Text>
               </View>
               <TouchableOpacity style={s.viewAllBtn}>
@@ -413,6 +413,7 @@ export default function WorkoutsScreen({ navigation }) {
 
 // ── HERO CARD — full-width large card, woman fully visible ────────────────────
 function HeroCard({ plan, onPress, getCatImg }) {
+  const C    = useC();
   const cfg  = getCfg(plan.category);
   const diff = plan.difficulty || 'beginner';
   const imgUri = getCatImg(plan);
@@ -466,9 +467,9 @@ function HeroCard({ plan, onPress, getCatImg }) {
 
         {/* Start button */}
         <TouchableOpacity onPress={onPress}
-          style={{ backgroundColor: '#C8F135', borderRadius: rw(14), paddingVertical: rs(12), flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: rs(8) }}>
-          <Ionicons name="play" size={16} color="#000" />
-          <Text style={{ color: '#000', fontSize: rf(14), fontWeight: '900', letterSpacing: 0.5 }}>START WORKOUT</Text>
+          style={{ backgroundColor: C.accent, borderRadius: rw(14), paddingVertical: rs(12), flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: rs(8) }}>
+          <Ionicons name="play" size={16} color={C.accentText} />
+          <Text style={{ color: C.accentText, fontSize: rf(14), fontWeight: '900', letterSpacing: 0.5 }}>START WORKOUT</Text>
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
@@ -537,6 +538,7 @@ function BannerCard({ plan, onPress, getCatImg }) {
 
 // ── TREND CARD — photo thumbnail + info ──────────────────────────────────────
 function TrendCard({ plan, rank, onPress, getCatImg }) {
+  const C    = useC();
   const cfg  = getCfg(plan.category);
   const diff = plan.difficulty || 'beginner';
   const imgUri = getCatImg(plan);
@@ -585,9 +587,9 @@ function TrendCard({ plan, rank, onPress, getCatImg }) {
             </Text>
           </View>
           {plan.is_featured && (
-            <View style={{ backgroundColor: 'rgba(200,241,53,0.15)', borderRadius: rw(7),
-              paddingHorizontal: rs(6), paddingVertical: rs(2), borderWidth: 1, borderColor: 'rgba(200,241,53,0.5)' }}>
-              <Text style={{ color: '#C8F135', fontSize: rf(9), fontWeight: '700' }}>FREE</Text>
+            <View style={{ backgroundColor: C.accentDim, borderRadius: rw(7),
+              paddingHorizontal: rs(6), paddingVertical: rs(2), borderWidth: 1, borderColor: `${C.accent}80` }}>
+              <Text style={{ color: C.accent, fontSize: rf(9), fontWeight: '700' }}>FREE</Text>
             </View>
           )}
         </View>
@@ -598,6 +600,7 @@ function TrendCard({ plan, rank, onPress, getCatImg }) {
 
 // ── LIST CARD — bigger image, cleaner layout ──────────────────────────────────
 function ListCard({ plan, rank, isLogging, logging, onPress, onLog, getCatImg }) {
+  const C    = useC();
   const cfg  = getCfg(plan.category);
   const diff = plan.difficulty || 'beginner';
   const imgUri = getCatImg(plan);
@@ -641,10 +644,10 @@ function ListCard({ plan, rank, isLogging, logging, onPress, onLog, getCatImg })
             </Text>
           </View>
           {plan.is_featured && (
-            <View style={{ backgroundColor: 'rgba(200,241,53,0.12)', borderRadius: rw(7),
+            <View style={{ backgroundColor: C.accentDim, borderRadius: rw(7),
               paddingHorizontal: rs(7), paddingVertical: rs(2),
-              borderWidth: 1, borderColor: 'rgba(200,241,53,0.4)' }}>
-              <Text style={{ color: '#C8F135', fontSize: rf(9), fontWeight: '700' }}>⭐ Featured</Text>
+              borderWidth: 1, borderColor: `${C.accent}66` }}>
+              <Text style={{ color: C.accent, fontSize: rf(9), fontWeight: '700' }}>⭐ Featured</Text>
             </View>
           )}
         </View>
@@ -655,10 +658,10 @@ function ListCard({ plan, rank, isLogging, logging, onPress, onLog, getCatImg })
         style={{ width: rw(56), alignItems: 'center', justifyContent: 'center',
           borderLeftWidth: 1, borderColor: 'rgba(255,255,255,0.06)' }}>
         {isLogging
-          ? <ActivityIndicator size="small" color="#C8F135" />
+          ? <ActivityIndicator size="small" color={C.accent} />
           : <>
-              <Ionicons name="play-circle" size={rw(28)} color="#C8F135" />
-              <Text style={{ color: '#C8F135', fontSize: rf(9), fontWeight: '900', marginTop: rs(2), letterSpacing: 0.5 }}>LOG</Text>
+              <Ionicons name="play-circle" size={rw(28)} color={C.accent} />
+              <Text style={{ color: C.accent, fontSize: rf(9), fontWeight: '900', marginTop: rs(2), letterSpacing: 0.5 }}>LOG</Text>
             </>
         }
       </TouchableOpacity>
@@ -674,7 +677,7 @@ const makeStyles = (C) => StyleSheet.create({
   title:        { color: C.text, fontSize: rf(28), fontWeight: '900', letterSpacing: -0.5 },
   secCount:     { color: C.muted, fontSize: rf(10), fontWeight: '700', letterSpacing: 1 },
 
-  videosBtn:    { flexDirection: 'row', alignItems: 'center', gap: rs(5), backgroundColor: 'rgba(200,241,53,0.1)', borderRadius: rw(14), paddingHorizontal: rs(12), paddingVertical: rs(8), borderWidth: 1, borderColor: 'rgba(200,241,53,0.3)' },
+  videosBtn:    { flexDirection: 'row', alignItems: 'center', gap: rs(5), backgroundColor: C.accentDim, borderRadius: rw(14), paddingHorizontal: rs(12), paddingVertical: rs(8), borderWidth: 1, borderColor: `${C.accent}4D` },
   videosBtnTxt: { color: C.accent, fontSize: rf(12), fontWeight: '800' },
 
   searchWrap:   { flexDirection: 'row', alignItems: 'center', marginHorizontal: rs(16),
@@ -695,7 +698,7 @@ const makeStyles = (C) => StyleSheet.create({
   // Body Focus circles
   focusItem:    { alignItems: 'center', gap: rs(8) },
   focusCircle:  { width: rw(80), height: rw(80), borderRadius: rw(40), overflow: 'hidden',
-                  borderWidth: 2.5, borderColor: 'rgba(200,241,53,0.25)' },
+                  borderWidth: 2.5, borderColor: `${C.accent}40` },
   focusImg:     { width: '100%', height: '100%' },
   focusVignette:{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.12)' },
   focusLabel:   { color: C.text, fontSize: rf(10), fontWeight: '800', letterSpacing: 0.5 },

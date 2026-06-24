@@ -9,14 +9,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { DIET } from '../../theme/dietTheme';
 
 export interface MealRowProps {
-  image: string;
+  image?: string;
   type: string;
   name: string;
+  calories?: number;
   showDivider?: boolean;
   onPress?: () => void;
 }
 
-export default function MealRow({ image, type, name, showDivider, onPress }: MealRowProps) {
+export default function MealRow({ image, type, name, calories, showDivider, onPress }: MealRowProps) {
   const Wrapper: any = onPress ? TouchableOpacity : View;
   return (
     <Wrapper
@@ -24,12 +25,30 @@ export default function MealRow({ image, type, name, showDivider, onPress }: Mea
       onPress={onPress}
       style={[styles.row, showDivider && styles.divider]}
     >
-      <Image source={{ uri: image }} style={styles.avatar} contentFit="cover" transition={200} />
+      {/* Thumbnail — 48px circle with food-icon fallback */}
+      {image ? (
+        <Image source={{ uri: image }} style={styles.avatar} contentFit="cover" transition={200} />
+      ) : (
+        <View style={[styles.avatar, styles.avatarFallback]}>
+          <Ionicons name="restaurant-outline" size={20} color={DIET.label} />
+        </View>
+      )}
+
       <View style={styles.textCol}>
-        <Text style={styles.type}>{type}</Text>
+        {/* Overline: meal-type label */}
+        <Text style={styles.type}>{type.toUpperCase()}</Text>
+        {/* Body: meal name */}
         <Text style={styles.name} numberOfLines={1}>{name}</Text>
+        {/* Caption: kcal in accent, helper text neutral */}
+        {calories != null && (
+          <Text style={styles.meta}>
+            <Text style={styles.metaKcal}>{calories} kcal</Text>
+            {onPress ? <Text style={styles.metaHint}> · tap to view</Text> : null}
+          </Text>
+        )}
       </View>
-      {onPress && <Ionicons name="chevron-forward" size={18} color={DIET.label} />}
+
+      {onPress && <Ionicons name="chevron-forward" size={16} color={DIET.label} />}
     </Wrapper>
   );
 }
@@ -38,7 +57,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: 12,
     paddingVertical: 12,
   },
   divider: {
@@ -46,21 +65,38 @@ const styles = StyleSheet.create({
     borderBottomColor: DIET.divider,
   },
   avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: DIET.divider,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+  },
+  avatarFallback: {
+    backgroundColor: DIET.panel,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   textCol: { flex: 1 },
   type: {
-    color: DIET.text,
-    fontSize: 15,
-    fontWeight: '700',
-    marginBottom: 3,
+    color: DIET.label,
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 1.2,
+    marginBottom: 2,
   },
   name: {
-    color: DIET.textMuted,
+    color: DIET.text,
     fontSize: 15,
-    fontWeight: '500',
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  meta: {
+    fontSize: 13,
+  },
+  metaKcal: {
+    color: DIET.accent,
+    fontWeight: '600',
+  },
+  metaHint: {
+    color: DIET.textMuted,
+    fontWeight: '400',
   },
 });

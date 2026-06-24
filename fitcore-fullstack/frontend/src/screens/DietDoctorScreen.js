@@ -16,8 +16,18 @@ import { useC } from '../utils/theme';
 import { useThemeStore } from '../store/themeStore';
 import { supabase } from '../api/supabase';
 import { workoutAPI } from '../api/services';
+import LOCAL_WORKOUT_PLANS from '../data/workoutPlans.json';
 
 const AI_PLAN_KEY = '@fitcore_ai_plan';
+
+// Lookup: plan name (lowercase) → local image from workoutPlans.json
+const LOCAL_IMG_BY_NAME = Object.fromEntries(
+  LOCAL_WORKOUT_PLANS.map(p => [p.name.toLowerCase(), p.image])
+);
+// Lookup: plan id → local image
+const LOCAL_IMG_BY_ID = Object.fromEntries(
+  LOCAL_WORKOUT_PLANS.map(p => [p.id, p.image])
+);
 
 const { width: W } = Dimensions.get('window');
 const LIME   = '#C8F135';
@@ -556,6 +566,19 @@ function QuickChip({ label, icon, onPress, color }) {
 // ─────────────────────────────────────────────────────────────────────────────
 //  WORKOUT SUGGESTION — match AI exercise mentions to real app workouts
 // ─────────────────────────────────────────────────────────────────────────────
+
+// Category-based gradient + accent color for generated thumbnails.
+// Plans never ship real image URLs so we synthesise the thumbnail from local data.
+const CAT_THUMB = {
+  strength:    { grad: ['#1C1535', '#2A1F50'], accent: '#A78BFA' },
+  hiit:        { grad: ['#2A0F0F', '#3D1515'], accent: '#F87171' },
+  cardio:      { grad: ['#0A1A2E', '#0F2644'], accent: '#60A5FA' },
+  flexibility: { grad: ['#0D1F14', '#0F2E1C'], accent: '#4ADE80' },
+  core:        { grad: ['#1F1A0A', '#2E2510'], accent: '#FCD34D' },
+  recovery:    { grad: ['#0D1A1F', '#0F2428'], accent: '#2DD4BF' },
+};
+const DEFAULT_THUMB = { grad: ['#111118', '#1A1A28'], accent: LIME };
+
 const EXERCISE_CAT_MAP = [
   [/cardio|running|jogging|cycling|swimming|hiit|fat.?burn|aerobic/i, 'cardio'],
   [/strength|weight.?train|muscle|deadlift|squat|bench.?press|lift/i, 'strength'],
@@ -594,33 +617,96 @@ function WorkoutSuggestionCards({ message, allPlans, navigation }) {
         </Text>
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
-        {matches.map(plan => (
-          <TouchableOpacity
-            key={plan.id}
-            onPress={() => navigation.navigate('WorkoutDetail', { plan })}
-            activeOpacity={0.85}
-            style={{ width: 155, borderRadius: 14, overflow: 'hidden', backgroundColor: '#1A1A28', borderWidth: 1, borderColor: 'rgba(200,241,53,0.15)' }}
-          >
-            <View style={{ width: 155, height: 95, backgroundColor: '#111' }}>
-              {plan.image ? (
-                <Image source={{ uri: plan.image }} style={{ width: 155, height: 95 }} contentFit="cover" />
-              ) : (
-                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-                  <Ionicons name="barbell" size={28} color="rgba(255,255,255,0.2)" />
+        {matches.map(plan => {
+          const thumb  = CAT_THUMB[plan.category] || DEFAULT_THUMB;
+          const accent = thumb.accent;
+          // Resolve image: API plan first, then local JSON lookup by id, then by name
+          const resolvedImage = plan.image
+            || LOCAL_IMG_BY_ID[plan.id]
+            || LOCAL_IMG_BY_NAME[plan.name?.toLowerCase()];
+          return (
+            <TouchableOpacity
+              key={plan.id}
+              onPress={() => navigation.navigate('WorkoutDetail', { plan })}
+              activeOpacity={0.85}
+              style={{ width: 155, borderRadius: 14, overflow: 'hidden',
+                borderWidth: 1, borderColor: accent + '30' }}
+            >
+              {/* ── Thumbnail: real photo from local JSON, gradient fallback ── */}
+              <View style={{ width: 155, height: 95 }}>
+                {resolvedImage ? (
+                  <Image
+                    source={{ uri: resolvedImage }}
+                    style={{ width: 155, height: 95 }}
+                    contentFit="cover"
+                    transition={300}
+                  />
+                ) : (
+                  <LinearGradient colors={thumb.grad} style={{ width: 155, height: 95 }}>
+                    <View style={{
+                      position: 'absolute', right: -20, top: -20,
+                      width: 90, height: 90, borderRadius: 45,
+                      backgroundColor: accent + '18',
+                    }} />
+                    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 6 }}>
+                      <Text style={{ fontSize: 36, lineHeight: 44 }}>{plan.icon || '💪'}</Text>
+                    </View>
+                  </LinearGradient>
+                )}
+                {/* Dark scrim so text/badge stay readable over any photo */}
+                <LinearGradient
+                  colors={['transparent', 'rgba(0,0,0,0.55)']}
+                  style={{ position: 'absolute', inset: 0 }}
+                  pointerEvents="none"
+                />
+                {/* Difficulty badge — bottom left */}
+                {plan.difficulty ? (
+                  <View style={{
+                    position: 'absolute', bottom: 7, left: 8,
+                    backgroundColor: 'rgba(0,0,0,0.60)', borderRadius: 6,
+                    paddingHorizontal: 6, paddingVertical: 2,
+                    borderWidth: 1, borderColor: accent + '60',
+                  }}>
+                    <Text style={{ color: accent, fontSize: 9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                      {plan.difficulty}
+                    </Text>
+                  </View>
+                ) : null}
+                {/* Play button — top right */}
+                <View style={{
+                  position: 'absolute', top: 7, right: 7,
+                  backgroundColor: LIME, borderRadius: 10,
+                  width: 22, height: 22, alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Ionicons name="play" size={11} color={BG} />
                 </View>
-              )}
-              <View style={{ position: 'absolute', top: 7, right: 7, backgroundColor: LIME, borderRadius: 10, width: 22, height: 22, alignItems: 'center', justifyContent: 'center' }}>
-                <Ionicons name="play" size={11} color="#0A0A0F" />
               </View>
-            </View>
-            <View style={{ padding: 8 }}>
-              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 12, marginBottom: 2 }} numberOfLines={1}>{plan.name}</Text>
-              <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10 }}>
-                {plan.category} · {plan.duration_min ?? '—'}min
-              </Text>
-            </View>
-          </TouchableOpacity>
-        ))}
+
+              {/* ── Info row ── */}
+              <View style={{ backgroundColor: '#1A1A28', padding: 8 }}>
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 12, marginBottom: 2 }}
+                  numberOfLines={1}>{plan.name}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={{ color: accent, fontSize: 9, fontWeight: '800', textTransform: 'uppercase' }}>
+                    {plan.category}
+                  </Text>
+                  <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9 }}>·</Text>
+                  <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10 }}>
+                    {plan.duration_min ?? '—'}min
+                  </Text>
+                  {plan.calories ? (
+                    <>
+                      <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9 }}>·</Text>
+                      <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10 }}>
+                        {plan.calories} kcal
+                      </Text>
+                    </>
+                  ) : null}
+                </View>
+              </View>
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
     </View>
   );

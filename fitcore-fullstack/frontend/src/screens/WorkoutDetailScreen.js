@@ -307,9 +307,9 @@ function ExThumb({ move, gender, accentColor, localUri }) {
       />
       {/* gender pill */}
       <View style={{ position:'absolute', bottom:5, left:5,
-        backgroundColor: gender==='female'?'rgba(255,107,157,0.85)':'rgba(200,241,53,0.85)',
+        backgroundColor: `${accentColor}D9`,
         borderRadius:6, paddingHorizontal:4, paddingVertical:1 }}>
-        <Text style={{ color:'#000', fontSize:8, fontWeight:'900' }}>
+        <Text style={{ color:accentTextColor, fontSize:8, fontWeight:'900' }}>
           {gender==='female'?'♀':'♂'}
         </Text>
       </View>
@@ -425,6 +425,11 @@ export default function WorkoutDetailScreen({ route, navigation }) {
   const totalSets=exercises.reduce((s,e)=>s+(e.sets||3),0);
   const doneSets=setsDone.length;
   const accentColor=gender==='female'?'#FF6B9D':C.accent;
+  // Text on top of accentColor backgrounds — must contrast both lime (dark) and indigo (light)
+  const accentTextColor=gender==='female'?'#000':C.accentText;
+  // rgba helper for Animated.interpolate color strings (C.accent is always a 6-digit hex)
+  const _ah=C.accent.slice(1);
+  const accentRgb=`${parseInt(_ah.slice(0,2),16)},${parseInt(_ah.slice(2,4),16)},${parseInt(_ah.slice(4,6),16)}`;
 
   // ── Download for offline ────────────────────────────────────────────────
   const [dlStatus,setDlStatus]=useState({});   // exName -> 'idle'|'downloading'|'done'|'error'
@@ -646,8 +651,8 @@ export default function WorkoutDetailScreen({ route, navigation }) {
               style={{ width:'100%', height:'100%', borderRadius:22 }}
               resizeMode="cover"
             />
-            <View style={{ position:'absolute', bottom:4, right:4, backgroundColor: gender==='female'?'rgba(255,107,157,0.92)':'rgba(200,241,53,0.92)', borderRadius:6, paddingHorizontal:5, paddingVertical:2 }}>
-              <Text style={{ color:'#000', fontSize:9, fontWeight:'900' }}>{gender==='female'?'♀':'♂'}</Text>
+            <View style={{ position:'absolute', bottom:4, right:4, backgroundColor: `${accentColor}EB`, borderRadius:6, paddingHorizontal:5, paddingVertical:2 }}>
+              <Text style={{ color:accentTextColor, fontSize:9, fontWeight:'900' }}>{gender==='female'?'♀':'♂'}</Text>
             </View>
           </View>
           <Text style={s.heroTitle}>{plan.name}</Text>
@@ -666,7 +671,7 @@ export default function WorkoutDetailScreen({ route, navigation }) {
           if(downloadable.length===0)return null;
           const doneCount=downloadable.filter(ex=>dlStatus[ex.name]==='done').length;
           const allDone=doneCount===downloadable.length;
-          const glowBorder=dlGlow.interpolate({inputRange:[0,1],outputRange:['rgba(200,241,53,0.25)','rgba(200,241,53,1)']});
+          const glowBorder=dlGlow.interpolate({inputRange:[0,1],outputRange:[`rgba(${accentRgb},0.25)`,`rgba(${accentRgb},1)`]});
           return(
             <View style={[s.section,{paddingBottom:4}]}>
               <Text style={s.secLabel}>OFFLINE DOWNLOAD</Text>
@@ -760,8 +765,8 @@ export default function WorkoutDetailScreen({ route, navigation }) {
       </ScrollView>
       <View style={s.startWrap}>
         <TouchableOpacity style={[s.bigBtn,{backgroundColor:accentColor,flexDirection:'row',justifyContent:'center',alignItems:'center',gap:8}]} onPress={()=>{setPhase('workout');if(voiceEnabledRef.current){const t=buildWorkoutLine('workout_start',{planName:plan.name,gender:genderRef.current});if(t){setVoiceMsg(t);speakAsAgent(t,genderRef.current,{onStart:()=>setVoiceSpeaking(true),onEnd:()=>setVoiceSpeaking(false)});}}}}>
-          <Ionicons name="play" size={16} color="#000" />
-          <Text style={[s.bigBtnTxt,{color:'#000'}]}>START WORKOUT</Text>
+          <Ionicons name="play" size={16} color={accentTextColor} />
+          <Text style={[s.bigBtnTxt,{color:accentTextColor}]}>START WORKOUT</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -782,7 +787,7 @@ export default function WorkoutDetailScreen({ route, navigation }) {
         ))}
       </View>
       <TouchableOpacity style={[s.bigBtn,{backgroundColor:accentColor,width:'100%'}]} onPress={handleSave} disabled={logging}>
-        <Text style={[s.bigBtnTxt,{color:'#000'}]}>{logging?'Saving...':'SAVE WORKOUT'}</Text>
+        <Text style={[s.bigBtnTxt,{color:accentTextColor}]}>{logging?'Saving...':'SAVE WORKOUT'}</Text>
       </TouchableOpacity>
       <TouchableOpacity style={[s.bigBtn,{backgroundColor:C.border,marginTop:10,width:'100%'}]} onPress={()=>navigation.goBack()}>
         <Text style={[s.bigBtnTxt,{color:C.text}]}>Go Back</Text>
@@ -823,7 +828,7 @@ export default function WorkoutDetailScreen({ route, navigation }) {
             <ExerciseVideo src={getVideoSrc(curEx.move||'squat', curEx.name)} active={isActive} accentColor={accentColor} />
           </View>
           <View style={s.setDots}>
-            {Array.from({length:curEx.sets||3}).map((_,i)=>{const done=i<setNum-1,curr=i===setNum-1;return <View key={i} style={[s.dot,done&&{backgroundColor:C.teal,borderColor:C.teal},curr&&{backgroundColor:accentColor,borderColor:accentColor}]}>{done&&<Ionicons name="checkmark" size={8} color="#000" />}{curr&&<Text style={{fontSize:8,color:'#000',fontWeight:'900'}}>{setNum}</Text>}</View>;})}
+            {Array.from({length:curEx.sets||3}).map((_,i)=>{const done=i<setNum-1,curr=i===setNum-1;return <View key={i} style={[s.dot,done&&{backgroundColor:C.teal,borderColor:C.teal},curr&&{backgroundColor:accentColor,borderColor:accentColor}]}>{done&&<Ionicons name="checkmark" size={8} color={C.bg} />}{curr&&<Text style={{fontSize:8,color:accentTextColor,fontWeight:'900'}}>{setNum}</Text>}</View>;})}
           </View>
           <Text style={s.figStatus}>{isResting?'Resting...':isActive?'Set in progress':'Ready'}</Text>
         </View>
@@ -876,8 +881,8 @@ export default function WorkoutDetailScreen({ route, navigation }) {
           </TouchableOpacity>
         </>)
         :<TouchableOpacity style={[s.bigBtn,{backgroundColor:accentColor,marginBottom:10,flexDirection:'row',justifyContent:'center',alignItems:'center',gap:7}]} onPress={handleStartSet}>
-          <Ionicons name="play" size={15} color="#000" />
-          <Text style={[s.bigBtnTxt,{color:'#000'}]}>Start Set {setNum}</Text>
+          <Ionicons name="play" size={15} color={accentTextColor} />
+          <Text style={[s.bigBtnTxt,{color:accentTextColor}]}>Start Set {setNum}</Text>
         </TouchableOpacity>}
 
         {setsDone.length>0&&<View style={s.logSec}><Text style={s.secLabel}>COMPLETED</Text>{setsDone.slice(-4).reverse().map((d,i)=><View key={i} style={s.logRow}><Ionicons name="checkmark-circle" size={14} color={C.teal} /><Text style={s.logTxt}>{d.exName} — Set {d.set} — {d.reps} reps{d.weight>0?` @ ${d.weight}kg`:''}</Text></View>)}</View>}
@@ -921,7 +926,7 @@ export default function WorkoutDetailScreen({ route, navigation }) {
               {(curEx.steps||[]).map((step,i)=>(
                 <View key={i} style={s.tipRow}>
                   <View style={[s.tipBullet,{backgroundColor:accentColor}]}>
-                    <Text style={{color:'#000',fontSize:10,fontWeight:'900'}}>{i+1}</Text>
+                    <Text style={{color:accentTextColor,fontSize:10,fontWeight:'900'}}>{i+1}</Text>
                   </View>
                   <Text style={s.tipTxt}>{step}</Text>
                 </View>
@@ -938,7 +943,7 @@ export default function WorkoutDetailScreen({ route, navigation }) {
             </ScrollView>
 
             <TouchableOpacity style={[s.bigBtn,{backgroundColor:accentColor,marginTop:12}]} onPress={()=>setShowTips(false)}>
-              <Text style={[s.bigBtnTxt,{color:'#000'}]}>Got It</Text>
+              <Text style={[s.bigBtnTxt,{color:accentTextColor}]}>Got It</Text>
             </TouchableOpacity>
           </View>
         </View>

@@ -1115,8 +1115,16 @@ export default function NutritionScreen({ navigation }) {
           <Text style={s.titleDisplay}>Classic{'\n'}Diet plan</Text>
         </View>
         <View style={s.calBubble}>
-          <Text style={s.calBubbleNum}>{Math.round(con.calories||0)}</Text>
-          <Text style={s.calBubbleSub}>/ {tar.calories} kcal</Text>
+          <View style={{ flexDirection:'row', alignItems:'baseline', gap:2 }}>
+            <Text style={s.calBubbleNum}>{Math.round(con.calories||0)}</Text>
+            <Text style={s.calBubbleSub}>/{tar.calories}</Text>
+          </View>
+          <Text style={s.calBubbleSub}>kcal</Text>
+          <View style={s.calProgressBg}>
+            <View style={[s.calProgressFill, {
+              width:`${Math.min(((con.calories||0)/(tar.calories||2200))*100,100)}%`
+            }]} />
+          </View>
         </View>
       </View>
 
@@ -1216,21 +1224,29 @@ export default function NutritionScreen({ navigation }) {
                   ) : null}
 
                   {/* Day selector */}
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{ gap:8, paddingBottom:4, marginBottom:12 }}>
-                    {days.map((d, i) => (
-                      <TouchableOpacity key={i} onPress={() => setAiPlanDay(i)}
-                        style={{
-                          paddingHorizontal:14, paddingVertical:7, borderRadius:20,
-                          backgroundColor: aiPlanDay === i ? C.accent : C.surfaceAlt,
-                          borderWidth:1, borderColor: aiPlanDay === i ? C.accent : C.border,
-                        }}>
-                        <Text style={{ fontSize:12, fontWeight:'700', color: aiPlanDay === i ? C.accentText : C.muted }}>
-                          Day {i + 1}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
+                  <View style={{ position:'relative', marginBottom:12 }}>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={{ gap:8, paddingBottom:4, paddingRight:32 }}>
+                      {days.map((d, i) => (
+                        <TouchableOpacity key={i} onPress={() => setAiPlanDay(i)}
+                          style={{
+                            paddingHorizontal:14, paddingVertical:7, borderRadius:20,
+                            backgroundColor: aiPlanDay === i ? C.accent : C.surfaceAlt,
+                            borderWidth:1, borderColor: aiPlanDay === i ? C.accent : C.border,
+                          }}>
+                          <Text style={{ fontSize:12, fontWeight:'700', color: aiPlanDay === i ? C.accentText : C.muted }}>
+                            Day {i + 1}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                    <LinearGradient
+                      colors={['transparent', C.bg]}
+                      start={{ x:0, y:0 }} end={{ x:1, y:0 }}
+                      style={{ position:'absolute', right:0, top:0, bottom:4, width:40 }}
+                      pointerEvents="none"
+                    />
+                  </View>
 
                   {/* Meals for selected day */}
                   <View style={{ backgroundColor:C.surface, borderRadius:16, overflow:'hidden' }}>
@@ -1255,15 +1271,16 @@ export default function NutritionScreen({ navigation }) {
                           </View>
                           {/* Text */}
                           <View style={{ flex:1 }}>
-                            <Text style={{ fontSize:11, fontWeight:'700', color:C.muted, textTransform:'uppercase', letterSpacing:0.4, marginBottom:2 }}>
+                            <Text style={{ fontSize:12, fontWeight:'600', color:C.muted, textTransform:'uppercase', letterSpacing:1.2, marginBottom:2 }}>
                               {mealLabel}
                             </Text>
-                            <Text style={{ fontSize:13, fontWeight:'600', color:C.text }} numberOfLines={2}>
+                            <Text style={{ fontSize:15, fontWeight:'600', color:C.text }} numberOfLines={2}>
                               {meal.food}
                             </Text>
                             {matched ? (
-                              <Text style={{ fontSize:11, color:C.accent, marginTop:2 }}>
-                                {matched.calories} kcal · tap to view
+                              <Text style={{ fontSize:13, marginTop:2 }}>
+                                <Text style={{ color:C.accent, fontWeight:'600' }}>{matched.calories} kcal</Text>
+                                <Text style={{ color:C.muted, fontWeight:'400' }}> · tap to view</Text>
                               </Text>
                             ) : null}
                           </View>
@@ -1288,6 +1305,7 @@ export default function NutritionScreen({ navigation }) {
                     image={meal.food.image}
                     type={meal.type}
                     name={meal.food.name}
+                    calories={meal.food.calories}
                     showDivider={i < todayMeals.length - 1}
                     onPress={() => { setDetailFood(meal.food); setShowFoodDetail(true); }}
                   />
@@ -1305,18 +1323,26 @@ export default function NutritionScreen({ navigation }) {
                   </View>
                   <TouchableOpacity style={{ flexDirection:'row', alignItems:'center', gap:3 }}
                     onPress={() => setActiveTab('search')}>
-                    <Text style={{ color:DIET.accent, fontSize:13, fontWeight:'700' }}>See all</Text>
-                    <Ionicons name="chevron-forward" size={14} color={DIET.accent} />
+                    <Text style={{ color:C.accent, fontSize:13, fontWeight:'700' }}>See all</Text>
+                    <Ionicons name="chevron-forward" size={14} color={C.accent} />
                   </TouchableOpacity>
                 </View>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ gap:12, paddingBottom:4, paddingRight:8 }} style={{ marginBottom:16 }}>
-                  {lazyFoods.map((food, i) => (
-                    <PlanCard key={`lazy-${food.id ?? i}`} title={food.name} subtitle={`${food.calories} kcal`}
-                      color={pastelForCategory(food.category)} image={food.image} height={150} style={{ width:240 }}
-                      onPress={() => { setDetailFood(food); setShowFoodDetail(true); }} />
-                  ))}
-                </ScrollView>
+                <View style={{ position:'relative', marginBottom:24 }}>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ gap:12, paddingBottom:4, paddingRight:40 }}>
+                    {lazyFoods.map((food, i) => (
+                      <PlanCard key={`lazy-${food.id ?? i}`} title={food.name} subtitle={`${food.calories} kcal`}
+                        color={pastelForCategory(food.category)} image={food.image} height={150} style={{ width:240 }}
+                        onPress={() => { setDetailFood(food); setShowFoodDetail(true); }} />
+                    ))}
+                  </ScrollView>
+                  <LinearGradient
+                    colors={['transparent', C.bg]}
+                    start={{ x:0, y:0 }} end={{ x:1, y:0 }}
+                    style={{ position:'absolute', right:0, top:0, bottom:4, width:48 }}
+                    pointerEvents="none"
+                  />
+                </View>
               </>
             )}
 
@@ -2031,9 +2057,9 @@ const makeS = (C) => StyleSheet.create({
   title:          { color:C.text, fontSize:24, fontWeight:'900' },
   titleDisplay:   { color:C.text, fontSize:30, fontWeight:'800', lineHeight:34 },
   // Classic Diet plan landing (embedded new design)
-  todayCardNew:   { backgroundColor:C.surface, borderRadius:16, padding:16, marginBottom:16 },
-  todayCardTitle: { color:C.text, fontSize:18, fontWeight:'800', marginBottom:4 },
-  lazyHeader:     { flexDirection:'row', alignItems:'flex-end', justifyContent:'space-between', marginBottom:12 },
+  todayCardNew:   { backgroundColor:C.surface, borderRadius:16, padding:16, marginBottom:24 },
+  todayCardTitle: { color:C.text, fontSize:18, fontWeight:'800', marginBottom:8 },
+  lazyHeader:     { flexDirection:'row', alignItems:'flex-end', justifyContent:'space-between', marginBottom:12, marginTop:8 },
   lazyTitle:      { color:C.text, fontSize:22, fontWeight:'800' },
   lazyLabel:      { color:DIET.label, fontSize:12, fontWeight:'700', letterSpacing:1.5, marginTop:4 },
   // AI Diet Doctor floating button
@@ -2045,10 +2071,12 @@ const makeS = (C) => StyleSheet.create({
   aiDocFabBadge:  { position:'absolute', bottom:-2, right:-2, width:22, height:22, borderRadius:11,
                     backgroundColor:C.accent, alignItems:'center', justifyContent:'center',
                     borderWidth:2, borderColor:'#fff' },
-  calBubble:      { backgroundColor:C.card, borderRadius:12, borderWidth:1, borderColor:C.border,
-                    paddingHorizontal:12, paddingVertical:6, alignItems:'center' },
-  calBubbleNum:   { color:C.accent, fontSize:16, fontWeight:'900' },
+  calBubble:      { backgroundColor:C.card, borderRadius:14, borderWidth:1, borderColor:C.border,
+                    paddingHorizontal:12, paddingVertical:8, alignItems:'center', minWidth:84 },
+  calBubbleNum:   { color:C.text, fontSize:18, fontWeight:'900' },
   calBubbleSub:   { color:C.muted, fontSize:10 },
+  calProgressBg:  { width:72, height:3, backgroundColor:C.border, borderRadius:2, overflow:'hidden', marginTop:4 },
+  calProgressFill:{ height:'100%', backgroundColor:C.accent, borderRadius:2 },
   // Goal toggle
   goalToggle:     { flexDirection:'row', gap:8, paddingHorizontal:16, marginBottom:10 },
   goalBtn:        { flex:1, flexDirection:'row', alignItems:'center', justifyContent:'center',
@@ -2059,7 +2087,7 @@ const makeS = (C) => StyleSheet.create({
   goalBtnIcon:    { fontSize:16 },
   goalBtnTxt:     { color:C.muted, fontSize:13, fontWeight:'800' },
   // Tabs
-  tabs:           { flexDirection:'row', paddingHorizontal:16, gap:6, marginBottom:8 },
+  tabs:           { flexDirection:'row', paddingHorizontal:16, gap:6, marginBottom:20 },
   tab:            { flex:1, flexDirection:'row', alignItems:'center', justifyContent:'center',
                     gap:4, borderRadius:10, borderWidth:1, borderColor:C.border,
                     paddingVertical:8, backgroundColor:C.card },

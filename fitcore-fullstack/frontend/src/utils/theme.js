@@ -2,9 +2,11 @@ import { useThemeStore } from '../store/themeStore';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  DESIGN TOKENS — Single source of truth.
-//  DARK: deep navy + vibrant purple #7C5CFC (matches reference fitness app)
-//  LIGHT: off-white + indigo #4F46E5 (clean professional)
-//  Green (#16A34A) = success/streak/completed only — never accent.
+//  DARK: deep green-black base, lime #C8F135 accent.
+//  LIGHT: off-white + indigo #4F46E5 (clean professional).
+//  Green (#16A34A) = success / streak / completed only — never as accent.
+//  Pills neutral by default; only active state uses accentDim bg + accent text.
+//  Cards in light mode = white + shadow. No dark cards on light bg.
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Card shadow (use in style prop as: ...SHADOW.card)
@@ -25,29 +27,28 @@ export const SHADOW = {
   },
 };
 
-// DARK: deep navy base + vibrant purple — matches reference fitness app design
 export const DARK = {
-  bg:          '#0B0C1A',   // very dark navy
-  surface:     '#161730',   // card background
-  surfaceAlt:  '#1E1F3C',   // elevated surface
-  textPrimary: '#F0F0FF',   // slightly purple-tinted white
-  textMuted:   '#8B8BAF',
-  dim:         '#52526A',
-  border:      '#252548',
-  accent:      '#7C5CFC',   // vibrant purple
-  accentText:  '#FFFFFF',
-  accentDim:   'rgba(124,92,252,0.15)',
+  bg:          '#0B0D0A',
+  surface:     '#161914',
+  surfaceAlt:  '#1F231C',
+  textPrimary: '#F4F5F3',
+  textMuted:   '#8A8F86',
+  dim:         '#55556A',
+  border:      '#262A22',
+  accent:      '#C8F135',
+  accentText:  '#0E1117',
+  accentDim:   'rgba(200,241,53,0.15)',
   success:     '#16A34A',
 
-  card:   '#161730',
-  card2:  '#1E1F3C',
-  text:   '#F0F0FF',
-  muted:  '#8B8BAF',
+  card:   '#161914',
+  card2:  '#1F231C',
+  text:   '#F4F5F3',
+  muted:  '#8A8F86',
 
-  blue:   '#7C5CFC',
-  orange: '#F59E0B',
-  purple: '#7C5CFC',
-  teal:   '#7C5CFC',
+  blue:   '#C8F135',
+  orange: '#C8F135',
+  purple: '#C8F135',
+  teal:   '#C8F135',
   red:    '#EF4444',
 };
 

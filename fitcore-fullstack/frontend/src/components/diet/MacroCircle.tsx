@@ -14,6 +14,7 @@ export interface MacroCircleProps {
 }
 
 export default function MacroCircle({ label, value, bg, size = 90 }: MacroCircleProps) {
+  const isZero = parseFloat(value) === 0;
   return (
     <View
       style={[
@@ -22,7 +23,12 @@ export default function MacroCircle({ label, value, bg, size = 90 }: MacroCircle
       ]}
     >
       <Text style={styles.label}>{label.toUpperCase()}</Text>
-      <Text style={styles.value}>{value}</Text>
+      <Text style={[
+        styles.value,
+        isZero && { color: DIET.label, fontWeight: '400' },
+      ]}>
+        {value}
+      </Text>
     </View>
   );
 }

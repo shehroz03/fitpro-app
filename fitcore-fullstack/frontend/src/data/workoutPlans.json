@@ -9,7 +9,14 @@
     "icon": "💪",
     "is_featured": true,
     "description": "Complete full body strength workout targeting all major muscle groups.",
-    "exercises": ["ex1", "ex2", "ex3", "ex4", "ex5"]
+    "exercises": [
+      "ex1",
+      "ex2",
+      "ex3",
+      "ex4",
+      "ex5"
+    ],
+    "image": "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=500&h=300&fit=crop&q=80"
   },
   {
     "id": "wp2",
@@ -21,7 +28,11 @@
     "icon": "🧘",
     "is_featured": false,
     "description": "Energizing morning yoga sequence to improve flexibility and mindfulness.",
-    "exercises": ["ex11", "ex9"]
+    "exercises": [
+      "ex11",
+      "ex9"
+    ],
+    "image": "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=500&h=300&fit=crop&q=80"
   },
   {
     "id": "wp3",
@@ -33,7 +44,12 @@
     "icon": "🔥",
     "is_featured": true,
     "description": "High-intensity interval training for maximum calorie burn.",
-    "exercises": ["ex6", "ex7", "ex8"]
+    "exercises": [
+      "ex6",
+      "ex7",
+      "ex8"
+    ],
+    "image": "https://images.unsplash.com/photo-1549060279-7e168fcee0c2?w=500&h=300&fit=crop&q=80"
   },
   {
     "id": "wp4",
@@ -45,7 +61,12 @@
     "icon": "⚡",
     "is_featured": false,
     "description": "Intense core strengthening routine for a rock-solid midsection.",
-    "exercises": ["ex9", "ex10", "ex7"]
+    "exercises": [
+      "ex9",
+      "ex10",
+      "ex7"
+    ],
+    "image": "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=500&h=300&fit=crop&q=80"
   },
   {
     "id": "wp5",
@@ -57,7 +78,12 @@
     "icon": "🏋️",
     "is_featured": false,
     "description": "Build serious upper body strength with this comprehensive program.",
-    "exercises": ["ex2", "ex3", "ex5"]
+    "exercises": [
+      "ex2",
+      "ex3",
+      "ex5"
+    ],
+    "image": "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=500&h=300&fit=crop&q=80"
   },
   {
     "id": "wp6",
@@ -69,7 +95,11 @@
     "icon": "🌿",
     "is_featured": false,
     "description": "Gentle recovery session to reduce soreness and improve mobility.",
-    "exercises": ["ex11", "ex12"]
+    "exercises": [
+      "ex11",
+      "ex12"
+    ],
+    "image": "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=500&h=300&fit=crop&q=80"
   },
   {
     "id": "wp7",
@@ -81,7 +111,13 @@
     "icon": "🏃",
     "is_featured": true,
     "description": "High-energy cardio session with running form training.",
-    "exercises": ["Running", "Burpees", "Jump Rope", "Mountain Climbers"]
+    "exercises": [
+      "Running",
+      "Burpees",
+      "Jump Rope",
+      "Mountain Climbers"
+    ],
+    "image": "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=500&h=300&fit=crop&q=80"
   },
   {
     "id": "wp8",
@@ -93,7 +129,13 @@
     "icon": "🦵",
     "is_featured": true,
     "description": "Brutal lower body session targeting quads, hamstrings, and glutes.",
-    "exercises": ["ex1", "ex4", "Lunges", "ex7"]
+    "exercises": [
+      "ex1",
+      "ex4",
+      "Lunges",
+      "ex7"
+    ],
+    "image": "https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=500&h=300&fit=crop&q=80"
   },
   {
     "id": "wp9",
@@ -105,7 +147,13 @@
     "icon": "🌟",
     "is_featured": false,
     "description": "Perfect starting point for fitness beginners. Easy to follow movements.",
-    "exercises": ["Push-ups", "ex1", "ex5", "ex9"]
+    "exercises": [
+      "Push-ups",
+      "ex1",
+      "ex5",
+      "ex9"
+    ],
+    "image": "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=500&h=300&fit=crop&q=80"
   },
   {
     "id": "wp10",
@@ -117,7 +165,13 @@
     "icon": "🔥",
     "is_featured": true,
     "description": "Rapid-fire HIIT circuit designed to torch fat and boost metabolism.",
-    "exercises": ["ex6", "Running", "ex7", "ex8"]
+    "exercises": [
+      "ex6",
+      "Running",
+      "ex7",
+      "ex8"
+    ],
+    "image": "https://images.unsplash.com/photo-1538805060514-97d9cc17730c?w=500&h=300&fit=crop&q=80"
   },
   {
     "id": "wp11",
@@ -129,7 +183,13 @@
     "icon": "💥",
     "is_featured": false,
     "description": "Focused ab and core circuit for a shredded midsection.",
-    "exercises": ["ex9", "ex10", "Leg Raises", "ex7"]
+    "exercises": [
+      "ex9",
+      "ex10",
+      "Leg Raises",
+      "ex7"
+    ],
+    "image": "https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=500&h=300&fit=crop&q=80"
   },
   {
     "id": "wp12",
@@ -141,7 +201,12 @@
     "icon": "💪",
     "is_featured": false,
     "description": "Classic push day targeting chest, triceps, and front delts.",
-    "exercises": ["ex2", "Push-ups", "ex5"]
+    "exercises": [
+      "ex2",
+      "Push-ups",
+      "ex5"
+    ],
+    "image": "https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=500&h=300&fit=crop&q=80"
   },
   {
     "id": "wp13",
@@ -153,7 +218,12 @@
     "icon": "🏆",
     "is_featured": false,
     "description": "Pull day focusing on back thickness, width, and bicep peak.",
-    "exercises": ["ex3", "ex4", "ex1"]
+    "exercises": [
+      "ex3",
+      "ex4",
+      "ex1"
+    ],
+    "image": "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=500&h=300&fit=crop&q=80"
   },
   {
     "id": "wp14",
@@ -165,7 +235,14 @@
     "icon": "⚔️",
     "is_featured": true,
     "description": "Full one-hour powerlifting session — squat, bench, deadlift, and more.",
-    "exercises": ["ex1", "ex2", "ex3", "ex4", "ex5"]
+    "exercises": [
+      "ex1",
+      "ex2",
+      "ex3",
+      "ex4",
+      "ex5"
+    ],
+    "image": "https://images.unsplash.com/photo-1605296867424-35fc25c9212a?w=500&h=300&fit=crop&q=80"
   },
   {
     "id": "wp15",
@@ -177,7 +254,13 @@
     "icon": "⚡",
     "is_featured": false,
     "description": "Athletic conditioning circuit to improve speed, agility, and endurance.",
-    "exercises": ["Running", "ex6", "ex8", "ex7"]
+    "exercises": [
+      "Running",
+      "ex6",
+      "ex8",
+      "ex7"
+    ],
+    "image": "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=500&h=300&fit=crop&q=80"
   },
   {
     "id": "wp16",
@@ -189,7 +272,13 @@
     "icon": "🤸",
     "is_featured": false,
     "description": "Full body stretch routine to improve mobility, posture, and recovery.",
-    "exercises": ["ex11", "ex12", "Lunges", "ex9"]
+    "exercises": [
+      "ex11",
+      "ex12",
+      "Lunges",
+      "ex9"
+    ],
+    "image": "https://images.unsplash.com/photo-1559595500-e15296152168?w=500&h=300&fit=crop&q=80"
   },
   {
     "id": "wp17",
@@ -201,7 +290,14 @@
     "icon": "🌋",
     "is_featured": true,
     "description": "Classic Tabata protocol — 20 sec on, 10 sec off. Maximum intensity.",
-    "exercises": ["ex6", "ex7", "Running", "ex8", "Push-ups"]
+    "exercises": [
+      "ex6",
+      "ex7",
+      "Running",
+      "ex8",
+      "Push-ups"
+    ],
+    "image": "https://images.unsplash.com/photo-1517826738584-c7b5c0c7e1b3?w=500&h=300&fit=crop&q=80"
   },
   {
     "id": "wp18",
@@ -213,7 +309,12 @@
     "icon": "🎯",
     "is_featured": false,
     "description": "Dedicated shoulder session for boulder shoulders and strong traps.",
-    "exercises": ["ex5", "ex3", "ex2"]
+    "exercises": [
+      "ex5",
+      "ex3",
+      "ex2"
+    ],
+    "image": "https://images.unsplash.com/photo-1581009137042-c552e485697a?w=500&h=300&fit=crop&q=80"
   },
   {
     "id": "wp19",
@@ -225,7 +326,13 @@
     "icon": "🧘",
     "is_featured": false,
     "description": "Sports-focused yoga to increase range of motion and prevent injuries.",
-    "exercises": ["ex11", "ex9", "ex12", "Lunges"]
+    "exercises": [
+      "ex11",
+      "ex9",
+      "ex12",
+      "Lunges"
+    ],
+    "image": "https://images.unsplash.com/photo-1588286840104-8957b019727f?w=500&h=300&fit=crop&q=80"
   },
   {
     "id": "wp20",
@@ -237,7 +344,12 @@
     "icon": "🌙",
     "is_featured": false,
     "description": "Calming evening routine to relax muscles and prepare for deep sleep.",
-    "exercises": ["ex12", "ex11", "ex9"]
+    "exercises": [
+      "ex12",
+      "ex11",
+      "ex9"
+    ],
+    "image": "https://images.unsplash.com/photo-1545389336-cf090694435e?w=500&h=300&fit=crop&q=80"
   },
   {
     "id": "wp21",
@@ -249,7 +361,13 @@
     "icon": "🦵",
     "is_featured": false,
     "description": "High-rep leg circuit to build muscular endurance and definition.",
-    "exercises": ["ex1", "Lunges", "ex4", "ex7"]
+    "exercises": [
+      "ex1",
+      "Lunges",
+      "ex4",
+      "ex7"
+    ],
+    "image": "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=500&h=300&fit=crop&q=80"
   },
   {
     "id": "wp22",
@@ -261,7 +379,14 @@
     "icon": "🏅",
     "is_featured": false,
     "description": "Non-stop cardio marathon for serious fat loss and heart conditioning.",
-    "exercises": ["Running", "ex6", "ex8", "ex7", "ex9"]
+    "exercises": [
+      "Running",
+      "ex6",
+      "ex8",
+      "ex7",
+      "ex9"
+    ],
+    "image": "https://images.unsplash.com/photo-1470468969717-61d5d54fd036?w=500&h=300&fit=crop&q=80"
   },
   {
     "id": "wp23",
@@ -273,7 +398,13 @@
     "icon": "🎯",
     "is_featured": false,
     "description": "Simple and effective beginner ab routine anyone can do at home.",
-    "exercises": ["ex9", "ex10", "Push-ups", "Leg Raises"]
+    "exercises": [
+      "ex9",
+      "ex10",
+      "Push-ups",
+      "Leg Raises"
+    ],
+    "image": "https://images.unsplash.com/photo-1516208813382-0b6c4d7e8572?w=500&h=300&fit=crop&q=80"
   },
   {
     "id": "wp24",
@@ -285,7 +416,14 @@
     "icon": "🏋️",
     "is_featured": true,
     "description": "Classic PPL split in one session — push, pull, and leg movements back to back.",
-    "exercises": ["ex2", "ex3", "ex1", "ex5", "ex4"]
+    "exercises": [
+      "ex2",
+      "ex3",
+      "ex1",
+      "ex5",
+      "ex4"
+    ],
+    "image": "https://images.unsplash.com/photo-1584466977773-e625c37cdd50?w=500&h=300&fit=crop&q=80"
   },
   {
     "id": "wp25",
@@ -297,7 +435,13 @@
     "icon": "🌱",
     "is_featured": true,
     "description": "The perfect 30-day beginner program. Build habits and a fitness foundation.",
-    "exercises": ["Push-ups", "ex9", "Lunges", "ex6"]
+    "exercises": [
+      "Push-ups",
+      "ex9",
+      "Lunges",
+      "ex6"
+    ],
+    "image": "https://images.unsplash.com/photo-1593079831268-3381b0db4a77?w=500&h=300&fit=crop&q=80"
   },
   {
     "id": "wp26",
@@ -309,7 +453,13 @@
     "icon": "☀️",
     "is_featured": true,
     "description": "Quick morning cardio to wake up your body and fire up metabolism for the day.",
-    "exercises": ["ex13", "ex14", "Running", "ex8"]
+    "exercises": [
+      "ex13",
+      "ex14",
+      "Running",
+      "ex8"
+    ],
+    "image": "https://images.unsplash.com/photo-1491555103944-7c647fd857e6?w=500&h=300&fit=crop&q=80"
   },
   {
     "id": "wp27",
@@ -321,7 +471,13 @@
     "icon": "💪",
     "is_featured": false,
     "description": "Dedicated bicep and tricep session for sleeve-busting arm size.",
-    "exercises": ["ex15", "ex17", "ex2", "ex5"]
+    "exercises": [
+      "ex15",
+      "ex17",
+      "ex2",
+      "ex5"
+    ],
+    "image": "https://images.unsplash.com/photo-1583454155184-870a1f63aebc?w=500&h=300&fit=crop&q=80"
   },
   {
     "id": "wp28",
@@ -333,7 +489,13 @@
     "icon": "🍑",
     "is_featured": true,
     "description": "Glute-focused lower body program using hip thrusts, squats, and lunges.",
-    "exercises": ["ex16", "ex1", "Lunges", "ex4"]
+    "exercises": [
+      "ex16",
+      "ex1",
+      "Lunges",
+      "ex4"
+    ],
+    "image": "https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=500&h=300&fit=crop&q=80"
   },
   {
     "id": "wp29",
@@ -345,7 +507,14 @@
     "icon": "🚀",
     "is_featured": true,
     "description": "Plyometric and explosive HIIT circuit for athletes who want power and speed.",
-    "exercises": ["ex18", "ex6", "ex14", "ex13", "Running"]
+    "exercises": [
+      "ex18",
+      "ex6",
+      "ex14",
+      "ex13",
+      "Running"
+    ],
+    "image": "https://images.unsplash.com/photo-1544216717-3bbf52512659?w=500&h=300&fit=crop&q=80"
   },
   {
     "id": "wp30",
@@ -357,6 +526,14 @@
     "icon": "🔥",
     "is_featured": true,
     "description": "The ultimate shred program — every muscle, maximum sweat, zero rest.",
-    "exercises": ["ex6", "ex18", "ex14", "ex7", "ex13", "ex1"]
+    "exercises": [
+      "ex6",
+      "ex18",
+      "ex14",
+      "ex7",
+      "ex13",
+      "ex1"
+    ],
+    "image": "https://images.unsplash.com/photo-1578762560042-46ad127c82f2?w=500&h=300&fit=crop&q=80"
   }
 ]
