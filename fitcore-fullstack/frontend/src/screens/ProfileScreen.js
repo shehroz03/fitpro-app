@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { View, Text, ScrollView, TouchableOpacity, Modal,
   StyleSheet, Alert, ActivityIndicator, TextInput, RefreshControl, Switch, Dimensions } from 'react-native';
 import { authAPI } from '../api/services';
@@ -104,12 +105,25 @@ export default function ProfileScreen({ navigation }) {
   const initials = (user?.full_name || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2);
   const ws = stats?.workout_stats;
 
-  const StatBox = ({ val, label, color }) => (
+  const StatBox = ({ val, label, icon, color }) => (
     <View style={s.statBox}>
+      <View style={s.statIconWrap}>
+        <Ionicons name={icon} size={17} color={color || C.accent} />
+      </View>
       <Text style={[s.statVal, color && { color }]}>{val || '—'}</Text>
       <Text style={s.statLabel}>{label}</Text>
     </View>
   );
+
+  const METRIC_ICONS = {
+    'Height':      'resize-outline',
+    'Weight':      'scale-outline',
+    'Body Fat':    'body-outline',
+    'Muscle Mass': 'fitness-outline',
+    'BMI':         'stats-chart-outline',
+    'Level':       'ribbon-outline',
+  };
+  const LEVEL_COLOR = { beginner:'#4ADE80', intermediate:'#FCD34D', advanced:'#F87171' };
 
   const SRow = ({ iconBg, icon, label, sub, onPress, isRed, right }) => (
     <TouchableOpacity style={s.sRow} onPress={onPress || (() => {})}>
@@ -146,31 +160,46 @@ export default function ProfileScreen({ navigation }) {
       showsVerticalScrollIndicator={false}
     >
       {/* ── HERO ─────────────────────────────────────── */}
-      <View style={s.hero}>
-        <View style={s.avatarWrap}>
-          <ProfileFrame frameId={frameId} avatarSize={82}>
-            {avatarSource(user?.avatar_url) ? (
-              <Image source={avatarSource(user.avatar_url)}
-                style={[s.avatar, frameId !== 'none' && { borderWidth: 0 }]}
-                contentFit="cover" />
-            ) : (
-              <View style={[s.avatar, frameId !== 'none' && { borderWidth: 0 }]}>
-                <Text style={s.avatarTxt}>{initials}</Text>
-              </View>
-            )}
-          </ProfileFrame>
-          <TouchableOpacity style={s.editAvatarBtn} onPress={() => setShowEdit(true)}>
-            <Ionicons name="pencil" size={11} color={C.text} />
-          </TouchableOpacity>
+      <LinearGradient
+        colors={[`${C.accent}28`, `${C.accent}08`, C.bg]}
+        style={s.hero}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+      >
+        {/* Outer glow ring → inner ring → avatar */}
+        <View style={[s.avatarGlowOuter, { borderColor:`${C.accent}30` }]}>
+          <View style={[s.avatarGlowInner, { borderColor:`${C.accent}60` }]}>
+            <View style={s.avatarWrap}>
+              <ProfileFrame frameId={frameId} avatarSize={88}>
+                {avatarSource(user?.avatar_url) ? (
+                  <Image source={avatarSource(user.avatar_url)}
+                    style={[s.avatar, frameId !== 'none' && { borderWidth: 0 }]}
+                    contentFit="cover" />
+                ) : (
+                  <View style={[s.avatar, frameId !== 'none' && { borderWidth: 0 }]}>
+                    <Text style={s.avatarTxt}>{initials}</Text>
+                  </View>
+                )}
+              </ProfileFrame>
+              <TouchableOpacity style={s.editAvatarBtn} onPress={() => setShowEdit(true)}>
+                <Ionicons name="pencil" size={11} color={C.text} />
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
+
         <Text style={s.name}>{user?.full_name || 'User'}</Text>
         <Text style={s.email}>{user?.email}</Text>
         {user?.bio && <Text style={s.bio}>{user.bio}</Text>}
+
         <View style={s.tagRow}>
           {user?.fitness_level && (
-            <View style={s.tag}>
-              <Ionicons name="fitness-outline" size={11} color={C.muted} />
-              <Text style={s.tagTxt}>{user.fitness_level}</Text>
+            <View style={[s.tag, { backgroundColor:`${LEVEL_COLOR[user.fitness_level] || C.accent}18`,
+              borderColor:`${LEVEL_COLOR[user.fitness_level] || C.accent}60` }]}>
+              <Ionicons name="ribbon-outline" size={11} color={LEVEL_COLOR[user.fitness_level] || C.accent} />
+              <Text style={[s.tagTxt, { color: LEVEL_COLOR[user.fitness_level] || C.accent }]}>
+                {user.fitness_level}
+              </Text>
             </View>
           )}
           {user?.unit_system && (
@@ -186,24 +215,31 @@ export default function ProfileScreen({ navigation }) {
             </View>
           )}
         </View>
-      </View>
+      </LinearGradient>
 
       <View style={s.body}>
 
         {/* ── WORKOUT STATS ──────────────────────────── */}
-        <Text style={s.secTitle}>LIFETIME STATS</Text>
+        <View style={s.secTitleRow}>
+          <View style={s.secTitleBar} />
+          <Text style={s.secTitle}>LIFETIME STATS</Text>
+        </View>
         <View style={s.statsRow}>
-          <StatBox val={ws?.total_workouts}              label="Workouts"    color={C.accent} />
-          <StatBox val={ws?.total_minutes ? `${Math.round(ws.total_minutes/60)}h` : '—'} label="Hours" color={C.accent} />
-          <StatBox val={ws?.total_calories ? `${Math.round(ws.total_calories/1000)}k` : '—'} label="Calories" color={C.accent} />
-          <StatBox val={stats?.streak?.longest_streak}  label="Best Streak" color={C.accent} />
+          <StatBox val={ws?.total_workouts}              label="Workouts"    icon="barbell-outline"  color={C.accent} />
+          <StatBox val={ws?.total_minutes ? `${Math.round(ws.total_minutes/60)}h` : '—'} label="Hours" icon="time-outline" color={C.accent} />
+          <StatBox val={ws?.total_calories ? `${Math.round(ws.total_calories/1000)}k` : '—'} label="Calories" icon="flame-outline" color={C.accent} />
+          <StatBox val={stats?.streak?.longest_streak}  label="Best Streak" icon="trophy-outline"   color={C.accent} />
         </View>
 
         {/* ── BODY METRICS ───────────────────────────── */}
         <View style={s.row}>
-          <Text style={s.secTitle}>BODY METRICS</Text>
-          <TouchableOpacity onPress={() => setShowMetrics(true)}>
-            <Text style={s.editLink}>Edit ›</Text>
+          <View style={s.secTitleRow}>
+            <View style={s.secTitleBar} />
+            <Text style={s.secTitle}>BODY METRICS</Text>
+          </View>
+          <TouchableOpacity onPress={() => setShowMetrics(true)} style={s.editLinkBtn}>
+            <Text style={s.editLink}>Edit</Text>
+            <Ionicons name="chevron-forward" size={13} color={C.accent} />
           </TouchableOpacity>
         </View>
         <View style={s.metricsCard}>
@@ -214,16 +250,35 @@ export default function ProfileScreen({ navigation }) {
             ['Muscle Mass',  user?.muscle_mass_kg ? `${user.muscle_mass_kg} kg` : '—'],
             ['BMI',          user?.bmi            ? String(user.bmi)         : '—'],
             ['Level',        user?.fitness_level  || '—'],
-          ].map(([k, v], i, arr) => (
-            <View key={k} style={[s.metricRow, i < arr.length-1 && { borderBottomWidth:0.5, borderColor:C.border }]}>
-              <Text style={s.metricKey}>{k}</Text>
-              <Text style={[s.metricVal, v === '—' && { color:C.dim }]}>{v}</Text>
-            </View>
-          ))}
+          ].map(([k, v], i, arr) => {
+            const isLast = i === arr.length - 1;
+            const isLevel = k === 'Level';
+            const lvlColor = LEVEL_COLOR[v] || C.accent;
+            return (
+              <View key={k} style={[s.metricRow, !isLast && { borderBottomWidth: StyleSheet.hairlineWidth * 2, borderColor: C.border }]}>
+                <View style={s.metricKeyRow}>
+                  <View style={[s.metricIconWrap, { backgroundColor:`${C.accent}12` }]}>
+                    <Ionicons name={METRIC_ICONS[k]} size={14} color={C.accent} />
+                  </View>
+                  <Text style={s.metricKey}>{k}</Text>
+                </View>
+                {isLevel && v !== '—' ? (
+                  <View style={[s.levelPill, { backgroundColor:`${lvlColor}18`, borderColor:`${lvlColor}60` }]}>
+                    <Text style={[s.levelPillTxt, { color: lvlColor }]}>{v}</Text>
+                  </View>
+                ) : (
+                  <Text style={[s.metricVal, v === '—' && { color:C.dim }]}>{v}</Text>
+                )}
+              </View>
+            );
+          })}
         </View>
 
         {/* ── GOALS SHORTCUT ─────────────────────────── */}
-        <Text style={s.secTitle}>MY GOALS</Text>
+        <View style={s.secTitleRow}>
+          <View style={s.secTitleBar} />
+          <Text style={s.secTitle}>MY GOALS</Text>
+        </View>
         <View style={s.settingsCard}>
           <SRow iconBg={C.accentDim}
             icon={<Ionicons name="trophy-outline" size={18} color={C.accent} />}
@@ -232,7 +287,10 @@ export default function ProfileScreen({ navigation }) {
         </View>
 
         {/* ── SETTINGS ───────────────────────────────── */}
-        <Text style={s.secTitle}>SETTINGS</Text>
+        <View style={s.secTitleRow}>
+          <View style={s.secTitleBar} />
+          <Text style={s.secTitle}>SETTINGS</Text>
+        </View>
         <View style={s.settingsCard}>
           <View ref={toggleRowRef} collapsable={false}>
             <SRow
@@ -429,46 +487,59 @@ export default function ProfileScreen({ navigation }) {
 
 const makeStyles = (C) => StyleSheet.create({
   root:         { flex:1, backgroundColor:C.bg },
-  hero:         { backgroundColor:C.accentDim, paddingTop:20, paddingBottom:24,
-                  alignItems:'center', borderBottomWidth:1, borderColor:C.border },
-  avatarWrap:   { position:'relative', marginBottom:12 },
-  avatar:       { width:82, height:82, borderRadius:41, backgroundColor:C.accent,
+  hero:         { paddingTop:28, paddingBottom:28, alignItems:'center',
+                  borderBottomWidth:1, borderColor:C.border },
+  avatarGlowOuter:{ borderRadius:70, borderWidth:2, padding:6, marginBottom:14 },
+  avatarGlowInner:{ borderRadius:60, borderWidth:2, padding:4 },
+  avatarWrap:   { position:'relative' },
+  avatar:       { width:88, height:88, borderRadius:44, backgroundColor:C.accent,
                   alignItems:'center', justifyContent:'center',
-                  borderWidth:3, borderColor:`${C.accent}60` },
-  avatarTxt:    { fontSize:28, fontWeight:'900', color:C.accentText },
+                  borderWidth:3, borderColor:`${C.accent}80` },
+  avatarTxt:    { fontSize:30, fontWeight:'900', color:C.accentText },
   editAvatarBtn:{ position:'absolute', bottom:0, right:-2, backgroundColor:C.card2,
                   borderRadius:12, width:24, height:24, alignItems:'center',
                   justifyContent:'center', borderWidth:1, borderColor:C.border },
-  name:         { color:C.text, fontSize:22, fontWeight:'800', marginBottom:4 },
-  email:        { color:C.muted, fontSize:13, marginBottom:6 },
+  name:         { color:C.text, fontSize:24, fontWeight:'900', marginBottom:3, letterSpacing:-0.3 },
+  email:        { color:C.muted, fontSize:13, marginBottom:10 },
   bio:          { color:C.muted, fontSize:13, textAlign:'center', paddingHorizontal:24, marginBottom:8 },
   tagRow:       { flexDirection:'row', gap:8, flexWrap:'wrap', justifyContent:'center' },
   tag:          { flexDirection:'row', alignItems:'center', gap:5, backgroundColor:C.card,
-                  borderRadius:10, paddingHorizontal:12, paddingVertical:4,
+                  borderRadius:20, paddingHorizontal:12, paddingVertical:5,
                   borderWidth:1, borderColor:C.border },
-  tagTxt:       { color:C.muted, fontSize:12, fontWeight:'600', textTransform:'capitalize' },
+  tagTxt:       { color:C.muted, fontSize:12, fontWeight:'700', textTransform:'capitalize' },
   body:         { padding:16 },
-  row:          { flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom:8 },
-  secTitle:     { color:C.dim, fontSize:11, fontWeight:'700', letterSpacing:1,
-                  textTransform:'uppercase', marginBottom:8, marginTop:4 },
+  row:          { flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom:10 },
+  secTitleRow:  { flexDirection:'row', alignItems:'center', gap:7, marginBottom:10, marginTop:6 },
+  secTitleBar:  { width:3, height:13, borderRadius:2, backgroundColor:C.accent },
+  secTitle:     { color:C.muted, fontSize:11, fontWeight:'800', letterSpacing:1.2,
+                  textTransform:'uppercase' },
+  editLinkBtn:  { flexDirection:'row', alignItems:'center', gap:2 },
   editLink:     { color:C.accent, fontSize:13, fontWeight:'700' },
   statsRow:     { flexDirection:'row', gap:8, marginBottom:20 },
-  statBox:      { flex:1, backgroundColor:C.card, borderRadius:14, borderWidth:1,
-                  borderColor:C.border, paddingVertical:12, alignItems:'center' },
-  statVal:      { color:C.accent, fontSize:18, fontWeight:'900' },
-  statLabel:    { color:C.muted, fontSize:9, marginTop:2, textAlign:'center' },
-  metricsCard:  { backgroundColor:C.card, borderRadius:16, borderWidth:1,
+  statBox:      { flex:1, backgroundColor:C.card, borderRadius:16, borderWidth:1,
+                  borderColor:C.border, paddingVertical:14, paddingHorizontal:4, alignItems:'center' },
+  statIconWrap: { width:32, height:32, borderRadius:10, backgroundColor:`${C.accent}14`,
+                  alignItems:'center', justifyContent:'center', marginBottom:7 },
+  statVal:      { color:C.accent, fontSize:18, fontWeight:'900', lineHeight:22 },
+  statLabel:    { color:C.muted, fontSize:9, fontWeight:'600', marginTop:2, textAlign:'center',
+                  textTransform:'uppercase', letterSpacing:0.4 },
+  metricsCard:  { backgroundColor:C.card, borderRadius:18, borderWidth:1,
                   borderColor:C.border, marginBottom:20, overflow:'hidden' },
   metricRow:    { flexDirection:'row', justifyContent:'space-between', alignItems:'center',
-                  paddingVertical:12, paddingHorizontal:16 },
+                  paddingVertical:12, paddingHorizontal:14 },
+  metricKeyRow: { flexDirection:'row', alignItems:'center', gap:10 },
+  metricIconWrap:{ width:28, height:28, borderRadius:8, alignItems:'center', justifyContent:'center' },
   metricKey:    { color:C.muted, fontSize:14 },
   metricVal:    { color:C.text, fontSize:14, fontWeight:'700' },
-  settingsCard: { backgroundColor:C.card, borderRadius:16, borderWidth:1,
+  levelPill:    { borderRadius:20, paddingHorizontal:12, paddingVertical:4,
+                  borderWidth:1 },
+  levelPillTxt: { fontSize:12, fontWeight:'800', textTransform:'capitalize' },
+  settingsCard: { backgroundColor:C.card, borderRadius:18, borderWidth:1,
                   borderColor:C.border, marginBottom:16, overflow:'hidden' },
-  sRow:         { flexDirection:'row', alignItems:'center', gap:12, paddingVertical:12,
+  sRow:         { flexDirection:'row', alignItems:'center', gap:12, paddingVertical:13,
                   paddingHorizontal:14, borderBottomWidth:0.5, borderColor:C.border },
-  sIcon:        { width:36, height:36, borderRadius:9, alignItems:'center', justifyContent:'center' },
-  sLabel:       { color:C.text, fontSize:14, fontWeight:'500' },
+  sIcon:        { width:38, height:38, borderRadius:11, alignItems:'center', justifyContent:'center' },
+  sLabel:       { color:C.text, fontSize:14, fontWeight:'600' },
   sSub:         { color:C.muted, fontSize:11, marginTop:1 },
   chevron:      { color:C.dim, fontSize:20 },
   version:      { color:C.dim, fontSize:12, textAlign:'center', marginBottom:16 },
@@ -500,5 +571,5 @@ const makeStyles = (C) => StyleSheet.create({
   cancelBtn:    { flex:1, backgroundColor:C.border, borderRadius:12, paddingVertical:13, alignItems:'center' },
   cancelTxt:    { color:C.text, fontWeight:'700' },
   confirmBtn:   { flex:2, backgroundColor:C.accent, borderRadius:12, paddingVertical:13, alignItems:'center' },
-  confirmTxt:   { color:'#000', fontWeight:'800', fontSize:15 },
+  confirmTxt:   { color:C.accentText, fontWeight:'800', fontSize:15 },
 });
