@@ -10,7 +10,8 @@
       "bundleIdentifier": "com.fitcore.pro"
     },
     "android": {
-      "package": "com.fitcore.pro"
+      "package": "com.fitcore.pro",
+      "softwareKeyboardLayoutMode": "resize"
     },
     "plugins": [
       "expo-secure-store",

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
   StyleSheet, Animated, KeyboardAvoidingView, Platform,
-  Dimensions, ActivityIndicator, ScrollView, Clipboard,
+  Dimensions, ActivityIndicator, ScrollView, Clipboard, Keyboard,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -493,20 +493,20 @@ function MessageBubble({ msg, doctorName, doctorColor, doctorEmoji, isFemale, is
   return (
     <Animated.View style={{ opacity: fade, transform: [{ translateY: slide }], marginBottom: 16 }}>
       {/* Doctor name + avatar row */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 7 }}>
-        <View style={[st.avatar, { backgroundColor: doctorColor + '1A', borderColor: doctorColor + '55' }]}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 7 }}>
+        <View style={[st.avatar, { backgroundColor: doctorColor + '1A', borderColor: doctorColor + '55', marginRight: 8 }]}>
           <Text style={{ fontSize: 14 }}>{doctorEmoji}</Text>
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <Text style={{ color: doctorColor, fontSize: 11, fontWeight: '900', letterSpacing: 0.5 }}>
             {doctorName.toUpperCase()}
           </Text>
           {/* Verified badge */}
-          <View style={[st.verifiedBadge, { backgroundColor: doctorColor + '20', borderColor: doctorColor + '40' }]}>
+          <View style={[st.verifiedBadge, { backgroundColor: doctorColor + '20', borderColor: doctorColor + '40', marginLeft: 6, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 4 }]}>
             <Ionicons name="shield-checkmark" size={8} color={doctorColor} />
-            <Text style={{ color: doctorColor, fontSize: 8, fontWeight: '800' }}>AI</Text>
+            <Text style={{ color: doctorColor, fontSize: 8, fontWeight: '800', marginLeft: 2 }}>AI</Text>
           </View>
-          <Text style={{ color: 'rgba(255,255,255,0.2)', fontSize: 9 }}>{msg.time}</Text>
+          <Text style={{ color: 'rgba(255,255,255,0.2)', fontSize: 9, marginLeft: 6 }}>{msg.time}</Text>
         </View>
       </View>
 
@@ -542,7 +542,7 @@ function MessageBubble({ msg, doctorName, doctorColor, doctorEmoji, isFemale, is
 // ─────────────────────────────────────────────────────────────────────────────
 //  QUICK REPLY CHIP
 // ─────────────────────────────────────────────────────────────────────────────
-function QuickChip({ label, icon, onPress, color }) {
+function QuickChip({ label, icon, onPress, color, style }) {
   const scale = useRef(new Animated.Value(1)).current;
   // Parse hex to rgb so rgba() works reliably (avoids 8-digit hex parsing issues)
   const r = parseInt(color.slice(1, 3), 16);
@@ -556,16 +556,16 @@ function QuickChip({ label, icon, onPress, color }) {
     onPress();
   };
   return (
-    <Animated.View style={{ transform: [{ scale }] }}>
+    <Animated.View style={[{ transform: [{ scale }] }, style]}>
       <TouchableOpacity
         style={[st.chip, {
           borderColor: `rgba(${r},${g},${b},0.85)`,
           backgroundColor: `rgba(${r},${g},${b},0.18)`,
         }]}
-        onPress={press} activeOpacity={0.75}
+        onPress={press} activeOpacity={0.85}
       >
-        {icon ? <Text style={{ fontSize: 13 }}>{icon}</Text> : null}
-        <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>{label}</Text>
+        {icon ? <Text style={{ fontSize: 13, marginRight: 6 }}>{icon}</Text> : null}
+        <Text style={{ color: '#fff', fontSize: 13, fontWeight: '800', textAlign: 'center', alignSelf: 'center' }}>{label}</Text>
       </TouchableOpacity>
     </Animated.View>
   );
@@ -676,7 +676,7 @@ function WorkoutSuggestionCards({ message, allPlans, navigation, isFemale }) {
           WORKOUTS FROM THE APP
         </Text>
       </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="always" contentContainerStyle={{ gap: 10 }}>
         {matches.map(plan => {
           const thumb  = CAT_THUMB[plan.category] || DEFAULT_THUMB;
           const accent = thumb.accent;
@@ -939,6 +939,7 @@ export default function DietDoctorScreen({ navigation }) {
   const send = async (textOverride) => {
     const text = (textOverride || input).trim();
     if (!text || loading) return;
+    Keyboard.dismiss();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setInput('');
     const userMsg = { role: 'user', content: text, time: getTime(), id: `u${Date.now()}` };
@@ -1011,7 +1012,10 @@ export default function DietDoctorScreen({ navigation }) {
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: BG }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      // iOS: pad for the keyboard. Android: let native adjustResize handle it
+      // ('height' causes the jumpy/glitchy keyboard the user reported).
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={0}
     >
       {/* ── HEADER ──────────────────────────────────────────────────── */}
       <LinearGradient
@@ -1058,6 +1062,8 @@ export default function DietDoctorScreen({ navigation }) {
         keyExtractor={m => m.id}
         contentContainerStyle={{ padding: 16, paddingBottom: 8 }}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
         onContentSizeChange={scrollToEnd}
         renderItem={({ item }) => (
           <MessageBubble
@@ -1081,19 +1087,23 @@ export default function DietDoctorScreen({ navigation }) {
 
       {/* ── QUICK REPLIES ───────────────────────────────────────────── */}
       {!loading && chipsToShow && chipsToShow.length > 0 && (
-        <ScrollView
-          horizontal showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 14, gap: 8, paddingBottom: 6, paddingTop: 2 }}
-        >
-          {chipsToShow.map((q, i) => (
-            <QuickChip
-              key={i}
-              label={q.l}
-              color={doctorColor}
-              onPress={() => send(q.s)}
-            />
-          ))}
-        </ScrollView>
+        <View style={{ height: 52, justifyContent: 'center' }}>
+          <ScrollView
+            horizontal showsHorizontalScrollIndicator={false}
+            keyboardShouldPersistTaps="always"
+            contentContainerStyle={{ paddingHorizontal: 14, paddingBottom: 6, paddingTop: 2 }}
+          >
+            {chipsToShow.map((q, i) => (
+              <QuickChip
+                key={i}
+                label={q.l}
+                color={doctorColor}
+                onPress={() => send(q.s)}
+                style={{ marginRight: 8 }}
+              />
+            ))}
+          </ScrollView>
+        </View>
       )}
 
       {/* ── INPUT ROW ───────────────────────────────────────────────── */}
@@ -1193,7 +1203,7 @@ const st = StyleSheet.create({
   disclaimer:  { flexDirection: 'row', alignItems: 'flex-start', gap: 6, margin: 12, marginTop: 4 },
   saveToAppBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', margin: 12, marginTop: 8, marginBottom: 4, paddingVertical: 12, borderRadius: 14, borderWidth: 1.5, borderColor: 'rgba(200,241,53,0.35)', backgroundColor: 'rgba(200,241,53,0.07)' },
   // Quick chips
-  chip:        { flexDirection: 'row', alignItems: 'center', gap: 5, borderWidth: 1, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 7 },
+  chip:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', alignSelf: 'center', minHeight: 36, borderWidth: 1, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 8 },
   // Input
   inputWrap:   { borderTopWidth: 1, paddingHorizontal: 12, paddingTop: 8 },
   inputBox:    { flexDirection: 'row', alignItems: 'flex-end', gap: 8, borderWidth: 1.5, borderRadius: 24, paddingHorizontal: 14, paddingRight: 6 },
