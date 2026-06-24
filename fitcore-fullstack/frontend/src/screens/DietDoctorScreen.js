@@ -1012,9 +1012,7 @@ export default function DietDoctorScreen({ navigation }) {
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: BG }}
-      // iOS: pad for the keyboard. Android: let native adjustResize handle it
-      // ('height' causes the jumpy/glitchy keyboard the user reported).
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior="padding"
       keyboardVerticalOffset={0}
     >
       {/* ── HEADER ──────────────────────────────────────────────────── */}
