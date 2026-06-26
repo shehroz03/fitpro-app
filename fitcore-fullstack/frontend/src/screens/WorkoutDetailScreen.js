@@ -109,7 +109,15 @@ const EXERCISE_VIDEO = {
     'Tricep Dip':        'Woman_performing_tricep_dip_202606110124.mp4',
     'Dumbbell Curl':     'Woman_performing_dumbbell_curl_202606110124.mp4',
     'Hip Thrust':        'Woman_performing_barbell_hip_thrust_202606110124.mp4',
-    'Leg Raises':        'Woman_doing_leg_raises_202606261654.mp4',
+    'Leg Raises':           'Woman_doing_leg_raises_202606261654.mp4',
+    'Knee Push-up':         'Woman_performing_knee_push-up_202606261718.mp4',
+    'Decline Push-up':      'Woman_performing_decline_push-up_202606261722.mp4',
+    'Diamond Push-up':      'Woman_performing_diamond_push-up_202606261723.mp4',
+    'Arm Circles':          'Woman_performing_arm_circles_202606261725.mp4',
+    'Chest Cobra':          'Woman_performing_chest_cobra_pose_202606261727.mp4',
+    'Dumbbell Chest Press': 'Woman_performing_dumbbell_chest_press_202606261728.mp4',
+    'Band Chest Press':     'Woman_doing_resistance_band_chest_press_202606261730.mp4',
+    'Band Chest Fly':       'Woman_performing_resistance_band_chest_fly_202606261732.mp4',
   },
 };
 
@@ -201,6 +209,38 @@ const EXERCISE_DATA = {
   'Box Jumps': { sets:4, reps:8, rest:60, move:'boxjump', muscle:'Legs · Glutes · Power',
     steps:['Stand facing the box, feet hip-width apart','Swing arms back and bend knees into a quarter squat','Swing arms forward explosively and jump onto the box','Land softly on your full foot in a slight squat position','Stand fully upright on the box, then step down carefully','Reset and repeat. Do 8 reps then rest 60 seconds'],
     tips:['Soft landing on full foot','Hinge on landing','Full hip extension at top','Step down safely'] },
+
+  'Knee Push-up': { sets:3, reps:15, rest:45, move:'kneepush', muscle:'Chest · Shoulders · Triceps',
+    steps:['Start on hands and knees — hands shoulder-width, knees on mat','Body should form a straight line from knees to shoulders','Lower your chest toward the floor by bending elbows to 45°','Keep core tight — do not let hips sag or rise','Push through palms to return to start position','Complete 15 reps then rest 45 seconds'],
+    tips:['Hands shoulder-width','Body straight knees to shoulders','Elbows 45°','Core tight'] },
+
+  'Decline Push-up': { sets:3, reps:12, rest:60, move:'declinepush', muscle:'Upper Chest · Shoulders',
+    steps:['Place feet on a raised surface (sofa edge or step) — hands on the floor','Body should slope downward — feet higher than head','Lower chest toward the floor with elbows at 45°','Go until chest nearly touches the floor','Push explosively back up to straight arms','Complete 12 reps then rest 60 seconds'],
+    tips:['Feet elevated','Body in straight line','Elbows 45°','Targets upper chest'] },
+
+  'Diamond Push-up': { sets:3, reps:10, rest:60, move:'diamondpush', muscle:'Inner Chest · Triceps',
+    steps:['Place hands close together under your chest making a diamond shape','Extend legs back into a full plank position','Lower chest toward your hands — elbows point out to the sides','Go as low as your range allows without collapsing','Push back up to full arm extension','Complete 10 reps then rest 60 seconds'],
+    tips:['Diamond hand shape','Elbows out','Chest to hands','Core tight'] },
+
+  'Arm Circles': { sets:3, reps:20, rest:30, move:'armcircle', muscle:'Shoulders · Chest · Arms',
+    steps:['Stand tall with feet shoulder-width apart','Extend both arms straight out to the sides at shoulder height','Make small controlled circles forward for 10 reps','Reverse direction and make circles backward for 10 reps','Keep arms straight and at shoulder level throughout','Complete 20 total circles then rest 30 seconds'],
+    tips:['Arms at shoulder height','Controlled circles','Keep arms straight','Feel the burn'] },
+
+  'Chest Cobra': { sets:3, reps:10, rest:30, move:'chestcobra', muscle:'Chest Stretch · Spine Flexibility',
+    steps:['Lie face down with hands under your shoulders','Press into the floor and lift your chest slowly','Open the chest wide and hold the stretch for 3 seconds','Feel the stretch across your entire chest and pectorals','Lower back down to the mat gently','Complete 10 reps with deep breathing'],
+    tips:['Lift from chest not waist','Open chest wide','Breathe into the stretch','Hold 3 seconds'] },
+
+  'Dumbbell Chest Press': { sets:3, reps:12, rest:60, move:'dbchestpress', muscle:'Chest · Triceps · Shoulders',
+    steps:['Lie on your back on the mat, knees bent and feet flat','Hold a light dumbbell in each hand at chest level, palms facing forward','Press both dumbbells straight up until arms are fully extended','Lower the dumbbells slowly back to chest level in a controlled arc','Keep your lower back flat against the mat throughout','Complete 12 reps then rest 60 seconds'],
+    tips:['Back flat on mat','Press straight up','Control descent','Even both arms'] },
+
+  'Band Chest Press': { sets:3, reps:12, rest:60, move:'bandpress', muscle:'Chest · Triceps · Shoulders',
+    steps:['Anchor the resistance band behind you at chest height','Hold one end in each hand and step forward to create tension','Stand tall with feet shoulder-width, core braced','Press both hands forward until arms fully extend','Slowly return hands to chest level controlling the band tension','Complete 12 reps then rest 60 seconds'],
+    tips:['Band anchored at chest height','Steady tension throughout','Squeeze chest at extension','Control the return'] },
+
+  'Band Chest Fly': { sets:3, reps:12, rest:60, move:'bandfly', muscle:'Chest · Pectorals · Shoulder Stability',
+    steps:['Anchor the resistance band behind you at shoulder height','Hold one end in each hand, step forward to create tension','Start with arms open wide to the sides at shoulder height','Bring both hands together in front of your chest in an arc','Squeeze your chest muscles hard as hands meet','Open arms back to start slowly. Complete 12 reps then rest 60 seconds'],
+    tips:['Slight bend in elbows','Arc movement not straight press','Squeeze chest at center','Control the opening'] },
 };
 const DEF = { sets:3, reps:12, rest:60, move:'squat', muscle:'Full Body', tips:['Form first','Control movement','Breathe properly','Stay consistent'] };
 
@@ -253,6 +293,14 @@ const VIDEOS = {
     jumpjack:    v('female/Woman_performing_jumping_jacks_202606110124.mp4'),
     highknees:   v('female/Woman_performing_high_knees_202606110124.mp4'),
     legraise:    v('female/Woman_doing_leg_raises_202606261654.mp4'),
+    kneepush:    v('female/Woman_performing_knee_push-up_202606261718.mp4'),
+    declinepush: v('female/Woman_performing_decline_push-up_202606261722.mp4'),
+    diamondpush: v('female/Woman_performing_diamond_push-up_202606261723.mp4'),
+    armcircle:   v('female/Woman_performing_arm_circles_202606261725.mp4'),
+    chestcobra:  v('female/Woman_performing_chest_cobra_pose_202606261727.mp4'),
+    dbchestpress:v('female/Woman_performing_dumbbell_chest_press_202606261728.mp4'),
+    bandpress:   v('female/Woman_doing_resistance_band_chest_press_202606261730.mp4'),
+    bandfly:     v('female/Woman_performing_resistance_band_chest_fly_202606261732.mp4'),
   },
 };
 
@@ -280,6 +328,14 @@ const MOVE_INFO = {
   hipthrust:   { icon:'fitness-outline', color:'#FF6B9D' },
   tricdip:     { icon:'barbell-outline', color:'#9B6DFF' },
   boxjump:     { icon:'flash-outline',   color:'#C8F135' },
+  kneepush:    { icon:'fitness-outline', color:'#FF6B9D' },
+  declinepush: { icon:'fitness-outline', color:'#FF6B9D' },
+  diamondpush: { icon:'fitness-outline', color:'#FF6B9D' },
+  armcircle:   { icon:'body-outline',    color:'#FF9F0A' },
+  chestcobra:  { icon:'body-outline',    color:'#C8F135' },
+  dbchestpress:{ icon:'barbell-outline', color:'#FF6B9D' },
+  bandpress:   { icon:'fitness-outline', color:'#A78BFA' },
+  bandfly:     { icon:'fitness-outline', color:'#A78BFA' },
 };
 
 // ── Paused video thumbnail for exercise list ──────────────────

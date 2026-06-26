@@ -535,5 +535,28 @@
       "ex1"
     ],
     "image": "https://images.unsplash.com/photo-1578762560042-46ad127c82f2?w=500&h=300&fit=crop&q=80"
+  },
+  {
+    "id": "wp31",
+    "name": "Chest Lift & Firm",
+    "category": "strength",
+    "difficulty": "beginner",
+    "duration_min": 30,
+    "calories": 200,
+    "icon": "🌸",
+    "is_featured": true,
+    "gender": "female",
+    "description": "Women's chest toning workout to lift, firm and shape pectorals at home — no gym needed.",
+    "exercises": [
+      "Knee Push-up",
+      "Arm Circles",
+      "Dumbbell Chest Press",
+      "Band Chest Press",
+      "Diamond Push-up",
+      "Decline Push-up",
+      "Band Chest Fly",
+      "Chest Cobra"
+    ],
+    "image": "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=500&h=300&fit=crop&q=80"
   }
 ]
