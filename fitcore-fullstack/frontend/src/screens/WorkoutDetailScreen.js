@@ -109,7 +109,7 @@ const EXERCISE_VIDEO = {
     'Tricep Dip':        'Woman_performing_tricep_dip_202606110124.mp4',
     'Dumbbell Curl':     'Woman_performing_dumbbell_curl_202606110124.mp4',
     'Hip Thrust':        'Woman_performing_barbell_hip_thrust_202606110124.mp4',
-    'Leg Raises':        'Woman_holding_forearm_plank_202606110124.mp4',
+    'Leg Raises':        'Woman_doing_leg_raises_202606261654.mp4',
   },
 };
 
@@ -146,7 +146,7 @@ const EXERCISE_DATA = {
     steps:['Stand with feet shoulder-width apart','Drop hands to floor beside feet','Jump both feet back to a high plank position','Optionally do one push-up here','Jump both feet back toward your hands','Explode upward, fully extending your body — clap overhead','Land softly and repeat immediately. Do 15 reps then rest 60 seconds'],
     tips:['Explosive jump','Land softly','Core tight','Breathe rhythm'] },
 
-  'Leg Raises': { sets:5, reps:10, rest:60, move:'pushup', muscle:'Lower Abs · Hip Flexors',
+  'Leg Raises': { sets:5, reps:10, rest:60, move:'legraise', muscle:'Lower Abs · Hip Flexors',
     steps:['Lie flat on your back, arms straight by your sides','Press your lower back firmly into the floor','Keep both legs straight and together throughout','Raise legs until they point straight up at 90°','Lower legs slowly back down until just above the floor','Do not let heels touch down. Complete 10 reps, rest 60 seconds'],
     tips:['Back flat on floor','Legs straight','Lower slowly','No momentum'] },
 
@@ -252,6 +252,7 @@ const VIDEOS = {
     boxjump:     v('female/Woman_performs_box_jump_202606110124.mp4'),
     jumpjack:    v('female/Woman_performing_jumping_jacks_202606110124.mp4'),
     highknees:   v('female/Woman_performing_high_knees_202606110124.mp4'),
+    legraise:    v('female/Woman_doing_leg_raises_202606261654.mp4'),
   },
 };
 
@@ -265,6 +266,7 @@ const MOVE_INFO = {
   lunge:       { icon:'walk-outline',    color:'#9B6DFF' },
   burpee:      { icon:'flash-outline',   color:'#FF453A' },
   legraise:    { icon:'body-outline',    color:'#4D8DFF' },
+
   twist:       { icon:'body-outline',    color:'#2FCFA0' },
   pushup:      { icon:'fitness-outline', color:'#C8F135' },
   climb:       { icon:'walk-outline',    color:'#FF9F0A' },
